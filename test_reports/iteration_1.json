@@ -1,0 +1,51 @@
+{
+  "summary": "First-cycle full-stack test of Chomp Champs. Backend pytest suite (21 cases across health, contests, player CRUD, match start/result, leaderboard, shop, purchase, trash-talk LLM) — 21/21 PASSED. Frontend Playwright mobile (390x844): home loads with CHOMP CHAMPS, coins/tums balances, featured hero + 3 other contests; Contests tab shows all 6 famous restaurants (Nathan's, Wing Bowl, Pizza Hut, Katz's, Ben & Jerry's, In-N-Out); /play screen runs countdown then playing state; tap → 3 chomps yields +1 score; belly & heartburn meters render; DUNK & TUMS buttons functional; combo counter shows x10 on rapid taps; MC banner with LLM trash talk from Takeru K. rendered correctly; Leaderboard (RANKS) shows seeded bots incl. ChompKing (22 rows visible); Shop has 6 items, tums-5 purchase succeeded (coins 200→85 after entry fee+purchase, tums 5→10) with toast. Profile edit modal opens, but SAVE button is OUTSIDE viewport on 390x844 because the modal isn't wrapped in ScrollView — large emoji+country grids push CTA below screen. Backend LLM endpoint uses claude-sonnet-4-6 (live, confirmed in logs).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Profile edit modal (/app/frontend/app/(tabs)/profile.tsx:84-124)",
+        "issue": "Modal content (username + 8 avatar emojis + 14 country flags + Cancel/Save) exceeds 844px viewport on small phones. modalBackdrop justifyContent:'flex-end' + non-scrollable modalCard cause SAVE/CANCEL to be clipped below the screen. Wrap modalCard children in a ScrollView or set maxHeight and make content scrollable.",
+        "testID": "save-profile-btn",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Global",
+        "issues": [
+          "Console warnings: 'shadow* style props are deprecated. Use boxShadow' and 'props.pointerEvents is deprecated. Use style.pointerEvents'. From third-party libs (react-native-web compat) — non-blocking but main agent may want to silence."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_chomp_champs.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix Profile edit modal so SAVE button is reachable on 390x844 viewport: wrap modalCard inner content in a ScrollView with contentContainerStyle padding or set modalCard maxHeight: '85%' + scrollable body."
+  ],
+  "critical_code_review_comments": [
+    "server.py is a single 428-line file with catalogs + routes + LLM glue — acceptable for this size, but if game grows, split CONTESTS/AI_OPPONENTS/SHOP_ITEMS into a catalog module and routes into routers.",
+    "POST /api/match/start accepts a raw dict instead of a Pydantic model — inconsistent with other endpoints; consider adding MatchStartRequest for validation.",
+    "Leaderboard merges 200 player docs + 20 bots every call with no caching; fine for now but a TTL cache would help under load.",
+    "refill_tums silently swallows datetime parse errors and resets last to now, which can cost a player their refill credit — log a warning for visibility.",
+    "TrashTalkRequest.event is a free-form string; should be a Literal/Enum to prevent invalid values."
+  ],
+  "updated_files": [
+    "/app/backend/tests/__init__.py (new)",
+    "/app/backend/tests/test_chomp_champs.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "~95%"},
+  "seed_data_creation": "Test devices prefixed TEST_ created via /api/player; no manual seeding. Bot leaderboard is hardcoded in server.py.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Tab labels in UI are ARENA / CONTESTS / RANKS / SHOP / ME (not Home/Leaderboard/Profile). Use page.get_by_text('CONTESTS', exact=True).first.click(force=True). Game screen needs ~3.5s wait after entering for countdown. EMERGENT_LLM_KEY is wired through emergentintegrations + claude-sonnet-4-6, confirmed live (LiteLLM logs). Mocked: coin pack purchases (no real IAP); PvP is bot-simulated.",
+  "rca_of_issue": "Profile modal SAVE button off-screen RCA: modalBackdrop uses justifyContent:'flex-end' to dock the sheet to bottom, but modalCard has no maxHeight or internal ScrollView. With 8 avatar emojis and 14 country flags wrapping in emojiGrid, the card grows taller than the available 844px (minus status/nav bars), and React Native Web does not clip the bottom — but Playwright correctly reports the button is outside the viewport, mirroring real device behavior on smaller screens (iPhone SE etc.). Fix: replace inner <View> of modalCard with a <ScrollView style={{maxHeight: '85%'}}> or wrap the avatar/country grids in a ScrollView."
+}

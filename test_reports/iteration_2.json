@@ -1,0 +1,54 @@
+{
+  "summary": "Polish-pass feature test. Backend pytest: 37/37 PASSED (21 existing + 16 new across bite_mechanic, /tournament, /daily/{status,claim}, /shop+/gear, gear purchase + duplicate, /player/equip (owned/unowned/clear), /player/tutorial_done, belt fields, tutorial /match/start, tournament prize multiplier, golden_spoon +20%, belt level-up on XP). Frontend Playwright (390x844) VERIFIED: (1) new device routes to /tutorial; 5 tip cards + START PRACTICE + SKIP visible; SKIP marks tutorial_done and routes to home. (2) Home header shows Bronze Belly belt + XP bar (0/200 to Silver Stomach). (3) Daily Reward banner appears, opens 7-day grid modal, claim button updates coin balance 200→300 and toast shown. (4) Tournament banner shows '🌭 GLORY WEEK / Hot Dog Hammer / BOOSTED PRIZE 🪙1500 / ×3 MULTIPLIER / ENTER' on home. (5) Shop renders 3 sections (GEAR — Permanent Perks, TUMS PACKS, COIN BUNDLES). All 4 gear cards (Lucky Bib, Stretchy Belt, Golden Spoon, Iron Stomach) render with perk text + price. Buying Lucky Bib (400 coins) updates button to 'OWNED'. (6) Profile shows belt name 'Bronze Belly' + 🥉 icon + XP bar '0 / 200 XP to Silver Stomach' + Equipped Gear slot. Opening equip modal shows owned gear; tapping Lucky Bib equips it and profile shows 'Lucky Bib' card with perk text. \n\n*** CRITICAL FRONTEND BUG: /play/[contestId] crashes immediately with red-screen 'ReferenceError: Cannot access setHoldStart before initialization'. This blocks ALL gameplay (every contest, tournament, AND the tutorial practice match). Could not verify food-specific bite mechanics (tap/swipe/hold_release/rapid), SFX, Lucky Bib revive, Stretchy Belt 120 cap, result screen level-up card, or SHARE button — all gated behind the play screen which never renders. ***",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "/app/frontend/app/play/[contestId].tsx:274-294",
+        "issue": "Temporal Dead Zone crash on every play-screen mount. `const longPress = Gesture.LongPress().onStart(() => { runOnJS(setHoldStart)(); })` is declared at line 274 BEFORE `const setHoldStart = () => {...}` (line 280) and `const handleHoldRelease` (line 284). Reanimated/gesture-handler worklet-izes the onStart/onEnd callbacks and captures the referenced identifiers into the gesture spec at render time, which evaluates `setHoldStart` while it's still in TDZ, throwing 'Cannot access setHoldStart before initialization'. Fix: move BOTH `setHoldStart` and `handleHoldRelease` (and ideally also `handleSwipeBite`, any other callbacks referenced inside Gesture.* builders) ABOVE the corresponding `Gesture.*` declarations, OR declare gestures inside `useMemo`/`useAnimatedGestureHandler` after the callbacks. This blocks 100% of gameplay including the tutorial practice match.",
+        "testID": "play-screen-redscreen",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "Profile edit modal (carryover) — /app/frontend/app/(tabs)/profile.tsx",
+        "issue": "Previous iteration's modal-clipping issue may still exist; not retested this cycle.",
+        "testID": "save-profile-btn",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {"flow": "Play / Result / Share / Level-up", "issue": "Blocked by setHoldStart TDZ crash — could not exercise food-specific bite mechanics (Wing Bowl swipe, Ice Cream hold_release, Burger rapid), SFX wiring, Lucky Bib revive, Stretchy Belt 120 cap, or result screen level-up + SHARE.", "affected_testIDs": ["play-screen", "level-up-card", "share-btn"]}
+    ],
+    "design_issues": [
+      {"screen": "Global", "issues": ["Console warnings still present: shadow* style props deprecated, props.pointerEvents deprecated (third-party libs, non-blocking)."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_chomp_champs.py",
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/pytest_new_features.xml"
+  ],
+  "action_items": [
+    "CRITICAL: In /app/frontend/app/play/[contestId].tsx, reorder declarations so `setHoldStart` and `handleHoldRelease` (and any other callbacks referenced inside Gesture.* / runOnJS) appear BEFORE the corresponding `Gesture.LongPress()`/`Gesture.Pan()`/etc. builders. After fix, retest /play for every bite_mechanic (tap/swipe/hold_release/rapid), Lucky Bib revive, Stretchy Belt 120 cap, SFX no-ops, and Result screen SHARE + level-up card.",
+    "Optional: also re-verify Profile edit modal SAVE button reachability (carryover from iter-1)."
+  ],
+  "critical_code_review_comments": [
+    "Heavy use of forward-referenced consts inside Gesture builders is a recurring foot-gun with reanimated worklets — prefer declaring all handler functions at the top of the component or wrapping gestures in useMemo after all deps are defined.",
+    "POST /api/match/start still accepts raw dict instead of a Pydantic MatchStartRequest model (carry-over).",
+    "/api/tournament has no caching despite using ISO week index — fine now, but a per-week memo would be cheap insurance.",
+    "DailyClaimRequest streak-rollover relies on string comparison with 'yesterday' — edge case at UTC midnight boundary if last_claim_date was 2 days ago is handled (reset to 1), good.",
+    "play/[contestId].tsx is 561 lines and mixes gesture builders, timers, animation values, SFX, LLM trash-talk; consider splitting into hooks (useBiteEngine, useMcCommentary)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py (new)",
+    "/app/backend/tests/test_chomp_champs.py (updated 2 stale assertions to match new contest names + shop now includes gear)"
+  ],
+  "success_rate": {"backend": "100% (37/37)", "frontend": "~70% (tutorial, home, daily, tournament banner, shop gear, profile equip all verified; play/result blocked by TDZ crash)"},
+  "seed_data_creation": "Test devices TEST_* created via /api/player; primed one device (TEST_ui_88812) with coins for UI gear purchase test.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "AsyncStorage device-id key on web is `chompchamps_device_id` (plain string, no JSON wrap). To bypass tutorial in tests: localStorage.setItem('chompchamps_device_id','TEST_xxx') then POST /api/player + /api/player/tutorial_done for that device, then reload — index.tsx still redirects to /tutorial because the home effect reads player.tutorial_done; if it's true the redirect doesn't fire. After reload, app may briefly show tutorial during initial state fetch — wait ~4s or just tap SKIP. Tab labels: ARENA / CONTESTS / RANKS / SHOP / ME. Tournament this week (ISO week mod 6) is 'Hot Dog Hammer' on nathans-hotdogs with ×3 mult → 1500 boosted prize. CRITICAL: do NOT navigate to /play/* until main agent fixes setHoldStart TDZ — it red-screens and you cannot leave without back navigation.",
+  "rca_of_issue": "**setHoldStart TDZ red-screen RCA**: In /app/frontend/app/play/[contestId].tsx, the `longPress` gesture is built at line 274:\n```\nconst longPress = Gesture.LongPress()\n  .minDuration(50)\n  .onStart(() => { runOnJS(setHoldStart)(); })\n  .onEnd((_, success) => { runOnJS(handleHoldRelease)(success); });\nconst setHoldStart = () => { ... };       // line 280\nconst handleHoldRelease = (success) => { ... };  // line 284\n```\nReanimated's babel plugin transforms callbacks passed to Gesture.*.onStart/onEnd into worklets and serializes their closure (`_closure` object) at the call site during render. That serialization eagerly reads `setHoldStart` and `handleHoldRelease`, both of which are still in the Temporal Dead Zone for their `const` declarations, throwing 'Cannot access setHoldStart before initialization' before the JSX ever mounts.\n\n**Reproduction**: open any /play/<contestId> route (tutorial, tournament, or any contest from home/contests/leaderboard). Red-screen overlay appears immediately with the error and source pointing to line 35:57 (the function body opening of PlayScreen).\n\n**Mitigation (for main agent)**: Move the two helper functions (and any other forward-referenced handlers used inside Gesture.* builders such as `handleSwipeBite` if similar pattern) above the gesture builders, e.g.\n```\nconst setHoldStart = useCallback(() => { holdStartRef.current = Date.now(); holdProgress.value = withTiming(1, { duration: HOLD_RELEASE_MAX_MS }); }, []);\nconst handleHoldRelease = useCallback((success: boolean) => { ... }, [equipped, ...]);\nconst longPress = Gesture.LongPress().minDuration(50).onStart(() => runOnJS(setHoldStart)()).onEnd((_, s) => runOnJS(handleHoldRelease)(s));\n```\nAfter the fix, validate every bite mechanic: nathans-hotdogs/katz-pastrami (tap), wing-bowl/pizza-hut-stuffed (swipe only), ben-jerry-icecream (hold_release only), in-n-out-burgers (rapid)."
+}

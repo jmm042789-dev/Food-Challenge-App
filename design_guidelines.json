@@ -1,0 +1,168 @@
+{
+  "app_name": "Chomp Champs",
+  "personality": "7 Dark-First Utility DARK (Arcade/Sports Variant)",
+  "personality_one_liner": "A loud, high-octane competitive sports arcade game driven by punchy typography, deep obsidian surfaces, and blistering warm accents.",
+  "color": {
+    "surface": "#0F1115",
+    "onSurface": "#FFFFFF",
+    "surfaceSecondary": "#1C1F26",
+    "onSurfaceSecondary": "#D1D5DB",
+    "surfaceTertiary": "#2A2E39",
+    "onSurfaceTertiary": "#A1A8B5",
+    "surfaceInverse": "#F3F4F6",
+    "onSurfaceInverse": "#0F1115",
+    "brand": "#FF2A00",
+    "brandPrimary": "#FF2A00",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#FFB800",
+    "onBrandSecondary": "#0F1115",
+    "brandTertiary": "#E05A00",
+    "onBrandTertiary": "#FFFFFF",
+    "success": "#39FF14",
+    "onSuccess": "#000000",
+    "warning": "#FFB800",
+    "onWarning": "#0F1115",
+    "error": "#FF2A00",
+    "onError": "#FFFFFF",
+    "info": "#F3F4F6",
+    "onInfo": "#0F1115",
+    "border": "#2A2E39",
+    "borderStrong": "#4B5563",
+    "divider": "#1C1F26"
+  },
+  "typography": {
+    "displayFontFamily": "Bebas Neue",
+    "textFontFamily": "DM Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24,
+      "3xl": 48
+    }
+  },
+  "spacing": {
+    "rule": "Use tight spacing for metrics and dense gameplay HUDs. Provide generous padding for primary CTAs like 'Play' and the 'Tums' button. Ensure bottom safe-area clearance for sticky actions.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "bottom_tabs",
+  "icon_set": "Ionicons",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": [
+      "Use solid surfaceSecondary or border dividers to define hierarchy, keeping the sports-arcade vibe fast and clean without performance drops from blur."
+    ],
+    "dont's": [
+      "Avoid glassmorphism. This is a fast-paced game; blur layers cause performance drops and conflict with the raw, high-contrast utility aesthetic."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-blur",
+      "android": "solid surfaceSecondary",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home Lobby",
+      "purpose": "The main entry point driving players immediately into the next contest while teasing rank and daily tasks.",
+      "states": {
+        "loading": "Centered loading spinner with 'Warming up the grill...' text.",
+        "empty": "N/A - Player stats and play button are always present.",
+        "error": "Failed to load player profile. 'Check connection' with a Retry button."
+      },
+      "layout": "Top bar: Player avatar (left), Coin/Tums balances (right). Center: Massive 'Play Next Contest' hero card featuring food imagery, entry fee, and a bold brandPrimary CTA. Below Hero: A progress strip showing global rank or win streak. Bottom: Daily challenge chips stacked in a 2-column grid."
+    },
+    {
+      "name": "Contest Selection",
+      "purpose": "A high-energy carousel of real-world inspired eating contests (Hot Dogs, Wings, Pizza).",
+      "states": {
+        "loading": "Skeleton cards representing contest options.",
+        "empty": "No contests available right now. Check back later.",
+        "error": "Unable to fetch live contests. Tap to refresh."
+      },
+      "layout": "Horizontal snapping carousel. Each card uses a tinted background image of the food (with gradient scrim), bold display titles, entry fee (coins), prize pool, and difficulty indicator. A sticky 'Enter Contest' button anchors the bottom."
+    },
+    {
+      "name": "Live Gameplay",
+      "purpose": "The rapid tap-to-eat screen balancing speed with the Heartburn penalty.",
+      "states": {
+        "loading": "Count down overlay: 3... 2... 1... EAT!",
+        "empty": "N/A",
+        "error": "Connection lost to opponent. Forfeit or Retry."
+      },
+      "layout": "Top: Score/Timer row and opponent progress bars racing horizontally. Left edge: Vertical Heartburn Meter (gauge filling from bottom to top, shifting green to red). Center: Massive interactive tap zone with the food item. Bottom Right: Oversized, tactile 'TUMS' pill button (brandPrimary) to instantly reduce heartburn. Trash talk speech bubbles appear dynamically over opponent avatars."
+    },
+    {
+      "name": "Leaderboard",
+      "purpose": "Showcase global and local eating champions.",
+      "states": {
+        "loading": "Skeleton rows simulating leaderboard ranks.",
+        "empty": "No rankings yet. Play a match to place!",
+        "error": "Unable to load leaderboard. Tap to retry."
+      },
+      "layout": "Sticky header with Segmented control (Global / Friends). Body is a flat list. Each row displays rank number (Bebas Neue, large), country flag, Avatar, Username, and Total Food Consumed. Top 3 rows are emphasized with surfaceSecondary backgrounds and brandSecondary (gold) accents."
+    },
+    {
+      "name": "Shop",
+      "purpose": "Store for buying Tums packs and Coins via virtual or real currency.",
+      "states": {
+        "loading": "Loading store inventory...",
+        "empty": "Store is currently refreshing inventory.",
+        "error": "Store unavailable. Try again later."
+      },
+      "layout": "2-column grid of store items. Each item card has a surfaceSecondary background, an illustration/icon (stack of coins, bottle of pills), quantity, and price button. Daily free reward card pinned to the top."
+    }
+  ],
+  "images": {
+    "nathans_hotdogs_bg": {
+      "url": "https://images.unsplash.com/photo-1542344807-21226ec94b39?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxob3Rkb2dzJTIwZWF0aW5nJTIwY29udGVzdHxlbnwwfHx8fDE3ODE0ODMwNzV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Three hotdogs held in hands representing the hot dog eating contest"
+    },
+    "wing_bowl_bg": {
+      "url": "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxmcmllZCUyMGNoaWNrZW4lMjBzcGljeSUyMHBsYXRlfGVufDB8fHx8MTc4MTQ4MzA4NXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Spicy fried chicken wings on a plate"
+    },
+    "stuffed_crust_pizza_bg": {
+      "url": "https://images.unsplash.com/photo-1595708684082-a173bb3a06c5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxzdHVmZmVkJTIwY3J1c3QlMjBwaXp6YXxlbnwwfHx8fDE3ODE0ODMwNzV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Stuffed crust pizza being pulled with melted cheese"
+    },
+    "tums_bottle_icon": {
+      "url": "https://images.unsplash.com/photo-1631669969504-f35518bf96ba?crop=entropy&cs=srgb&fm=jpg&ixid=M3w8NjA0MTJ8MHwxfHNlYXJjaHwxfHxhbnRhY2lkJTIwcGlsbCUyMG1lZGljaW5lJTIwYm90dGxlfGVufDB8fHx8MTc4MTQ4MzA3NXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Orange medicine bottle for antacids/Tums"
+    },
+    "coins_stack_icon": {
+      "url": "https://images.pexels.com/photos/12198523/pexels-photo-12198523.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "3D render of stacked gold coins"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use Personality 7 (Dark-First Utility DARK) combined with high-contrast, arcade-sports elements. The app needs to feel fast, competitive, and loud.",
+    "Implement Bebas Neue for all display headings, scores, counters, and metrics. Use DM Sans strictly for body copy, labels, and secondary metadata.",
+    "Ensure the Live Gameplay screen prioritizes tap responsiveness. The Heartburn Meter should be a vertical gauge filling from bottom to top.",
+    "The 'Tums' button must be an oversized, tactile button anchored on the screen for immediate access. Use 'brandPrimary' (Hot Sauce Red) to make it punchy.",
+    "Do NOT use glassmorphism or blur effects. Keep the UI flat, sharp, and high-performance utilizing solid 'surfaceSecondary' for cards and overlays.",
+    "Background imagery on Contest Selection cards MUST use the mandatory gradient-to-dark scrim pattern (top-down, transparent to >=70% surfaceInverse) to ensure text remains highly readable.",
+    "Haptics: Wire strong impact haptics to the tap-to-eat interactions and Tums consumption. Include a `haptics` events map in the code."
+  ]
+}
