@@ -1,86 +1,146 @@
-import { useCallback, useState } from "react";
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "@/src/theme";
-import { api, getDeviceId } from "@/src/api";
+import React from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { theme } from "../../src/theme";
 
 export default function LeaderboardScreen() {
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [me, setMe] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const [data, dev] = await Promise.all([api.leaderboard(), getDeviceId()]);
-    setMe(dev);
-    setRows((data.leaderboard || []).map((r: any) => ({ ...r, is_you: r.device_id === dev })));
-    setLoading(false);
-  }, []);
-
-  useFocusEffect(useCallback(() => { load().catch(console.error); }, [load]));
-
   return (
-    <SafeAreaView edges={["top"]} style={styles.container} testID="leaderboard-screen">
-      <View style={styles.header}>
-        <Text style={styles.h1}>GLOBAL RANKS</Text>
-        <Text style={styles.sub}>Top eaters worldwide</Text>
-      </View>
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
 
-      {loading ? (
-        <ActivityIndicator color={theme.c.brand} style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={(it, i) => `${it.username}-${i}`}
-          contentContainerStyle={{ padding: theme.s.lg, paddingBottom: theme.s.xxxl }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={theme.c.brand} />}
-          renderItem={({ item, index }) => {
-            const isTop3 = index < 3;
-            const medalColor = index === 0 ? theme.c.brandSecondary : index === 1 ? "#C0C0C0" : index === 2 ? "#CD7F32" : null;
-            return (
-              <View
-                style={[
-                  styles.row,
-                  isTop3 && { backgroundColor: theme.c.surfaceSecondary, borderColor: medalColor!, borderWidth: 1 },
-                  item.is_you && { borderColor: theme.c.brand, borderWidth: 2 },
-                ]}
-                testID={`rank-row-${index + 1}`}
-              >
-                <View style={styles.rankBox}>
-                  <Text style={[styles.rankText, medalColor ? { color: medalColor } : null]}>{item.rank}</Text>
-                </View>
-                <Text style={styles.flag}>{item.country}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.username} numberOfLines={1}>
-                    {item.avatar} {item.username} {item.is_you ? "  (YOU)" : ""}
-                  </Text>
-                  <Text style={styles.scoreSub}>Best: {item.score} items</Text>
-                </View>
-                <Text style={styles.bigScore}>{item.score}</Text>
-              </View>
-            );
-          }}
-        />
-      )}
-    </SafeAreaView>
+        {/* HEADER */}
+        <Text style={styles.header}>🏆 FIRE FEAST RANKINGS</Text>
+
+        {/* TOP 3 PODIUM */}
+        <View style={styles.podium}>
+          <View style={styles.second}>
+            <Text style={styles.rank}>2</Text>
+            <Text style={styles.name}>Player Two</Text>
+            <Text style={styles.score}>2,450 pts</Text>
+          </View>
+
+          <View style={styles.first}>
+            <Text style={styles.rank}>1</Text>
+            <Text style={styles.name}>Player One</Text>
+            <Text style={styles.score}>3,120 pts</Text>
+          </View>
+
+          <View style={styles.third}>
+            <Text style={styles.rank}>3</Text>
+            <Text style={styles.name}>Player Three</Text>
+            <Text style={styles.score}>2,100 pts</Text>
+          </View>
+        </View>
+
+        {/* LIST */}
+        <View style={styles.listItem}>
+          <Text style={styles.listRank}>4</Text>
+          <Text style={styles.listName}>You</Text>
+          <Text style={styles.listScore}>1,980 pts</Text>
+        </View>
+
+        <View style={styles.listItem}>
+          <Text style={styles.listRank}>5</Text>
+          <Text style={styles.listName}>Rival Chef</Text>
+          <Text style={styles.listScore}>1,870 pts</Text>
+        </View>
+
+        <View style={styles.listItem}>
+          <Text style={styles.listRank}>6</Text>
+          <Text style={styles.listName}>Spice Lord</Text>
+          <Text style={styles.listScore}>1,640 pts</Text>
+        </View>
+
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.c.surface },
-  header: { paddingHorizontal: theme.s.lg, paddingVertical: theme.s.md, borderBottomColor: theme.c.border, borderBottomWidth: 1 },
-  h1: { color: theme.c.onSurface, fontSize: 32, fontFamily: theme.f.display, letterSpacing: 1 },
-  sub: { color: theme.c.onSurfaceTertiary, fontSize: 12 },
-  row: {
-    flexDirection: "row", alignItems: "center", gap: theme.s.md,
-    padding: theme.s.md, borderRadius: theme.r.md, marginBottom: theme.s.sm,
-    backgroundColor: theme.c.surfaceSecondary,
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
   },
-  rankBox: { width: 36, alignItems: "center" },
-  rankText: { color: theme.c.onSurface, fontSize: 22, fontFamily: theme.f.display, fontWeight: "900" },
-  flag: { fontSize: 22 },
-  username: { color: theme.c.onSurface, fontWeight: "800", fontSize: 14 },
-  scoreSub: { color: theme.c.onSurfaceTertiary, fontSize: 11, marginTop: 2 },
-  bigScore: { color: theme.c.brandSecondary, fontSize: 20, fontWeight: "900" },
+
+  header: {
+    color: theme.colors.primary,
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 60,
+    marginLeft: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+
+  podium: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+
+  first: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: theme.colors.gold,
+  },
+
+  second: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    opacity: 0.9,
+  },
+
+  third: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    alignItems: "center",
+    opacity: 0.8,
+  },
+
+  rank: {
+    color: theme.colors.primary,
+    fontWeight: "900",
+    fontSize: 18,
+  },
+
+  name: {
+    color: theme.colors.text,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+
+  score: {
+    color: theme.colors.gold,
+    marginTop: 2,
+    fontWeight: "700",
+  },
+
+  listItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: theme.spacing.md,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    marginBottom: 10,
+  },
+
+  listRank: {
+    color: theme.colors.primary,
+    fontWeight: "900",
+  },
+
+  listName: {
+    color: theme.colors.text,
+    fontWeight: "700",
+  },
+
+  listScore: {
+    color: theme.colors.textMuted,
+  },
 });

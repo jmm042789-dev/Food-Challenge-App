@@ -1,59 +1,79 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "@/src/theme";
-import { Platform } from "react-native";
 
-export default function TabsLayout() {
+export default function Layout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.c.brand,
-        tabBarInactiveTintColor: theme.c.onSurfaceTertiary,
+
         tabBarStyle: {
-          backgroundColor: theme.c.surfaceSecondary,
-          borderTopColor: theme.c.border,
-          borderTopWidth: 1,
-          height: Platform.OS === "ios" ? 88 : 64,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === "ios" ? 28 : 8,
+          backgroundColor: "#0F1115",
+          borderTopColor: "#222",
+          height: 65,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
+
+        tabBarActiveTintColor: "#FFD700",
+        tabBarInactiveTintColor: "#666",
+
+        tabBarLabelStyle: {
+          fontSize: 12,
+          paddingBottom: 4,
+        },
       }}
     >
+      {/* 🏠 HOME */}
       <Tabs.Screen
         name="home"
         options={{
-          title: "ARENA",
-          tabBarIcon: ({ color, size }) => <Ionicons name="flame" size={size} color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
         }}
       />
+
+      {/* 🎮 CONTESTS */}
       <Tabs.Screen
         name="contests"
         options={{
-          title: "CONTESTS",
-          tabBarIcon: ({ color, size }) => <Ionicons name="restaurant" size={size} color={color} />,
+          title: "Contests",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trophy" size={size} color={color} />
+          ),
         }}
       />
-      <Tabs.Screen
-        name="leaderboard"
-        options={{
-          title: "RANKS",
-          tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
-        }}
-      />
+
+      {/* 🛒 SHOP */}
       <Tabs.Screen
         name="shop"
         options={{
-          title: "SHOP",
-          tabBarIcon: ({ color, size }) => <Ionicons name="bag-handle" size={size} color={color} />,
+          title: "Shop",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cart" size={size} color={color} />
+          ),
         }}
       />
+
+      {/* 🏆 LEADERBOARD */}
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: "Leaderboard",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="podium" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* 👤 PROFILE */}
       <Tabs.Screen
         name="profile"
         options={{
-          title: "ME",
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle" size={size} color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
