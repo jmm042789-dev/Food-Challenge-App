@@ -1,344 +1,266 @@
-import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
-import { useCallback, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, Image, SectionList, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api } from "../../src/api";
-import * as Haptics from "expo-haptics";
 
-type Section = { section: string; items: any[] };
+import { api } from "../../src/api";
+import FireBadge from "../../src/components/fire/FireBadge";
+import FireButton from "../../src/components/fire/FireButton";
+import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
+import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
+
+const COIN = require("../../src/assets/icons/coin.png");
+const ANTACID = require("../../src/assets/icons/antacid.png");
+
+type ShopItem = {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  icon?: string;
+  price: number;
+  reward?: number;
+  rarity?: string;
+  perk?: string;
+  description?: string;
+};
+
+type Player = {
+  coins: number;
+  antacid: number;
+  owned_gear: string[];
+  equipped_gear?: string | null;
+};
+
+const EMPTY_PLAYER: Player = { coins: 0, antacid: 0, owned_gear: [], equipped_gear: null };
+
+function CurrencyCounter({ icon, label, value }: { icon: number; label: string; value: number }) {
+  return (
+    <View style={styles.counter}>
+      <Image source={icon} resizeMode="contain" style={styles.counterIcon} />
+      <View>
+        <Text style={styles.counterLabel}>{label}</Text>
+        <Text style={styles.counterValue}>{Number(value || 0).toLocaleString()}</Text>
+      </View>
+    </View>
+  );
+}
+
+function Price({ item }: { item: ShopItem }) {
+  return (
+    <View style={styles.priceRow}>
+      <Image source={COIN} resizeMode="contain" style={styles.priceIcon} />
+      <Text style={styles.price}>{Number(item.price).toLocaleString()}</Text>
+    </View>
+  );
+}
 
 export default function ShopScreen() {
-  const [items, setItems] = useState<any[]>([]);
-  const [player, setPlayer] = useState<any>(null);
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [player, setPlayer] = useState<Player>(EMPTY_PLAYER);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // ======================
-  // LOAD SHOP + PLAYER
-  // ======================
   const load = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const [shopRes, playerRes] = await Promise.all([
-        api.shop(),
-        api.getPlayer(),
-      ]);
-
-      setItems(shopRes?.items || []);
-      setPlayer(playerRes);
-    } catch (err) {
-      console.log("SHOP LOAD ERROR:", err);
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    setError(null);
+    const [shopResult, playerResult] = await Promise.allSettled([api.shop(), api.getPlayer()]);
+    if (shopResult.status === "fulfilled" && Array.isArray(shopResult.value?.items)) {
+      setItems(shopResult.value.items);
+    } else {
+      setItems([]);
+      setError("SHOP INVENTORY UNAVAILABLE");
     }
+    if (playerResult.status === "fulfilled" && playerResult.value) {
+      setPlayer({ ...EMPTY_PLAYER, ...(playerResult.value as Partial<Player>) });
+    }
+    setLoading(false);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // ======================
-  // PURCHASE HANDLER (A.4 FIX)
-  // ======================
-  const handleBuy = async (item: any) => {
+  const featured = items[0];
+  const sections = useMemo(() => {
+    const groups = new Map<string, ShopItem[]>();
+    items.slice(1).forEach((item) => {
+      const key = item.category || item.type || "Shop Items";
+      groups.set(key, [...(groups.get(key) || []), item]);
+    });
+    return Array.from(groups, ([title, data]) => ({ title, data }));
+  }, [items]);
+
+  const actOnItem = useCallback(async (item: ShopItem) => {
+    const owned = player.owned_gear.includes(item.id);
+    const equipped = player.equipped_gear === item.id;
+    if (equipped) return;
+    setPendingId(item.id);
     try {
-      setBusyId(item.id);
-      Haptics.selectionAsync();
-
-      await api.purchase(item.id);
-
-      // 🔥 A.4 FIX (THIS IS THE IMPORTANT PART)
-      await load(); // refresh shop + player state
-    } catch (err) {
-      console.log("PURCHASE ERROR:", err);
+      if (owned && item.type === "gear") {
+        await api.equipGear(item.id);
+      } else {
+        await api.purchase(item.id);
+      }
+      await load();
+    } catch (purchaseError: any) {
+      Alert.alert("Shop action failed", purchaseError?.message || "Please try again.");
     } finally {
-      setBusyId(null);
+      setPendingId(null);
     }
+  }, [load, player.equipped_gear, player.owned_gear]);
+
+  const statusFor = useCallback((item: ShopItem) => {
+    if (player.equipped_gear === item.id) return "equipped";
+    if (player.owned_gear.includes(item.id)) return "owned";
+    return "available";
+  }, [player.equipped_gear, player.owned_gear]);
+
+  const renderItem = ({ item }: { item: ShopItem }) => {
+    const status = statusFor(item);
+    const unaffordable = item.price > player.coins;
+    return (
+      <View style={[styles.itemRow, unaffordable && status === "available" && styles.subdued]}>
+        <View style={styles.itemArt}><Text style={styles.itemEmoji}>{item.icon || "🔥"}</Text></View>
+        <View style={styles.itemInfo}>
+          <View style={styles.itemTitleRow}>
+            <Text numberOfLines={1} style={styles.itemName}>{item.name}</Text>
+            {status !== "available" ? <FireBadge label={status.toUpperCase()} variant={status === "equipped" ? "success" : "gold"} /> : null}
+          </View>
+          <Text numberOfLines={1} style={styles.itemMeta}>{[item.rarity, item.perk].filter(Boolean).join(" · ")}</Text>
+          <Text numberOfLines={2} style={styles.itemDescription}>{item.description}</Text>
+        </View>
+        <View style={styles.itemAction}>
+          <Price item={item} />
+          <FireButton
+            title={status === "equipped" ? "EQUIPPED" : status === "owned" && item.type === "gear" ? "EQUIP" : "BUY"}
+            onPress={() => actOnItem(item)}
+            disabled={status === "equipped" || (unaffordable && status === "available")}
+            loading={pendingId === item.id}
+            size="compact"
+            variant={status === "owned" ? "secondary" : "primary"}
+            style={styles.rowButton}
+          />
+        </View>
+      </View>
+    );
   };
 
-  const sections: Section[] = [
-    {
-      section: "GEAR — Permanent Perks",
-      items: items.filter((i) => i.type === "gear"),
-    },
-    {
-      section: "ANTACID PACKS (Buy w/ Coins)",
-      items: items.filter((i) => i.type === "tums"),
-    },
-    {
-      section: "COIN BUNDLES (Real $)",
-      items: items.filter((i) => i.type === "coins"),
-    },
-  ];
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ArcadeBackground />
-
-      {/* HEADER */}
+  const header = (
+    <>
       <View style={styles.header}>
         <View>
-          <Text style={styles.h1}>SHOP</Text>
-          <Text style={styles.sub}>Fuel up for battle</Text>
+          <Text style={styles.eyebrow}>FIRE FEAST</Text>
+          <Text style={styles.headerTitle}>SHOP</Text>
         </View>
-
         <View style={styles.balanceRow}>
-          <View style={styles.balPill}>
-            <Text>🪙</Text>
-            <Text style={styles.balTxt}>{player?.coins ?? 0}</Text>
-          </View>
-
-          <View style={[styles.balPill, { marginLeft: 6 }]}>
-            <Text>🧪</Text>
-            <Text style={styles.balTxt}>{player?.tums ?? 0}</Text>
-          </View>
+          <CurrencyCounter icon={COIN} label="COINS" value={player.coins} />
+          <CurrencyCounter icon={ANTACID} label="ANTACID" value={player.antacid} />
         </View>
       </View>
 
-      {/* BANNER */}
-      <View style={styles.featureBanner}>
-        <Text style={styles.featureTitle}>⚡ LIMITED TIME</Text>
-        <Text style={styles.featureText}>Double XP Weekend Active</Text>
-      </View>
-
-      {/* CONTENT */}
-      {loading ? (
-        <ActivityIndicator color="#FFD700" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={sections}
-          keyExtractor={(it) => it.section}
-          contentContainerStyle={{
-            padding: 16,
-            paddingBottom: 80,
-          }}
-          renderItem={({ item: section }) => (
-            <View>
-              <Text style={styles.sectionTitle}>{section.section}</Text>
-
-              <View style={styles.grid}>
-                {section.items.map((it: any) => {
-                  const owned =
-                    it.type === "gear" &&
-                    (player?.owned_gear || []).includes(it.id);
-
-                  return (
-                    <Pressable
-                      key={it.id}
-                      style={[
-                        styles.itemCard,
-                        owned && styles.itemCardOwned,
-                      ]}
-                      disabled={busyId === it.id || owned}
-                      onPress={() => handleBuy(it)}
-                    >
-                      <Text style={styles.itemIcon}>{it.icon}</Text>
-
-                      <Text style={styles.itemName} numberOfLines={1}>
-                        {it.name}
-                      </Text>
-
-                      {it.type === "gear" ? (
-                        <Text style={styles.gearPerk} numberOfLines={2}>
-                          {it.perk}
-                        </Text>
-                      ) : (
-                        <Text style={styles.itemQty}>x{it.qty}</Text>
-                      )}
-
-                      <View
-                        style={[
-                          styles.buyBtn,
-                          owned && { backgroundColor: "#22c55e" },
-                        ]}
-                      >
-                        <Text style={styles.buyBtnText}>
-                          {owned
-                            ? "OWNED"
-                            : it.type === "coins" || it.type === "gear"
-                            ? `🪙 ${it.price}`
-                            : `$${it.price_usd}`}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
+      {featured ? (
+        <FireScreenEntrance duration="fast" distance={8}>
+          <View style={styles.featured}>
+            <View style={styles.featuredHighlight} pointerEvents="none" />
+            <View style={styles.featuredTop}>
+              <View style={styles.featuredArt}><Text style={styles.featuredEmoji}>{featured.icon || "🔥"}</Text></View>
+              <View style={styles.featuredInfo}>
+                <FireBadge label="FEATURED" variant="gold" />
+                <Text numberOfLines={2} style={styles.featuredName}>{featured.name}</Text>
+                <Text numberOfLines={2} style={styles.featuredDescription}>{featured.description}</Text>
+                <View style={styles.featuredMeta}>
+                  <Price item={featured} />
+                  <Text style={styles.featuredPerk}>{featured.perk}</Text>
+                </View>
               </View>
             </View>
-          )}
-        />
-      )}
+            <FireButton
+              title={statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && featured.type === "gear" ? "EQUIP ITEM" : "PURCHASE ITEM"}
+              onPress={() => actOnItem(featured)}
+              disabled={statusFor(featured) === "equipped" || (featured.price > player.coins && statusFor(featured) === "available")}
+              loading={pendingId === featured.id}
+              variant="gold"
+              size="small"
+              fullWidth
+              style={styles.featuredButton}
+            />
+          </View>
+        </FireScreenEntrance>
+      ) : null}
 
-      {/* TOAST */}
-      {toast && (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>{toast}</Text>
-        </View>
-      )}
+      {error ? <View style={styles.messagePanel}><Text style={styles.message}>{error}</Text></View> : null}
+    </>
+  );
+
+  return (
+    <SafeAreaView style={styles.screen} edges={["top"]}>
+      <ArcadeBackground />
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{section.title.toUpperCase()}</Text>
+            <View style={styles.sectionRule} />
+            <Text style={styles.sectionCount}>{section.data.length}</Text>
+          </View>
+        )}
+        ListHeaderComponent={header}
+        ListEmptyComponent={!loading && !featured && !error ? <Text style={styles.message}>NO ITEMS AVAILABLE</Text> : null}
+        ListFooterComponent={loading ? <Text style={styles.loading}>REFRESHING SHOP…</Text> : <View style={styles.footerSpace} />}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        initialNumToRender={8}
+        windowSize={7}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B0F17",
-  },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 16,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-    borderBottomWidth: 1,
-  },
-
-  h1: {
-    color: "#FFFFFF",
-    fontSize: 34,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  sub: {
-    color: "#A0A0A0",
-    fontSize: 13,
-  },
-
-  balanceRow: {
-    flexDirection: "row",
-  },
-
-  balPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(28,31,38,0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    marginLeft: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-
-  balTxt: {
-    color: "white",
-    fontWeight: "800",
-  },
-
-  featureBanner: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,215,0,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255,215,0,0.25)",
-  },
-
-  featureTitle: {
-    color: "#FFD700",
-    fontSize: 18,
-    fontWeight: "900",
-  },
-
-  featureText: {
-    color: "#FFFFFF",
-    marginTop: 4,
-  },
-
-  sectionTitle: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "900",
-    marginTop: 20,
-    marginBottom: 10,
-  },
-
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-
-  itemCard: {
-    width: "47%",
-    backgroundColor: "rgba(28,31,38,0.9)",
-    padding: 14,
-    borderRadius: 18,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-
-  itemCardOwned: {
-    borderColor: "#22c55e",
-    opacity: 0.8,
-  },
-
-  itemIcon: {
-    fontSize: 52,
-    marginBottom: 4,
-  },
-
-  itemName: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "800",
-    marginTop: 6,
-    textAlign: "center",
-  },
-
-  itemQty: {
-    color: "#FFD700",
-    fontSize: 14,
-    fontWeight: "900",
-  },
-
-  gearPerk: {
-    color: "#aaa",
-    fontSize: 10,
-    textAlign: "center",
-    marginTop: 4,
-    marginBottom: 6,
-  },
-
-  buyBtn: {
-    backgroundColor: "#FFD700",
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 999,
-    marginTop: 8,
-  },
-
-  buyBtnText: {
-    color: "#000",
-    fontWeight: "900",
-    fontSize: 12,
-  },
-
-  toast: {
-    position: "absolute",
-    bottom: 80,
-    alignSelf: "center",
-    backgroundColor: "#22c55e",
-    padding: 12,
-    borderRadius: 999,
-  },
-
-  toastText: {
-    color: "#000",
-    fontWeight: "900",
-  },
+  screen: { backgroundColor: "#070405", flex: 1 },
+  content: { paddingHorizontal: 12, paddingTop: 6 },
+  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  eyebrow: { color: "#B7793C", fontSize: 7, fontWeight: "900", letterSpacing: 1.5 },
+  headerTitle: { color: "#FFF0D8", fontSize: 28, fontWeight: "900", letterSpacing: 1.2, lineHeight: 30 },
+  balanceRow: { flexDirection: "row", gap: 5 },
+  counter: { alignItems: "center", backgroundColor: "rgba(8,6,7,0.94)", borderColor: "rgba(225,136,45,0.58)", borderRadius: 8, borderWidth: 1, flexDirection: "row", minWidth: 88, paddingHorizontal: 7, paddingVertical: 5 },
+  counterIcon: { height: 23, marginRight: 5, width: 23 },
+  counterLabel: { color: "#987B62", fontSize: 6, fontWeight: "900", letterSpacing: 0.7 },
+  counterValue: { color: "#FFD06A", fontSize: 12, fontWeight: "900", lineHeight: 14 },
+  featured: { backgroundColor: "rgba(17,10,10,0.96)", borderColor: "#D88A2A", borderRadius: 15, borderWidth: 1.5, overflow: "hidden", padding: 10 },
+  featuredHighlight: { backgroundColor: "rgba(255,210,125,0.18)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
+  featuredTop: { alignItems: "center", flexDirection: "row", minHeight: 132 },
+  featuredArt: { alignItems: "center", backgroundColor: "rgba(65,23,12,0.54)", borderColor: "rgba(233,141,42,0.52)", borderRadius: 12, borderWidth: 1, height: 124, justifyContent: "center", marginRight: 11, width: "38%" },
+  featuredEmoji: { fontSize: 68 },
+  featuredInfo: { flex: 1, minWidth: 0 },
+  featuredName: { color: "#FFF0D8", fontSize: 21, fontWeight: "900", lineHeight: 23 },
+  featuredDescription: { color: "#B9A18D", fontSize: 10, lineHeight: 14, marginTop: 4 },
+  featuredMeta: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
+  featuredPerk: { color: "#DDA455", flex: 1, fontSize: 8, fontWeight: "800", marginLeft: 9, textAlign: "right" },
+  featuredButton: { marginBottom: 0, marginTop: 8 },
+  priceRow: { alignItems: "center", flexDirection: "row" },
+  priceIcon: { height: 18, marginRight: 3, width: 18 },
+  price: { color: "#FFC75B", fontSize: 15, fontWeight: "900" },
+  sectionHeader: { alignItems: "center", flexDirection: "row", marginBottom: 6, marginTop: 11, paddingHorizontal: 2 },
+  sectionTitle: { color: "#E8BD7A", fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
+  sectionRule: { backgroundColor: "rgba(218,129,42,0.3)", flex: 1, height: 1, marginHorizontal: 8 },
+  sectionCount: { color: "#98785F", fontSize: 8, fontWeight: "900" },
+  itemRow: { alignItems: "center", backgroundColor: "rgba(14,9,10,0.95)", borderColor: "rgba(216,128,38,0.56)", borderRadius: 11, borderWidth: 1, flexDirection: "row", marginBottom: 6, minHeight: 88, padding: 7 },
+  subdued: { opacity: 0.58 },
+  itemArt: { alignItems: "center", backgroundColor: "rgba(46,20,14,0.76)", borderColor: "rgba(211,120,36,0.4)", borderRadius: 8, borderWidth: 1, height: 70, justifyContent: "center", marginRight: 8, width: 70 },
+  itemEmoji: { fontSize: 38 },
+  itemInfo: { flex: 1, minWidth: 0, paddingRight: 6 },
+  itemTitleRow: { alignItems: "center", flexDirection: "row" },
+  itemName: { color: "#FFF0D8", flex: 1, fontSize: 13, fontWeight: "900" },
+  itemMeta: { color: "#D0954C", fontSize: 7, fontWeight: "900", marginTop: 3 },
+  itemDescription: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 4 },
+  itemAction: { alignItems: "flex-end", justifyContent: "center", minWidth: 76 },
+  rowButton: { marginBottom: 0, marginTop: 4 },
+  messagePanel: { backgroundColor: "rgba(50,17,15,0.9)", borderColor: "#8F3931", borderRadius: 9, borderWidth: 1, marginTop: 10, padding: 12 },
+  message: { color: "#E7B5A7", fontSize: 9, fontWeight: "900", letterSpacing: 0.8, textAlign: "center" },
+  loading: { color: "#E8AD55", fontSize: 8, fontWeight: "900", letterSpacing: 1, paddingVertical: 13, textAlign: "center" },
+  footerSpace: { height: 18 },
 });

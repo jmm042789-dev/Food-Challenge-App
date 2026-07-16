@@ -1,34 +1,48 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../src/theme";
+import FireArenaBackground from "../src/game/FireArenaBackground";
+import FirePanel from "../src/components/fire/FirePanel";
+import FireText from "../src/components/fire/FireText";
+import FireBadge from "../src/components/fire/FireBadge";
+import FireScreenEntrance from "../src/components/fire/FireScreenEntrance";
 
 export default function TutorialScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <FireArenaBackground />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 20) }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <FireScreenEntrance duration="fast" distance={10}>
 
         <Text style={styles.title}>🔥 FIRE FEAST GUIDE</Text>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>How to Play</Text>
-          <Text style={styles.text}>
+        </FireScreenEntrance>
+        <FirePanel compact title="How to Play" style={styles.card}>
+          <FireBadge label="STEP 1 OF 3" variant="gold" />
+          <FireText variant="body" style={styles.text}>
             Enter contests, compete in food challenges, and earn points in the Fire Feast Arena.
-          </Text>
-        </View>
+          </FireText>
+        </FirePanel>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Scoring</Text>
-          <Text style={styles.text}>
+        <FirePanel compact title="Scoring" style={styles.card}>
+          <FireBadge label="STEP 2 OF 3" variant="info" />
+          <FireText variant="body" style={styles.text}>
             Your performance is ranked based on speed, completion, and bonus objectives.
-          </Text>
-        </View>
+          </FireText>
+        </FirePanel>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Rewards</Text>
-          <Text style={styles.text}>
+        <FirePanel compact title="Rewards" style={styles.card}>
+          <FireBadge label="STEP 3 OF 3" variant="gold" />
+          <FireText variant="body" style={styles.text}>
             Win coins, XP, and unlock higher ranked arenas as you progress.
-          </Text>
-        </View>
+          </FireText>
+        </FirePanel>
 
       </ScrollView>
     </View>
@@ -39,35 +53,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    padding: 16,
+  },
+
+  content: {
+    paddingHorizontal: theme.spacing.screen,
   },
 
   title: {
     fontSize: 22,
     fontWeight: "900",
     color: theme.colors.primary,
-    marginTop: 60,
     marginBottom: 20,
   },
 
   card: {
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderRadius: theme.radius.lg,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.surface2,
-  },
-
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: theme.colors.text,
-    marginBottom: 6,
+    marginBottom: theme.spacing.cardGap,
   },
 
   text: {
-    color: theme.colors.textMuted,
-    lineHeight: 20,
+    marginTop: theme.spacing.xxs,
   },
 });

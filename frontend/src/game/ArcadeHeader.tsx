@@ -17,8 +17,8 @@ type Props = {
 };
 
 const LOGO = require("../assets/logo/fire-feast-logo-primary.png");
-const COIN_BAR = require("../assets/ui/coin-bar.png");
-const XP_BAR = require("../assets/ui/xp-bar.png");
+const COIN_BAR = require("../assets/ui/coin-bar-v2.png");
+const XP_BAR = require("../assets/ui/xp-bar-v2.png");
 
 const { width } = Dimensions.get("window");
 

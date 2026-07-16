@@ -24,11 +24,26 @@ export const theme = {
   },
 
   spacing: {
+    xxs: 4,
     xs: 6,
     sm: 10,
     md: 16,
     lg: 24,
     xl: 32,
+    screen: 18,
+    section: 22,
+    cardGap: 12,
+  },
+
+  typography: {
+    display: { fontSize: 30, lineHeight: 36, letterSpacing: 0.8 },
+    screenTitle: { fontSize: 26, lineHeight: 32, letterSpacing: 0.5 },
+    sectionTitle: { fontSize: 21, lineHeight: 27, letterSpacing: 0.35 },
+    cardTitle: { fontSize: 18, lineHeight: 23, letterSpacing: 0.2 },
+    label: { fontSize: 11, lineHeight: 14, letterSpacing: 0.8 },
+    value: { fontSize: 18, lineHeight: 22, letterSpacing: 0.15 },
+    body: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
+    caption: { fontSize: 12, lineHeight: 16, letterSpacing: 0.1 },
   },
 
   radius: {

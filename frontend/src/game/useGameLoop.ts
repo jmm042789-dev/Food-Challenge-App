@@ -8,6 +8,10 @@ import {
   OpponentState,
 } from "./ai/OpponentAI";
 
+// ======================================
+// TYPES
+// ======================================
+
 export type GameStatus =
   | "IDLE"
   | "COUNTDOWN"
@@ -20,14 +24,29 @@ export interface GameState {
   status: GameStatus;
 }
 
+// ======================================
+// CONSTANTS
+// ======================================
+
 const MATCH_DURATION = 60;
 const COUNTDOWN_SECONDS = 3;
 const COMBO_WINDOW_MS = 700;
 
+const debugLog = (...args: unknown[]) => {
+  if (__DEV__) {
+    console.log(...args);
+  }
+};
+
+// ======================================
+// HOOK
+// ======================================
+
 export function useGameLoop() {
-  // =====================================
-  // REACT STATE
-  // =====================================
+
+  // --------------------------
+  // React State
+  // --------------------------
 
   const [state, setState] = useState<GameState>({
     score: 0,
@@ -40,116 +59,117 @@ export function useGameLoop() {
 
   const [opponentScore, setOpponentScore] =
     useState(0);
+const [countdownValue, setCountdownValue] =
+  useState<number | "GO">(3);
 
-  // =====================================
-  // GAME REFS
-  // =====================================
+const [showCountdown, setShowCountdown] =
+  useState(false);
+  // --------------------------
+  // Mutable Game Values
+  // --------------------------
 
   const scoreRef = useRef(0);
   const comboRef = useRef(0);
+  const lastTapRef = useRef(0);
 
-  const lastTapRef = useRef(Date.now());
+  // --------------------------
+  // Opponent
+  // --------------------------
 
   const currentOpponentRef =
-    useRef<Opponent>(
-      getRandomOpponent()
-    );
+    useRef<Opponent>(getRandomOpponent());
 
   const opponentStateRef =
     useRef<OpponentState>(
       createOpponentState()
     );
 
-  // =====================================
-  // TIMER REFS
-  // =====================================
+  // --------------------------
+  // Timers
+  // --------------------------
 
   const countdownTimerRef =
-    useRef<ReturnType<typeof setInterval> | null>(
-      null
-    );
+    useRef<ReturnType<typeof setInterval> | null>(null);
 
   const gameTimerRef =
-    useRef<ReturnType<typeof setInterval> | null>(
-      null
-    );
+    useRef<ReturnType<typeof setInterval> | null>(null);
 
   const opponentTimerRef =
-    useRef<ReturnType<typeof setInterval> | null>(
-      null
-    );
+    useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // =====================================
+  // ======================================
+  // STOP ALL TIMERS
+  // ======================================
+
+  const stopAllTimers = useCallback(() => {
+
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current);
+      gameTimerRef.current = null;
+    }
+
+    if (opponentTimerRef.current) {
+      clearInterval(opponentTimerRef.current);
+      opponentTimerRef.current = null;
+    }
+
+  }, []);
+
+  // ======================================
   // CLEANUP
-  // =====================================
-
-  const stopAllTimers =
-    useCallback(() => {
-
-      if (countdownTimerRef.current) {
-        clearInterval(countdownTimerRef.current);
-        countdownTimerRef.current = null;
-      }
-
-      if (gameTimerRef.current) {
-        clearInterval(gameTimerRef.current);
-        gameTimerRef.current = null;
-      }
-
-      if (opponentTimerRef.current) {
-        clearInterval(opponentTimerRef.current);
-        opponentTimerRef.current = null;
-      }
-
-    }, []);
+  // ======================================
 
   useEffect(() => {
+
     return () => {
+
       stopAllTimers();
+
     };
+
+  }, [stopAllTimers]);  // ======================================
+  // RESET MATCH
+  // ======================================
+
+  const resetMatch = useCallback(() => {
+
+    debugLog("🔥 RESET MATCH");
+
+    stopAllTimers();
+
+    scoreRef.current = 0;
+    comboRef.current = 0;
+    lastTapRef.current = 0;
+
+    currentOpponentRef.current = getRandomOpponent();
+
+    opponentStateRef.current =
+      createOpponentState();
+
+    setOpponentScore(0);
+
+    setTimeRemaining(MATCH_DURATION);
+
+    setState({
+      score: 0,
+      combo: 0,
+      status: "IDLE",
+    });
+
   }, [stopAllTimers]);
 
-  // =====================================
-  // RESET MATCH
-  // =====================================
-
-  const resetMatch =
-    useCallback(() => {
-
-      console.log("🔥 RESET MATCH");
-
-      stopAllTimers();
-
-      scoreRef.current = 0;
-      comboRef.current = 0;
-
-      lastTapRef.current = Date.now();
-
-      currentOpponentRef.current =
-        getRandomOpponent();
-
-      opponentStateRef.current =
-        createOpponentState();
-
-      setOpponentScore(0);
-
-      setTimeRemaining(
-        MATCH_DURATION
-      );
-
-      setState({
-        score: 0,
-        combo: 0,
-        status: "IDLE",
-      });
-
-    }, [stopAllTimers]);  // =====================================
+  // ======================================
   // END GAME
-  // =====================================
+  // ======================================
 
   const endGame = useCallback(() => {
 
-    console.log("🏁 MATCH FINISHED");
+    debugLog("🏁 MATCH FINISHED");
 
     stopAllTimers();
 
@@ -164,132 +184,147 @@ export function useGameLoop() {
 
   }, [stopAllTimers]);
 
-  // =====================================
-  // OPPONENT LOOP
-  // =====================================
+  // ======================================
+  // START OPPONENT AI
+  // ======================================
 
-  const startOpponentLoop =
-    useCallback(() => {
+  const startOpponentLoop = useCallback(() => {
 
-      console.log("🤖 AI STARTED");
+    debugLog("🤖 AI STARTED");
 
-      if (opponentTimerRef.current) {
-        clearInterval(opponentTimerRef.current);
-      }
+    if (opponentTimerRef.current) {
+      clearInterval(opponentTimerRef.current);
+    }
 
-      opponentTimerRef.current =
-        setInterval(() => {
+    opponentTimerRef.current =
+      setInterval(() => {
 
-          opponentStateRef.current =
-            updateOpponent(
-              currentOpponentRef.current,
-              opponentStateRef.current
-            );
-
-          setOpponentScore(
-            Math.floor(
-              opponentStateRef.current.score
-            )
+        opponentStateRef.current =
+          updateOpponent(
+            currentOpponentRef.current,
+            opponentStateRef.current
           );
 
-        }, 300);
+        setOpponentScore(
+          Math.floor(
+            opponentStateRef.current.score
+          )
+        );
 
-    }, []);
+      }, 300);
 
-  // =====================================
+  }, []);  // ======================================
   // START GAME
-  // =====================================
+  // ======================================
 
   const startGame = useCallback(() => {
 
-    console.log("🔥 START GAME");
+    debugLog("🔥 START GAME");
+
+    // Prevent starting twice
+    if (state.status !== "IDLE") {
+      debugLog("⛔ Game already started");
+      return;
+    }
 
     resetMatch();
 
-    let countdown =
-      COUNTDOWN_SECONDS;
-
-    setState((old) => ({
-      ...old,
+    // Immediately enter countdown
+    setState({
+      score: 0,
+      combo: 0,
       status: "COUNTDOWN",
-    }));
+    });
+setShowCountdown(true);
+setCountdownValue(3);
+    let countdown = COUNTDOWN_SECONDS;
 
-    countdownTimerRef.current =
-      setInterval(() => {
+    debugLog("⏳ Countdown started");
 
-        countdown--;
+    countdownTimerRef.current = setInterval(() => {
 
-        console.log(
-          "⏳ Countdown:",
-          countdown
-        );
+      countdown--;
 
-        if (countdown <= 0) {
+debugLog("⏳", countdown);
 
-          if (countdownTimerRef.current) {
-            clearInterval(
-              countdownTimerRef.current
-            );
-            countdownTimerRef.current = null;
-          }
+if (countdown > 0) {
+  setCountdownValue(countdown);
+} else {
+  setCountdownValue("GO");
+}
 
-          console.log("▶ MATCH START");
+      if (countdown <= 0) {
 
-          setState((old) => ({
-            ...old,
-            status: "PLAYING",
-          }));
-
-          startOpponentLoop();
-
-          gameTimerRef.current =
-            setInterval(() => {
-
-              setTimeRemaining((time) => {
-
-                if (time <= 1) {
-
-                  endGame();
-
-                  return 0;
-
-                }
-
-                return time - 1;
-
-              });
-
-            }, 1000);
-
+        if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current);
+          countdownTimerRef.current = null;
         }
 
-      }, 1000);
+        debugLog("▶ MATCH START");
+setTimeout(() => {
+  setShowCountdown(false);
+}, 700);
+        setState((old) => ({
+          ...old,
+          status: "PLAYING",
+        }));
+
+        // Start AI
+        startOpponentLoop();
+
+        // Start match timer
+        gameTimerRef.current = setInterval(() => {
+
+          setTimeRemaining((time) => {
+
+            if (time <= 1) {
+
+              endGame();
+
+              return 0;
+
+            }
+
+            return time - 1;
+
+          });
+
+        }, 1000);
+
+      }
+
+    }, 1000);
 
   }, [
+    state.status,
     resetMatch,
     startOpponentLoop,
     endGame,
-  ]);  // =====================================
+  ]);  // ======================================
   // PLAYER TAP
-  // =====================================
+  // ======================================
 
   const tap = useCallback(() => {
 
-    console.log("👆 TAP:", state.status);
+    debugLog("👆 TAP:", state.status);
 
     if (state.status !== "PLAYING") {
-      console.log("⛔ TAP IGNORED");
+      debugLog("⛔ TAP IGNORED");
       return;
     }
 
     const now = Date.now();
-    const delta = now - lastTapRef.current;
+
+    const delta =
+      lastTapRef.current === 0
+        ? 0
+        : now - lastTapRef.current;
 
     lastTapRef.current = now;
 
-    // -----------------------------
+    // --------------------------
     // Combo
-    // -----------------------------
+    // --------------------------
 
     if (delta <= COMBO_WINDOW_MS) {
       comboRef.current++;
@@ -297,9 +332,9 @@ export function useGameLoop() {
       comboRef.current = 0;
     }
 
-    // -----------------------------
+    // --------------------------
     // Score
-    // -----------------------------
+    // --------------------------
 
     let gain = 1;
 
@@ -313,10 +348,10 @@ export function useGameLoop() {
 
     scoreRef.current += gain;
 
-    console.log(
+    debugLog(
       "🍔 SCORE:",
       Math.floor(scoreRef.current),
-      " COMBO:",
+      "COMBO:",
       comboRef.current
     );
 
@@ -328,9 +363,9 @@ export function useGameLoop() {
 
   }, [state.status]);
 
-  // =====================================
+  // ======================================
   // WINNER
-  // =====================================
+  // ======================================
 
   const didPlayerWin =
     state.score > opponentScore;
@@ -345,22 +380,19 @@ export function useGameLoop() {
       ? "PLAYER"
       : "OPPONENT";
 
-  // =====================================
+  // ======================================
   // DEBUG
-  // =====================================
+  // ======================================
 
   useEffect(() => {
 
-    console.log(
-      "📊",
-      {
-        status: state.status,
-        score: state.score,
-        combo: state.combo,
-        opponent: opponentScore,
-        time: timeRemaining,
-      }
-    );
+    debugLog("📊", {
+      status: state.status,
+      score: state.score,
+      combo: state.combo,
+      opponent: opponentScore,
+      time: timeRemaining,
+    });
 
   }, [
     state,
@@ -368,24 +400,28 @@ export function useGameLoop() {
     timeRemaining,
   ]);
 
-  // =====================================
+  // ======================================
   // PUBLIC API
-  // =====================================
+  // ======================================
 
-  return {
+ return {
+  state,
 
-    state,
+  currentOpponent: currentOpponentRef.current,
 
-    timeRemaining,
+  timeRemaining,
 
-    opponentScore,
+  opponentScore,
 
-    winner,
+  winner,
 
-    startGame,
+  showCountdown,
 
-    tap,
+  countdownValue,
 
-  };
+  startGame,
+
+  tap,
+};
 
 }

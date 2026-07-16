@@ -1,321 +1,56 @@
-import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useRef, useState } from "react";
+import { ActivityIndicator, Animated, Image, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 
+type Variant = "primary" | "secondary" | "danger" | "success" | "ghost" | "gold";
+type Size = "compact" | "small" | "medium" | "large";
 type Props = {
-  title?: string;
-  onPress: () => void;
-  disabled?: boolean;
+  title?: string; onPress: () => void; disabled?: boolean; loading?: boolean; size?: Size;
+  variant?: Variant; leftIcon?: React.ReactNode; rightIcon?: React.ReactNode; subtitle?: string;
+  fullWidth?: boolean; style?: StyleProp<ViewStyle>;
 };
 
-const BUTTON = require("../../assets/ui/button-primary.png");
-const GLOW = require("../../assets/ui/animations/button-press-glow.png");
-const RING = require("../../assets/ui/animations/button-click-ring.png");
-const POP = require("../../assets/ui/animations/button-pop.png");
+const tones: Record<Variant, { base: string; trim: string }> = {
+  primary: { base: "#C94A0A", trim: "#FFB347" }, secondary: { base: "#30201B", trim: "#C87937" },
+  danger: { base: "#7A2424", trim: "#E36A61" }, success: { base: "#24553A", trim: "#75C78C" },
+  ghost: { base: "rgba(18,14,15,0.82)", trim: "rgba(255,170,84,0.45)" }, gold: { base: "#9C6311", trim: "#FFD77A" },
+};
+const sizing: Record<Size, { height: number; font: number; px: number }> = { compact: { height: 40, font: 12, px: 13 }, small: { height: 50, font: 14, px: 18 }, medium: { height: 60, font: 16, px: 22 }, large: { height: 72, font: 19, px: 28 } };
 
-export default function FireButton({
-  title = "START CHALLENGE",
-  onPress,
-  disabled = false,
-}: Props) {
-
-  const pulse = useRef(new Animated.Value(1)).current;
-  const press = useRef(new Animated.Value(1)).current;
-  const glow = useRef(new Animated.Value(0.85)).current;
-  const ring = useRef(new Animated.Value(0)).current;
-  const pop = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-
-    Animated.loop(
-
-      Animated.parallel([
-
-        Animated.sequence([
-          Animated.timing(pulse,{
-            toValue:1.03,
-            duration:1700,
-            useNativeDriver:true,
-          }),
-
-          Animated.timing(pulse,{
-            toValue:1,
-            duration:1700,
-            useNativeDriver:true,
-          }),
-
-        ]),
-
-        Animated.sequence([
-
-          Animated.timing(glow,{
-            toValue:1,
-            duration:1500,
-            useNativeDriver:true,
-          }),
-
-          Animated.timing(glow,{
-            toValue:0.82,
-            duration:1500,
-            useNativeDriver:true,
-          }),
-
-        ]),
-
-      ])
-
-    ).start();
-
-  }, []);
-
-  const pressIn = () => {
-
+export default function FireButton({ title = "START CHALLENGE", onPress, disabled = false, loading = false, size = "medium", variant = "primary", leftIcon, rightIcon, subtitle, fullWidth = false, style }: Props) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const ringOpacity = useRef(new Animated.Value(0)).current;
+  const ringScale = useRef(new Animated.Value(0.55)).current;
+  const [pressed, setPressed] = useState(false);
+  const tone = tones[variant]; const measure = sizing[size]; const inactive = disabled || loading;
+  const animate = (toValue: number) => Animated.spring(scale, { toValue, friction: 7, tension: 220, useNativeDriver: true }).start();
+  const release = () => {
+    setPressed(false);
+    animate(1);
+    ringOpacity.stopAnimation();
+    ringScale.stopAnimation();
+    ringOpacity.setValue(0.75);
+    ringScale.setValue(0.55);
     Animated.parallel([
-
-      Animated.spring(press,{
-        toValue:0.96,
-        useNativeDriver:true,
-      }),
-
-      Animated.timing(ring,{
-        toValue:1,
-        duration:250,
-        useNativeDriver:true,
-      }),
-
-      Animated.timing(pop,{
-        toValue:1,
-        duration:140,
-        useNativeDriver:true,
-      }),
-
+      Animated.timing(ringOpacity, { toValue: 0, duration: 260, useNativeDriver: true }),
+      Animated.timing(ringScale, { toValue: 1.15, duration: 260, useNativeDriver: true }),
     ]).start();
-
   };
-
-  const pressOut = () => {
-
-    Animated.parallel([
-
-      Animated.spring(press,{
-        toValue:1,
-        friction:5,
-        tension:120,
-        useNativeDriver:true,
-      }),
-
-      Animated.timing(ring,{
-        toValue:0,
-        duration:260,
-        useNativeDriver:true,
-      }),
-
-      Animated.timing(pop,{
-        toValue:0,
-        duration:180,
-        useNativeDriver:true,
-      }),
-
-    ]).start();
-
-  };
-    return (
-    <Animated.View
-      style={[
-        styles.wrapper,
-        {
-          transform: [
-            {
-              scale: Animated.multiply(
-                pulse,
-                press
-              ),
-            },
-          ],
-        },
-      ]}
-    >
-      {/* Orange Glow */}
-
-      <Animated.Image
-        source={GLOW}
-        resizeMode="contain"
-        style={[
-          styles.glow,
-          {
-            opacity: glow,
-          },
-        ]}
-      />
-
-      {/* Click Ring */}
-
-      <Animated.Image
-        source={RING}
-        resizeMode="contain"
-        style={[
-          styles.ring,
-          {
-            opacity: ring,
-            transform: [
-              {
-                scale: ring.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.65, 1.2],
-                }),
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Pop Flash */}
-
-      <Animated.Image
-        source={POP}
-        resizeMode="contain"
-        style={[
-          styles.pop,
-          {
-            opacity: pop,
-            transform: [
-              {
-                scale: pop.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.6, 1.15],
-                }),
-              },
-            ],
-          },
-        ]}
-      />
-
-      <Pressable
-  disabled={disabled}
-  onPress={() => {
-    console.log("🔥 FIREBUTTON PRESSED");
-    onPress();
-  }}
-  onPressIn={pressIn}
-  onPressOut={pressOut}
->
-        <Image
-          source={BUTTON}
-          resizeMode="contain"
-          style={styles.button}
-        />
-
-        <View
-          pointerEvents="none"
-          style={styles.textWrap}
-        >
-          <Text style={styles.text}>
-            {title}
-          </Text>
-        </View>
-
-      </Pressable>
-
-    </Animated.View>
-  );
+  return <View style={[styles.wrapper, fullWidth && styles.fullWidth, style]}>
+    <Pressable disabled={inactive} onPress={onPress} onPressIn={() => { setPressed(true); animate(0.93); }} onPressOut={release}>
+      <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, height: measure.height, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
+        <Animated.View pointerEvents="none" style={[styles.ring, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]}><Image source={require("../../assets/ui/animations/button-click-ring.png")} style={styles.ringImage} /></Animated.View>
+        <View pointerEvents="none" style={[styles.highlight, { backgroundColor: tone.trim, opacity: pressed ? 0.28 : 0.16 }]} />
+        {loading ? <ActivityIndicator color="#FFF7E8" /> : <View style={styles.content}>{leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}<View><Text style={[styles.text, { fontSize: measure.font }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}</View>}
+      </Animated.View>
+    </Pressable>
+  </View>;
 }
+
 const styles = StyleSheet.create({
-
-  wrapper: {
-    width: 340,
-    height: 160,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    alignSelf: "center",
-
-    marginVertical: 18,
-  },
-
-  glow: {
-    position: "absolute",
-
-    width: 300,
-    height: 300,
-
-    opacity: 0.9,
-  },
-
-  ring: {
-    position: "absolute",
-
-    width: 220,
-    height: 220,
-
-    top: -18,
-
-    opacity: 0,
-  },
-
-  pop: {
-    position: "absolute",
-
-    width: 240,
-    height: 240,
-
-    opacity: 0,
-  },
-
-  button: {
-    width: 270,
-    height: 92,
-  },
-
-  textWrap: {
-    position: "absolute",
-
-    left: 0,
-    right: 0,
-
-    top: 0,
-    bottom: 0,
-
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  text: {
-    color: "#FFFFFF",
-
-    fontSize: 22,
-
-    fontWeight: "900",
-
-    letterSpacing: 1.3,
-
-    textAlign: "center",
-
-    textShadowColor: "rgba(0,0,0,0.75)",
-
-    textShadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
-    textShadowRadius: 8,
-  },
-    disabled: {
-    opacity: 0.45,
-  },
-
-  pressed: {
-    transform: [
-      {
-        scale: 0.98,
-      },
-    ],
-  },
-
+  wrapper: { alignItems: "center", justifyContent: "center", marginBottom: 8, marginTop: 12 }, fullWidth: { alignSelf: "stretch", width: "100%" },
+  button: { alignItems: "center", borderRadius: 15, borderWidth: 1, elevation: 5, justifyContent: "center", overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 6 },
+  ring: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  ringImage: { height: 88, tintColor: "#FF9B3D", width: 88 },
+  highlight: { height: 1, left: 10, position: "absolute", right: 10, top: 1 }, content: { alignItems: "center", flexDirection: "row", justifyContent: "center" },
+  text: { color: "#FFF7E8", fontWeight: "900", letterSpacing: 0.8, textAlign: "center" }, subtitle: { color: "#FFE0B2", fontSize: 10, fontWeight: "700", marginTop: 1, textAlign: "center" }, leftIcon: { marginRight: 7 }, rightIcon: { marginLeft: 7 },
 });

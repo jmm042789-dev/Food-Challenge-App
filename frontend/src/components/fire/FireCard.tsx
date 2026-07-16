@@ -1,93 +1,17 @@
 import React from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  Pressable,
-  Animated,
-  Dimensions,
-} from "react-native";
+import { ImageBackground, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import FirePanel from "./FirePanel";
 
-type Props = {
-  children: React.ReactNode;
-  onPress?: () => void;
-};
+type Props = { title?: string; subtitle?: string; badge?: React.ReactNode; image?: any; highlighted?: boolean; selected?: boolean; disabled?: boolean; compact?: boolean; onPress?: () => void; children?: React.ReactNode; style?: StyleProp<ViewStyle> };
 
-const CARD = require("../../assets/ui/card-frame.png");
-
-const { width } = Dimensions.get("window");
-
-export default function FireCard({
-  children,
-  onPress,
-}: Props) {
-
-  const cardWidth = Math.min(width - 32, 420);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.wrapper,
-        pressed && styles.pressed,
-      ]}
-    >
-      <View
-        style={[
-          styles.container,
-          {
-            width: cardWidth,
-          },
-        ]}
-      >
-        <Image
-          source={CARD}
-          resizeMode="stretch"
-          style={styles.background}
-        />
-
-        <View style={styles.overlay}>
-          {children}
-        </View>
-
-      </View>
-    </Pressable>
-  );
+export default function FireCard({ title, subtitle, badge, image, highlighted = false, selected = false, disabled = false, compact = false, onPress, children, style }: Props) {
+  return <FirePanel compact={compact} elevated={highlighted || selected} accent={highlighted || selected ? "featured" : "default"} onPress={disabled ? undefined : onPress} style={[styles.card, disabled && styles.disabled, style]}>
+    {badge ? <View style={styles.badge}>{badge}</View> : null}
+    {image ? <ImageBackground source={image} style={styles.image} imageStyle={styles.imageRadius} /> : null}
+    {title ? <Text style={styles.title}>{title}</Text> : null}
+    {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    {children ? <View style={(title || subtitle || image) ? styles.children : undefined}>{children}</View> : null}
+  </FirePanel>;
 }
 
-const styles = StyleSheet.create({
-
-  wrapper:{
-    alignSelf:"center",
-    marginVertical:12,
-  },
-
-  pressed:{
-    transform:[{scale:0.98}],
-  },
-
-  container:{
-    height:235,
-    justifyContent:"center",
-    alignItems:"center",
-  },
-
-  background:{
-    ...StyleSheet.absoluteFillObject,
-    width:undefined,
-    height:undefined,
-  },
-
-  overlay:{
-    flex:1,
-
-    width:"100%",
-
-    paddingHorizontal:34,
-    paddingTop:34,
-    paddingBottom:26,
-
-    justifyContent:"space-between",
-  },
-
-});
+const styles = StyleSheet.create({ card: { marginBottom: 12 }, disabled: { opacity: 0.5 }, badge: { position: "absolute", right: 14, top: 14, zIndex: 2 }, image: { height: 140, marginBottom: 14 }, imageRadius: { borderRadius: 13 }, title: { color: "#FFF7E8", fontSize: 21, fontWeight: "900" }, subtitle: { color: "#F6C76A", fontSize: 14, fontWeight: "700", marginTop: 5 }, children: { marginTop: 14 } });

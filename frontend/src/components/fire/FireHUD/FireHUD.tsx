@@ -1,74 +1,29 @@
 import React from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  Dimensions,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import FireHUDFrame from "../FireHUDFrame";
+import FireProgressBar from "../FireProgressBar";
 
-import FireCoinBar from "./FireCoinBar";
-import FireXPBar from "./FireXPBar";
+type Props = { level: number; xp: number; nextLevelXp: number; coins: number };
 
-type FireHUDProps = {
-  level: number;
-  xp: number;
-  nextLevelXp: number;
-  coins: number;
-};
-
-const LOGO = require("../../../assets/logo/fire-feast-logo-primary.png");
-
-const { width } = Dimensions.get("window");
-
-export default function FireHUD({
-  level,
-  xp,
-  nextLevelXp,
-  coins,
-}: FireHUDProps) {
+export default function FireHUD({ level, xp, nextLevelXp, coins }: Props) {
   return (
     <View style={styles.container}>
-
-      {/* FIRE FEAST LOGO */}
-
-      <Image
-        source={LOGO}
-        resizeMode="contain"
-        style={styles.logo}
-      />
-
-      {/* COINS */}
-
-      <FireCoinBar
-        coins={coins}
-      />
-
-      {/* XP */}
-
-      <FireXPBar
-        level={level}
-        xp={xp}
-        nextLevelXp={nextLevelXp}
-      />
-
+      <View style={styles.topRow}>
+        <FireHUDFrame compact label="FIRE FEAST" value={`LEVEL ${level}`} style={styles.levelFrame} />
+        <FireHUDFrame compact label="COINS" value={coins.toLocaleString()} icon={<Text style={styles.icon}>🪙</Text>} style={styles.coinFrame} />
+      </View>
+      <FireHUDFrame label="ARENA XP" value={`${xp} / ${nextLevelXp}`} style={styles.xpFrame}>
+        <FireProgressBar value={xp} max={nextLevelXp} variant="xp" />
+      </FireHUDFrame>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    alignItems: "center",
-
-    paddingTop: 8,
-    paddingBottom: 10,
-    marginBottom: 8,
-  },
-
-  logo: {
-    width: Math.min(width * 0.72, 310),
-    height: 135,
-
-    marginBottom: -8,
-  },
+  container: { gap: 8, width: "100%" },
+  topRow: { flexDirection: "row", gap: 8 },
+  levelFrame: { flex: 1 },
+  coinFrame: { minWidth: 116 },
+  xpFrame: { width: "100%" },
+  icon: { fontSize: 14 },
 });

@@ -1,4 +1,5 @@
 import React from "react";
+import { Redirect } from "expo-router";
 import {
   View,
   Text,
@@ -8,8 +9,7 @@ import {
 
 import { useGameLoop } from "../../src/game/useGameLoop";
 
-export default function GameLoopDebugScreen() {
-
+function GameLoopDebugContent() {
   const {
     state,
     timeRemaining,
@@ -75,6 +75,11 @@ export default function GameLoopDebugScreen() {
     </View>
   );
 
+}
+
+export default function GameLoopDebugScreen() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <GameLoopDebugContent />;
 }
 
 const styles = StyleSheet.create({
