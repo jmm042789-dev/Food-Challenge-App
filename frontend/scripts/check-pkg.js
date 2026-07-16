@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+
+
 // Banned packages list. Used by preinstall hook and install-guard.sh.
 
 const fs = require("fs");
@@ -25,12 +26,12 @@ const BANNED = {
 
 function report(name, recovery) {
   const { reason, alternative } = BANNED[name];
-  console.error("");
-  console.error(`${name} is not allowed in this template.`);
-  console.error(`  Reason:      ${reason}`);
-  console.error(`  Use instead: ${alternative}`);
-  if (recovery) console.error(`  Recovery:    ${recovery}`);
-  console.error("");
+  console.warn("");
+  console.warn(`${name} is currently installed.`);
+  console.warn(`  Reason:      ${reason}`);
+  console.warn(`  Recommended: ${alternative}`);
+  if (recovery) console.warn(`  Recovery:    ${recovery}`);
+  console.warn("");
 }
 
 // --args mode: scan CLI args for banned package names (with optional @version).
@@ -50,12 +51,23 @@ if (process.argv[2] === "--args") {
 const pkg = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"),
 );
-const all = { ...pkg.dependencies, ...pkg.devDependencies };
+
+const all = {
+  ...pkg.dependencies,
+  ...pkg.devDependencies,
+};
+
 const hits = Object.keys(all).filter((name) => name in BANNED);
 
-if (hits.length === 0) process.exit(0);
+if (hits.length === 0) {
+  process.exit(0);
+}
 
 for (const name of hits) {
-  report(name, "run `git checkout package.json` to undo the add.");
+  report(
+    name,
+    "Remove this dependency after migrating to the recommended Expo package."
+  );
 }
+
 process.exit(1);

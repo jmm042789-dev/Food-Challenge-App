@@ -1,9 +1,9 @@
 {
-  "name": "frontend",
+  "name": "fire-feast",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "preinstall": "./scripts/check-pkg.js",
+    "preinstall": "node ./scripts/check-pkg.js",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
@@ -21,7 +21,8 @@
     "@react-navigation/native-stack": "^7.3.16",
     "date-fns": "4.1.0",
     "dayjs": "1.11.13",
-    "expo": "~54.0.35",
+    "expo": "~54.0.36",
+    "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.13",
@@ -51,10 +52,10 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "babel-preset-expo": "^54.0.11",
     "eslint": "9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.3"
   },
-  "private": true,
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "private": true
 }

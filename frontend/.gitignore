@@ -5,6 +5,7 @@ node_modules/
 
 # Expo
 .expo/
+.eas/
 dist/
 web-build/
 expo-env.d.ts
@@ -13,13 +14,18 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+google-services.json
+GoogleService-Info.plist
+credentials.json
 
 # Metro
 .metro-health-check*
+.metro-cache/
 
 # debug
 npm-debug.*
@@ -30,8 +36,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local environment files (commit only the documented template)
+.env
+.env.*
+!.env.example
+
+# Source archive retained locally, but not required by the app bundle.
+/src/assets/ui.zip
 
 # typescript
 *.tsbuildinfo

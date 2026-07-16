@@ -1,13 +1,89 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || "";
+const configuredBase = process.env.EXPO_PUBLIC_BACKEND_URL?.trim().replace(/\/$/, "") || "";
+
+if (!__DEV__ && (!configuredBase || !configuredBase.startsWith("https://"))) {
+  throw new Error(
+    "Fire Feast production builds require EXPO_PUBLIC_BACKEND_URL to be configured with an HTTPS URL.",
+  );
+}
+
+const BASE = configuredBase;
 const API = `${BASE}/api`;
+const REQUEST_TIMEOUT_MS = 8000;
 
 // 🔥 DEBUG LOGS (A.0 sanity check)
-console.log("🔥 BASE =", BASE);
-console.log("🔥 API =", API);
+if (__DEV__) {
+  console.log("Fire Feast API base:", BASE || "same-origin");
+}
 
 const DEVICE_KEY = "chompchamps_device_id";
+
+export type Contest = {
+  id: string;
+  name: string;
+  location: string;
+  food: string;
+  food_emoji: string;
+  entry_fee: number;
+  prize_pool: number;
+  difficulty: string;
+  duration_sec: number;
+  image?: string;
+  image_url?: string;
+  bite_mechanic?: string;
+  heartburn_per_bite?: number;
+  color?: string;
+  difficulty_color?: string;
+  category?: string;
+  artwork?: string;
+  restaurant_name?: string;
+  restaurant_logo_url?: string;
+  restaurant_logo_asset?: string;
+  restaurant_website_url?: string;
+  menu_url?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  latitude?: number;
+  longitude?: number;
+  phone?: string;
+  challenge_rules?: string;
+  challenge_history?: string;
+  sponsor_name?: string;
+  sponsor_logo_url?: string;
+  sponsor_message?: string;
+  sponsored?: boolean;
+  verified?: boolean;
+  source_url?: string;
+};
+
+type ContestResponse = {
+  contests?: Contest[];
+  data?: Contest[];
+};
+
+export function parseContests(response: ContestResponse | Contest[]): Contest[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.contests)) {
+    return response.contests;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  console.error("Contest response had an unexpected shape", {
+    url: `${API}/contests`,
+    status: 200,
+    responseBody: response,
+  });
+  return [];
+}
 
 /**
  * Get or create persistent device ID
@@ -27,14 +103,23 @@ export async function getDeviceId(): Promise<string> {
  * Safe request wrapper
  */
 async function req(path: string, opts: RequestInit = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const url = `${API}${path}`;
+  let status: number | "not received" = "not received";
+  let responseBody: unknown = "No response received";
+
   try {
-    const res = await fetch(`${API}${path}`, {
+    const res = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
+      signal: controller.signal,
       ...opts,
     });
 
+    status = res.status;
     const text = await res.text();
     let data;
 
@@ -43,6 +128,7 @@ async function req(path: string, opts: RequestInit = {}) {
     } catch {
       data = text;
     }
+    responseBody = data;
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${JSON.stringify(data)}`);
@@ -50,8 +136,26 @@ async function req(path: string, opts: RequestInit = {}) {
 
     return data;
   } catch (err: any) {
-    console.log(`❌ API ERROR: ${path}`, err.message);
+    if (path === "/contests") {
+      console.error("Contest request failed", {
+        url,
+        status,
+        responseBody,
+      });
+    }
+
+    if (err?.name === "AbortError") {
+      const timeoutError = new Error(
+        `Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${path}`
+      );
+      console.error(`API timeout: ${path}`);
+      throw timeoutError;
+    }
+
+    console.error(`API error: ${path}`, err?.message || err);
     throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
