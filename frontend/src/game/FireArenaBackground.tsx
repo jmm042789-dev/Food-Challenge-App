@@ -1,14 +1,34 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 type FireArenaBackgroundProps = {
   children?: React.ReactNode;
+  combo?: number;
+  phase?: "intro" | "active" | "result";
 };
 
 const ARENA_IMAGE = require("../assets/backgrounds/arena.png");
-const EMBER_IMAGE = require("../assets/ui/effects/embers-particle.png");
 const SMOKE_IMAGE = require("../assets/ui/effects/smoke-puff.png");
+
+const EMBER_COUNT = 28;
+type EmberSpec = { id: number; left: `${number}%`; bottom: `${number}%`; size: number; opacity: number; sway: number; speed: 0 | 1 | 2; delay: number };
+
+function seededRandom(seed: number) {
+  const value = Math.sin(seed * 9283.17) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+const EMBERS: readonly EmberSpec[] = Array.from({ length: EMBER_COUNT }, (_, id) => ({
+  id,
+  left: `${Math.round(seededRandom(id + 1) * 100)}%` as `${number}%`,
+  bottom: `${Math.round(seededRandom(id + 31) * 62)}%` as `${number}%`,
+  size: 2 + Math.round(seededRandom(id + 61) * 3),
+  opacity: 0.2 + seededRandom(id + 91) * 0.48,
+  sway: 2 + Math.round(seededRandom(id + 121) * 4),
+  speed: (id % 3) as 0 | 1 | 2,
+  delay: seededRandom(id + 151),
+}));
 
 function ambientLoop(value: Animated.Value, duration: number, delay = 0) {
   return Animated.loop(
@@ -30,27 +50,66 @@ function ambientLoop(value: Animated.Value, duration: number, delay = 0) {
   );
 }
 
-/** Six fixed, native-driven atmosphere planes. No per-frame JS or generated particles. */
-export default function FireArenaBackground({ children }: FireArenaBackgroundProps) {
+function driftLoop(value: Animated.Value, duration: number, delay = 0) {
+  return Animated.loop(
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.timing(value, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true }),
+    ]),
+    { resetBeforeIteration: true },
+  );
+}
+
+/** Fixed native-driven atmosphere layers. No per-frame JS or runtime particle generation. */
+export default function FireArenaBackground({ children, combo = 0, phase = "active" }: FireArenaBackgroundProps) {
   const spotlightLeft = useRef(new Animated.Value(0)).current;
   const spotlightRight = useRef(new Animated.Value(0)).current;
   const smokeLeft = useRef(new Animated.Value(0)).current;
   const smokeRight = useRef(new Animated.Value(0)).current;
-  const embersBack = useRef(new Animated.Value(0)).current;
-  const embersFront = useRef(new Animated.Value(0)).current;
+  const emberSlow = useRef(new Animated.Value(0)).current;
+  const emberMedium = useRef(new Animated.Value(0)).current;
+  const emberFast = useRef(new Animated.Value(0)).current;
+  const heatHaze = useRef(new Animated.Value(0)).current;
+  const lightSweep = useRef(new Animated.Value(0)).current;
+  const depthMotion = useRef(new Animated.Value(0)).current;
+  const fireBreath = useRef(new Animated.Value(0)).current;
+  const intensity = useRef(new Animated.Value(0)).current;
+  const emberProgress = useMemo(() => [emberSlow, emberMedium, emberFast] as const, [emberFast, emberMedium, emberSlow]);
 
   useEffect(() => {
+    const resultSlowdown = phase === "result" ? 1.55 : 1;
     const animations = [
       ambientLoop(spotlightLeft, 7200),
       ambientLoop(spotlightRight, 8600, 900),
       ambientLoop(smokeLeft, 11200),
       ambientLoop(smokeRight, 12800, 1200),
-      ambientLoop(embersBack, 10400, 500),
-      ambientLoop(embersFront, 8200, 1700),
+      driftLoop(emberSlow, 10500 * resultSlowdown, 500),
+      driftLoop(emberMedium, 8200 * resultSlowdown, 1100),
+      driftLoop(emberFast, 6500 * resultSlowdown, 1700),
+      ambientLoop(heatHaze, 5800),
+      ambientLoop(depthMotion, 12400, 800),
+      ambientLoop(fireBreath, 4200, 300),
+      Animated.loop(Animated.sequence([
+        Animated.timing(lightSweep, { toValue: 1, duration: 12000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(lightSweep, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ])),
     ];
     animations.forEach((animation) => animation.start());
     return () => animations.forEach((animation) => animation.stop());
-  }, [embersBack, embersFront, smokeLeft, smokeRight, spotlightLeft, spotlightRight]);
+  }, [depthMotion, emberFast, emberMedium, emberSlow, fireBreath, heatHaze, lightSweep, phase, smokeLeft, smokeRight, spotlightLeft, spotlightRight]);
+
+  useEffect(() => {
+    const comboIntensity = combo >= 20 ? 1 : combo >= 15 ? 0.72 : combo >= 10 ? 0.48 : combo >= 5 ? 0.25 : 0;
+    const target = phase === "result" ? 0.08 : comboIntensity;
+    const transition = Animated.timing(intensity, {
+      toValue: target,
+      duration: phase === "result" ? 1100 : 500,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    transition.start();
+    return () => transition.stop();
+  }, [combo, intensity, phase]);
 
   const backdrop = (
     <View pointerEvents="none" style={styles.backdrop}>
@@ -61,6 +120,9 @@ export default function FireArenaBackground({ children }: FireArenaBackgroundPro
       />
 
       <Image source={ARENA_IMAGE} resizeMode="cover" style={styles.arenaImage} />
+      <Animated.View style={[styles.depthBack, { transform: [{ translateX: depthMotion.interpolate({ inputRange: [0, 1], outputRange: [-2, 2] }) }] }]} />
+      <Animated.View style={[styles.depthMiddle, { transform: [{ translateX: depthMotion.interpolate({ inputRange: [0, 1], outputRange: [3, -3] }) }, { translateY: depthMotion.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) }] }]} />
+      <Animated.View style={[styles.depthFront, { transform: [{ translateX: depthMotion.interpolate({ inputRange: [0, 1], outputRange: [-5, 5] }) }] }]} />
       <LinearGradient
         colors={["rgba(0,0,0,0.9)", "rgba(0,0,0,0.26)", "rgba(14,2,3,0.18)", "rgba(0,0,0,0.9)"]}
         locations={[0, 0.27, 0.62, 1]}
@@ -95,6 +157,21 @@ export default function FireArenaBackground({ children }: FireArenaBackgroundPro
       />
 
       <View style={styles.upperWarmth} />
+      <Animated.View
+        style={[
+          styles.stadiumSweep,
+          {
+            opacity: lightSweep.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.01, 0.065, 0.01] }),
+            transform: [{ translateX: lightSweep.interpolate({ inputRange: [0, 1], outputRange: [-230, 230] }) }, { rotate: "-14deg" }],
+          },
+        ]}
+      >
+        <LinearGradient colors={["transparent", "rgba(255,183,93,0.34)", "transparent"]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+
+      <Animated.View style={[styles.heatHaze, { opacity: heatHaze.interpolate({ inputRange: [0, 1], outputRange: [0.018, 0.045] }), transform: [{ translateY: heatHaze.interpolate({ inputRange: [0, 1], outputRange: [3, -3] }) }, { scaleY: heatHaze.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1.015] }) }] }]}>
+        <LinearGradient colors={["transparent", "rgba(255,104,37,0.16)", "transparent"]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
 
       <Animated.Image
         source={SMOKE_IMAGE}
@@ -128,55 +205,35 @@ export default function FireArenaBackground({ children }: FireArenaBackgroundPro
         ]}
       />
 
-      <Animated.Image
-        source={EMBER_IMAGE}
-        resizeMode="contain"
-        style={[
-          styles.emberPlane,
-          styles.embersBack,
-          {
-            opacity: embersBack.interpolate({ inputRange: [0, 1], outputRange: [0.06, 0.13] }),
-            transform: [
-              { translateY: embersBack.interpolate({ inputRange: [0, 1], outputRange: [36, -30] }) },
-              { translateX: embersBack.interpolate({ inputRange: [0, 1], outputRange: [-8, 10] }) },
-              { scale: 0.78 },
-            ],
-          },
-        ]}
-      />
+      <View style={styles.emberField}>
+        {EMBERS.slice(0, 20).map((ember) => {
+          const progress = emberProgress[ember.speed];
+          return <Animated.View key={ember.id} style={[styles.ember, { bottom: ember.bottom, height: ember.size, left: ember.left, opacity: progress.interpolate({ inputRange: [0, 0.12 + ember.delay * 0.2, 0.58 + ember.delay * 0.16, 1], outputRange: [0, ember.opacity * 0.45, ember.opacity, 0] }), transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [22, -72] }) }, { translateX: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [-ember.sway, ember.sway, -ember.sway] }) }], width: ember.size }]} />;
+        })}
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: intensity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.72] }) }]}>
+          {EMBERS.slice(20).map((ember) => {
+            const progress = emberProgress[ember.speed];
+            return <Animated.View key={ember.id} style={[styles.ember, styles.emberHot, { bottom: ember.bottom, height: ember.size, left: ember.left, opacity: progress.interpolate({ inputRange: [0, 0.12 + ember.delay * 0.2, 0.58 + ember.delay * 0.16, 1], outputRange: [0, ember.opacity * 0.4, ember.opacity, 0] }), transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [18, -82] }) }, { translateX: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [ember.sway, -ember.sway, ember.sway] }) }], width: ember.size }]} />;
+          })}
+        </Animated.View>
+      </View>
 
       <View style={styles.floorShadow} />
       <View style={styles.floorHorizon} />
       <View style={styles.floorGlow} />
       <View style={styles.pedestalHalo} />
 
-      <View style={[styles.fireBowl, styles.fireBowlLeft]}>
+      <Animated.View style={[styles.fireBowl, styles.fireBowlLeft, { opacity: fireBreath.interpolate({ inputRange: [0, 1], outputRange: [0.72, 0.9] }), transform: [{ scale: fireBreath.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.025] }) }] }]}>
         <View style={styles.bowlGlow} />
         <View style={styles.bowlCore} />
         <View style={styles.bowlBase} />
-      </View>
-      <View style={[styles.fireBowl, styles.fireBowlRight]}>
+      </Animated.View>
+      <Animated.View style={[styles.fireBowl, styles.fireBowlRight, { opacity: fireBreath.interpolate({ inputRange: [0, 1], outputRange: [0.68, 0.86] }), transform: [{ scale: fireBreath.interpolate({ inputRange: [0, 1], outputRange: [1.02, 0.985] }) }] }]}>
         <View style={styles.bowlGlow} />
         <View style={styles.bowlCore} />
         <View style={styles.bowlBase} />
-      </View>
-
-      <Animated.Image
-        source={EMBER_IMAGE}
-        resizeMode="contain"
-        style={[
-          styles.emberPlane,
-          styles.embersFront,
-          {
-            opacity: embersFront.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.18] }),
-            transform: [
-              { translateY: embersFront.interpolate({ inputRange: [0, 1], outputRange: [55, -42] }) },
-              { translateX: embersFront.interpolate({ inputRange: [0, 1], outputRange: [10, -12] }) },
-              { scale: 1.08 },
-            ],
-          },
-        ]}
-      />
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[styles.comboWarmth, { opacity: intensity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] }) }]} />
 
       <LinearGradient colors={["rgba(0,0,0,0.66)", "transparent"]} style={styles.hudContrast} />
       <LinearGradient colors={["transparent", "rgba(0,0,0,0.52)"]} style={styles.controlContrast} />
@@ -199,16 +256,21 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "#020203", overflow: "hidden" },
   arenaImage: { ...StyleSheet.absoluteFillObject, height: "100%", opacity: 0.23, width: "100%" },
+  depthBack: { backgroundColor: "rgba(82,13,12,0.05)", borderRadius: 180, height: "42%", left: "8%", position: "absolute", right: "8%", top: "14%" },
+  depthMiddle: { borderColor: "rgba(197,65,25,0.08)", borderRadius: 220, borderWidth: 1, height: "56%", left: "-4%", position: "absolute", right: "-4%", top: "19%" },
+  depthFront: { backgroundColor: "rgba(0,0,0,0.12)", bottom: "18%", height: 90, left: "-5%", position: "absolute", right: "-5%" },
   spotlight: { backgroundColor: "rgba(255,176,85,0.72)", height: "72%", position: "absolute", top: -210, width: 76 },
   spotlightLeft: { left: "12%" },
   spotlightRight: { right: "12%" },
   upperWarmth: { alignSelf: "center", backgroundColor: "rgba(211,58,14,0.1)", borderRadius: 220, height: 180, position: "absolute", top: -85, width: "92%" },
+  stadiumSweep: { height: "125%", left: "50%", position: "absolute", top: "-12%", width: 150 },
+  heatHaze: { alignSelf: "center", bottom: "19%", height: "36%", position: "absolute", width: "68%" },
   smoke: { height: 190, position: "absolute", width: 290 },
   smokeLeft: { bottom: "25%", left: -135 },
   smokeRight: { right: -145, top: "24%" },
-  emberPlane: { height: 245, position: "absolute", tintColor: "#FF9B37", width: 245 },
-  embersBack: { right: -54, top: "20%" },
-  embersFront: { bottom: "10%", left: -68 },
+  emberField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
+  ember: { backgroundColor: "#F7A33C", borderRadius: 4, position: "absolute" },
+  emberHot: { backgroundColor: "#FFD06A" },
   floorShadow: { alignSelf: "center", backgroundColor: "rgba(0,0,0,0.72)", borderRadius: 240, bottom: -105, height: 330, position: "absolute", width: "145%" },
   floorHorizon: { alignSelf: "center", borderColor: "rgba(220,75,22,0.2)", borderRadius: 260, borderTopWidth: 1, bottom: -70, height: 280, position: "absolute", width: "135%" },
   floorGlow: { alignSelf: "center", backgroundColor: "rgba(181,39,10,0.13)", borderRadius: 220, bottom: -78, height: 240, position: "absolute", width: "105%" },
@@ -221,5 +283,6 @@ const styles = StyleSheet.create({
   bowlBase: { backgroundColor: "#180B0A", borderColor: "rgba(205,103,34,0.5)", borderRadius: 18, borderTopWidth: 2, height: 20, marginTop: -5, width: 58 },
   hudContrast: { height: 180, left: 0, position: "absolute", right: 0, top: 0 },
   controlContrast: { bottom: 0, height: 190, left: 0, position: "absolute", right: 0 },
+  comboWarmth: { ...StyleSheet.absoluteFillObject, backgroundColor: "#B72E0B" },
   vignette: { ...StyleSheet.absoluteFillObject, borderColor: "rgba(0,0,0,0.58)", borderWidth: 24 },
 });

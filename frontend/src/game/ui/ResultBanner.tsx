@@ -48,6 +48,7 @@ export default function ResultBanner({ result, playerScore, opponentScore, oppon
       <View style={[styles.comparison, { borderColor: trim }]}>
         <View style={styles.topHighlight} pointerEvents="none" />
         <View style={styles.competitor}>
+          {isVictory ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
           <CharacterPortrait image={BLAZE} name="Blaze" subtitle="You" side="player" size="compact" reaction={isVictory ? "victory" : "defeat"} reactionKey={result} />
           <Text style={styles.score}>{Math.floor(playerScore).toLocaleString()}</Text>
           <Text style={styles.scoreLabel}>FINAL SCORE</Text>
@@ -58,6 +59,7 @@ export default function ResultBanner({ result, playerScore, opponentScore, oppon
           <View style={styles.rule} />
         </View>
         <View style={styles.competitor}>
+          {!isVictory ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
           <CharacterPortrait fallback={opponentAvatar} name={opponentName} subtitle={opponentPersonality} side="opponent" size="compact" reaction={isVictory ? "defeat" : "victory"} reactionKey={result} />
           <Text style={styles.score}>{Math.floor(opponentScore).toLocaleString()}</Text>
           <Text style={styles.scoreLabel}>FINAL SCORE</Text>

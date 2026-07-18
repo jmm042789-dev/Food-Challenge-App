@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 
 import { api, type Contest, parseContests } from "../../src/api";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
@@ -11,14 +12,25 @@ import GameplayHUD from "../../src/game/ui/GameplayHUD";
 import VictoryOverlay from "../../src/game/ui/VictoryOverlay";
 import SceneMotion, { type SceneMotionPhase } from "../../src/game/ui/SceneMotion";
 import { useGameLoop } from "../../src/game/useGameLoop";
+import { resolveContestDurationSeconds } from "../../src/game/contestDuration";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
+import FireButton from "../../src/components/fire/FireButton";
+import HeatScreenOverlay from "../../src/game/ui/HeatScreenOverlay";
+import HeatTierBanner from "../../src/game/ui/HeatTierBanner";
+import AntacidCoolingFeedback from "../../src/game/ui/AntacidCoolingFeedback";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ContestScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { contestId } = useLocalSearchParams<{ contestId?: string | string[] }>();
+  const { contestId, replay: replayParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[] }>();
   const selectedContestId = Array.isArray(contestId) ? contestId[0] : contestId ?? "";
+  const replayToken = Array.isArray(replayParam) ? replayParam[0] : replayParam ?? "";
+  const matchRouteKey = `${selectedContestId}:${replayToken}`;
+  const [contest, setContest] = useState<Contest | null>(null);
+  const [contestLoaded, setContestLoaded] = useState(false);
+  const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
+  const matchDurationSeconds = resolveContestDurationSeconds(contest);
   const {
     state,
     timeRemaining,
@@ -28,25 +40,35 @@ export default function ContestScreen() {
     countdownValue,
     startGame,
     tap,
-  } = useGameLoop();
+    heartburn,
+    heatTier,
+    heatMultiplier,
+    isOverheated,
+    overheatRemainingMs,
+    antacidCount,
+    canUseAntacid,
+    useAntacid,
+  } = useGameLoop(matchDurationSeconds, matchRouteKey, playerAntacidCount);
 
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
   const [showScore, setShowScore] = useState(false);
   const [comboLabel, setComboLabel] = useState("COMBO");
   const [highestCombo, setHighestCombo] = useState(0);
   const [matchTime, setMatchTime] = useState(0);
-  const [contest, setContest] = useState<Contest | null>(null);
   const [nextContestId, setNextContestId] = useState<string | null>(null);
   const [roundLabel, setRoundLabel] = useState("WORLD TOUR EVENT");
+  const [coolingTrigger, setCoolingTrigger] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const antacidPulse = useRef(new Animated.Value(0)).current;
   const started = useRef(false);
   const matchStartedAt = useRef<number | null>(null);
   const scoreFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (started.current) return;
+    if (!contestLoaded || started.current) return;
     started.current = true;
     startGame();
-  }, [startGame]);
+  }, [contestLoaded, startGame]);
 
   useEffect(() => {
     if (!feedbackText) return;
@@ -63,6 +85,26 @@ export default function ContestScreen() {
   }, [state.combo]);
 
   useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => { if (mounted) setReducedMotion(enabled); });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    antacidPulse.stopAnimation();
+    antacidPulse.setValue(0);
+    if (reducedMotion || !canUseAntacid || (heatTier !== "CRITICAL" && heatTier !== "OVERHEATED")) return;
+    const animation = Animated.loop(Animated.sequence([
+      Animated.timing(antacidPulse, { toValue: 1, duration: 520, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(antacidPulse, { toValue: 0, duration: 520, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [antacidPulse, canUseAntacid, heatTier, reducedMotion]);
+
+  useEffect(() => () => antacidPulse.stopAnimation(), [antacidPulse]);
+
+  useEffect(() => {
     if (state.status === "PLAYING" && matchStartedAt.current === null) {
       matchStartedAt.current = Date.now();
     }
@@ -74,12 +116,20 @@ export default function ContestScreen() {
 
   useEffect(() => {
     let active = true;
+    started.current = false;
+    setContestLoaded(false);
+    setContest(null);
 
     async function loadContestDetails() {
       try {
-        const result = await api.listContests();
-        const contests = parseContests(result);
+        const [contestResult, playerResult] = await Promise.allSettled([api.listContests(), api.getPlayer()]);
+        const contests = contestResult.status === "fulfilled" ? parseContests(contestResult.value) : [];
         const contestIndex = contests.findIndex((item) => item.id === selectedContestId);
+
+        if (active && playerResult.status === "fulfilled") {
+          const inventory = Number((playerResult.value as { antacid?: number })?.antacid);
+          if (Number.isFinite(inventory)) setPlayerAntacidCount(Math.max(0, Math.floor(inventory)));
+        }
 
         if (active && contestIndex >= 0) {
           setContest(contests[contestIndex]);
@@ -92,6 +142,8 @@ export default function ContestScreen() {
           setNextContestId(null);
           setRoundLabel("WORLD TOUR EVENT");
         }
+      } finally {
+        if (active) setContestLoaded(true);
       }
     }
 
@@ -100,7 +152,7 @@ export default function ContestScreen() {
     return () => {
       active = false;
     };
-  }, [selectedContestId]);
+  }, [matchRouteKey, selectedContestId]);
 
   const handleTap = () => {
     if (state.status !== "PLAYING") return;
@@ -132,6 +184,12 @@ export default function ContestScreen() {
     scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
   };
 
+  const handleUseAntacid = () => {
+    if (!useAntacid()) return;
+    setCoolingTrigger((value) => value + 1);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  };
+
   const result = state.status === "FINISHED"
     ? state.score > opponentScore ? "victory" : "defeat"
     : null;
@@ -149,7 +207,10 @@ export default function ContestScreen() {
 
   return (
     <View style={styles.container}>
-      <ArcadeBackground />
+      <ArcadeBackground combo={state.combo} phase={state.status === "FINISHED" ? "result" : state.status === "PLAYING" ? "active" : "intro"} />
+      <HeatScreenOverlay heartburn={heartburn} heatTier={heatTier} isOverheated={isOverheated} />
+      <HeatTierBanner heatTier={heatTier} />
+      <AntacidCoolingFeedback trigger={coolingTrigger} />
 
       <CountdownOverlay
         visible={showCountdown}
@@ -200,12 +261,23 @@ export default function ContestScreen() {
           location={contest?.location}
           difficulty={contest?.difficulty}
           roundLabel={roundLabel}
+          heartburn={heartburn}
+          heatTier={heatTier}
+          heatMultiplier={heatMultiplier}
+          isOverheated={isOverheated}
+          overheatRemainingMs={overheatRemainingMs}
+          antacidCount={antacidCount}
+          canUseAntacid={canUseAntacid}
+          onUseAntacid={handleUseAntacid}
         />
         </FireScreenEntrance>
 
         <View style={styles.arena}>
-          <FoodArena contestId={selectedContestId} combo={state.combo} active={state.status === "PLAYING"} onTap={handleTap} />
+          <FoodArena contestId={selectedContestId} combo={state.combo} timeRemaining={timeRemaining} resetKey={matchRouteKey} active={state.status === "PLAYING"} onTap={handleTap} />
         </View>
+        <Animated.View style={[styles.antacidControl, { opacity: canUseAntacid ? 1 : 0.46, transform: [{ scale: antacidPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
+          <FireButton accessibilityLabel={`Use antacid, ${antacidCount} remaining${canUseAntacid ? ", cool down" : ", unavailable"}`} title="USE ANTACID" subtitle={canUseAntacid ? `COOL DOWN · ${antacidCount} LEFT` : `${antacidCount} LEFT`} size="compact" variant={heatTier === "CRITICAL" || heatTier === "OVERHEATED" ? "gold" : "secondary"} disabled={!canUseAntacid} onPress={handleUseAntacid} style={styles.antacidButton} />
+        </Animated.View>
       </SceneMotion>
 
       {result ? (
@@ -255,4 +327,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 52,
   },
+  antacidControl: { bottom: 3, left: 7, position: "absolute", zIndex: 40 },
+  antacidButton: { marginBottom: 0, marginTop: 0 },
 });

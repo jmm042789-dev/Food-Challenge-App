@@ -1,0 +1,51 @@
+export const DEFAULT_HEARTBURN = 6;
+export const COMPLETED_FOOD_BONUS_HEAT = 4;
+export const OVERHEAT_TIME = 3000;
+export const RECOVERY_HEAT = 65;
+export const BASE_COMBO_WINDOW_MS = 700;
+export const CRITICAL_COMBO_WINDOW_MULTIPLIER = 0.9;
+
+export const HEAT_MULTIPLIERS = {
+  COOL: 1,
+  WARM: 1.2,
+  HOT: 1.5,
+  CRITICAL: 2,
+  OVERHEATED: 0.5,
+} as const;
+
+export const FOOD_HEAT_VALUES = {
+  SALAD: 3,
+  APPLE: 2,
+  BURGER: 10,
+  CHEESEBURGER: 12,
+  PIZZA: 12,
+  TACO: 8,
+  FRIES: 6,
+  HOT_DOG: 7,
+  CHICKEN_WINGS: 14,
+  BBQ: 16,
+  SPICY_RAMEN: 18,
+  NASHVILLE_HOT: 20,
+  HABANERO: 25,
+  GHOST_PEPPER: 40,
+  CAROLINA_REAPER: 50,
+} as const;
+
+export const DIFFICULTY_VALUES = {
+  EASY: 0.8,
+  NORMAL: 1,
+  HARD: 1.2,
+  EXTREME: 1.5,
+} as const;
+
+export const BONUS_VALUES = {
+  CRITICAL_COMBO_REWARD: 1.25,
+  HEAT_SURVIVOR_SCORE: 250,
+} as const;
+
+export const HEAT_EVENT_VALUES = {
+  KITCHEN_FIRE: 25,
+  COLD_DRINK: -20,
+  BONUS_ICE: -50,
+  SPICY_SAUCE: 15,
+} as const;

@@ -124,7 +124,7 @@ export default function ContestsScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <View>
+              <View style={styles.headerTitleBlock}>
                 <Text style={styles.kicker}>FIRE FEAST ARENA</Text>
                 <Text style={styles.title}>CONTESTS</Text>
               </View>
@@ -170,10 +170,11 @@ export default function ContestsScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   listContent: { paddingBottom: 12, paddingHorizontal: 12 },
-  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minHeight: 62, paddingHorizontal: 2 },
+  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minHeight: 62, minWidth: 0, paddingHorizontal: 2 },
+  headerTitleBlock: { flex: 1, minWidth: 0, paddingRight: 8 },
   kicker: { color: "#B98450", fontSize: 8, fontWeight: "900", letterSpacing: 1.8 },
   title: { color: "#FFF1DD", fontSize: 25, fontWeight: "900", letterSpacing: 1.2, lineHeight: 28 },
-  coinHud: { alignItems: "center", backgroundColor: "rgba(9,7,8,0.94)", borderColor: "rgba(238,151,56,0.7)", borderRadius: 10, borderWidth: 1, flexDirection: "row", minWidth: 112, paddingHorizontal: 9, paddingVertical: 6 },
+  coinHud: { alignItems: "center", backgroundColor: "rgba(9,7,8,0.94)", borderColor: "rgba(238,151,56,0.7)", borderRadius: 10, borderWidth: 1, flexDirection: "row", flexShrink: 0, minWidth: 98, paddingHorizontal: 8, paddingVertical: 6 },
   coinIcon: { height: 28, marginRight: 5, width: 28 },
   coinLabel: { color: "#B58B59", fontSize: 7, fontWeight: "900", letterSpacing: 1 },
   coinValue: { color: "#FFD16A", fontSize: 15, fontWeight: "900", lineHeight: 17 },
@@ -187,10 +188,10 @@ const styles = StyleSheet.create({
   boardTitle: { color: "#F0C37E", fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
   eventCount: { color: "#A87343", fontSize: 8, fontWeight: "900", letterSpacing: 0.8 },
   contestRow: { alignItems: "center", backgroundColor: "rgba(15,10,11,0.94)", borderRadius: 11, flexDirection: "row", marginBottom: 6, minHeight: 92, paddingHorizontal: 7, paddingVertical: 6 },
-  thumbnailFrame: { alignItems: "center", backgroundColor: "rgba(30,13,11,0.82)", borderColor: "rgba(219,123,37,0.42)", borderRadius: 9, borderWidth: 1, height: 76, justifyContent: "center", overflow: "hidden", width: 76 },
+  thumbnailFrame: { alignItems: "center", backgroundColor: "rgba(30,13,11,0.82)", borderColor: "rgba(219,123,37,0.42)", borderRadius: 9, borderWidth: 1, flexShrink: 0, height: 70, justifyContent: "center", overflow: "hidden", width: 70 },
   thumbnailGlow: { backgroundColor: "rgba(202,58,10,0.17)", borderRadius: 36, height: 70, position: "absolute", width: 70 },
-  thumbnail: { height: 78, width: 78 },
-  contestInfo: { flex: 1, justifyContent: "center", minWidth: 0, paddingHorizontal: 9 },
+  thumbnail: { height: 72, width: 72 },
+  contestInfo: { flex: 1, justifyContent: "center", minWidth: 0, paddingHorizontal: 7 },
   contestName: { color: "#FFF0DA", fontSize: 13, fontWeight: "900", lineHeight: 15, textTransform: "uppercase" },
   category: { color: "#B97C3D", fontSize: 6, fontWeight: "900", letterSpacing: 0.9, marginBottom: 1 },
   location: { color: "#C5AD98", fontSize: 9, fontWeight: "700", marginTop: 3 },
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
   badgeMedium: { backgroundColor: "rgba(126,78,18,0.62)", borderColor: "rgba(232,166,65,0.72)" },
   badgeHard: { backgroundColor: "rgba(105,31,28,0.68)", borderColor: "rgba(218,81,66,0.74)" },
   difficultyText: { color: "#F8E2C5", fontSize: 7, fontWeight: "900", letterSpacing: 0.6 },
-  economy: { alignItems: "flex-end", borderLeftColor: "rgba(216,126,42,0.27)", borderLeftWidth: 1, justifyContent: "center", minHeight: 68, paddingLeft: 8, paddingRight: 12, width: 82 },
+  economy: { alignItems: "flex-end", borderLeftColor: "rgba(216,126,42,0.27)", borderLeftWidth: 1, flexShrink: 0, justifyContent: "center", minHeight: 68, paddingLeft: 6, paddingRight: 10, width: 76 },
   economyLabel: { color: "#9C806A", fontSize: 7, fontWeight: "900", letterSpacing: 0.9 },
   prize: { color: "#FFC353", fontSize: 15, fontWeight: "900", lineHeight: 18 },
   economyRule: { backgroundColor: "rgba(211,123,42,0.24)", height: 1, marginVertical: 4, width: "100%" },

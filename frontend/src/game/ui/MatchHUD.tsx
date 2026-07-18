@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 import CharacterPortrait, { type CharacterReaction } from "./CharacterPortrait";
 import TournamentBanner from "./TournamentBanner";
+import { formatMatchDuration } from "../contestDuration";
 
 type Props = {
   timeRemaining: number;
@@ -20,10 +21,10 @@ type Props = {
 
 const BLAZE = require("../../assets/characters/blaze.png");
 
-function ScoreZone({ side, name, subtitle, avatar, score, reaction, reactionKey, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; score: number; reaction: CharacterReaction; reactionKey: string | number; animatedStyle?: object }) {
+function ScoreZone({ side, name, subtitle, avatar, score, reaction, reactionKey, reactionStrength = 0, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; score: number; reaction: CharacterReaction; reactionKey: string | number; reactionStrength?: number; animatedStyle?: object }) {
   const zone = (
     <View style={[styles.scoreZone, side === "opponent" && styles.opponentZone]}>
-      <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" reaction={reaction} reactionKey={reactionKey} />
+      <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
       <View style={[styles.scoreInfo, side === "opponent" && styles.opponentInfo]}>
         <Text adjustsFontSizeToFit numberOfLines={1} style={styles.score}>{Math.floor(score).toLocaleString()}</Text>
         <Text style={styles.scoreLabel}>SCORE</Text>
@@ -34,21 +35,24 @@ function ScoreZone({ side, name, subtitle, avatar, score, reaction, reactionKey,
 }
 
 export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentScore, playerScore, combo = 0, contestName, roundLabel }: Props) {
-  const mm = String(Math.floor(timeRemaining / 60)).padStart(2, "0");
-  const ss = String(timeRemaining % 60).padStart(2, "0");
+  const formattedTime = formatMatchDuration(timeRemaining);
   const lowTime = timeRemaining > 0 && timeRemaining <= 10;
   const previousScore = useRef(playerScore);
+  const previousOpponentScore = useRef(opponentScore);
   const scoreScale = useRef(new Animated.Value(1)).current;
   const scoreFlash = useRef(new Animated.Value(0)).current;
   const timerScale = useRef(new Animated.Value(1)).current;
   const timerGlow = useRef(new Animated.Value(0)).current;
   const playerLeading = playerScore > opponentScore;
   const tied = playerScore === opponentScore;
+  const playerScored = playerScore > previousScore.current;
+  const opponentScored = opponentScore > previousOpponentScore.current;
+  const comboTier = combo >= 20 ? 4 : combo >= 15 ? 3 : combo >= 10 ? 2 : combo >= 5 ? 1 : 0;
   const comboMilestone = combo === 5 || combo === 10 || combo === 20 || (combo >= 30 && combo % 10 === 0);
   const playerReaction: CharacterReaction = comboMilestone ? "combo" : tied ? "idle" : playerLeading ? "leading" : "behind";
-  const opponentReaction: CharacterReaction = tied ? "idle" : playerLeading ? "behind" : "leading";
+  const opponentReaction: CharacterReaction = opponentScored ? "scoring" : playerScored ? "hit" : comboTier ? "combo" : tied ? "idle" : playerLeading ? "behind" : "leading";
   const playerReactionKey = comboMilestone ? `combo-${combo}` : `lead-${playerLeading}`;
-  const opponentReactionKey = `lead-${!playerLeading}-${tied}`;
+  const opponentReactionKey = `opponent-${opponentScore}-player-${playerScore}-combo-${comboTier}`;
 
   useEffect(() => {
     const increased = playerScore > previousScore.current;
@@ -64,6 +68,8 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
     animation.start();
     return () => animation.stop();
   }, [playerScore, scoreFlash, scoreScale]);
+
+  useEffect(() => { previousOpponentScore.current = opponentScore; }, [opponentScore]);
 
   useEffect(() => {
     if (!lowTime) return;
@@ -94,7 +100,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
           <Animated.View style={[styles.timer, lowTime && styles.timerWarning, { transform: [{ scale: timerScale }] }]}>
             <Animated.View pointerEvents="none" style={[styles.timerGlow, { opacity: timerGlow }]} />
             <Text style={styles.timerLabel}>TIME</Text>
-            <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.time, lowTime && styles.timeWarning]}>{mm}:{ss}</Text>
+            <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.time, lowTime && styles.timeWarning]}>{formattedTime}</Text>
           </Animated.View>
           <View style={styles.centerMeta}>
             <View style={styles.vsBadge}><Text style={styles.vs}>VS</Text></View>
@@ -102,7 +108,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
           </View>
         </View>
 
-        <ScoreZone side="opponent" name={opponentName} subtitle={opponentPersonality} avatar={opponentAvatar} score={opponentScore} reaction={opponentReaction} reactionKey={opponentReactionKey} />
+        <ScoreZone side="opponent" name={opponentName} subtitle={opponentPersonality} avatar={opponentAvatar} score={opponentScore} reaction={opponentReaction} reactionKey={opponentReactionKey} reactionStrength={comboTier} />
       </View>
     </View>
   );
@@ -112,7 +118,7 @@ const styles = StyleSheet.create({
   dashboard: { backgroundColor: "rgba(9,6,8,0.97)", borderColor: "rgba(235,145,49,0.78)", borderRadius: 13, borderWidth: 1, overflow: "hidden", width: "100%" },
   topHighlight: { backgroundColor: "rgba(255,221,158,0.18)", height: 1, left: 9, position: "absolute", right: 9, top: 1, zIndex: 2 },
   divider: { backgroundColor: "rgba(221,128,42,0.3)", height: 1, marginHorizontal: 7 },
-  matchRow: { alignItems: "stretch", flexDirection: "row", minHeight: 76, paddingHorizontal: 4 },
+  matchRow: { alignItems: "stretch", flexDirection: "row", minHeight: 76, minWidth: 0, paddingHorizontal: 4 },
   zoneWrap: { flex: 1, minWidth: 0 },
   playerZoneWrap: { flex: 1, minWidth: 0 },
   scoreZone: { alignItems: "center", flex: 1, flexDirection: "row", minWidth: 0, overflow: "hidden", paddingHorizontal: 3 },
@@ -122,7 +128,7 @@ const styles = StyleSheet.create({
   score: { color: "#FFF1D8", fontSize: 19, fontWeight: "900", lineHeight: 22, maxWidth: "100%" },
   scoreLabel: { color: "#8E7665", fontSize: 5, fontWeight: "900", letterSpacing: 0.9 },
   scoreFlash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,196,72,0.22)", borderColor: "#FFD66B", borderWidth: 1 },
-  centerZone: { alignItems: "center", borderColor: "rgba(216,125,42,0.24)", borderLeftWidth: 1, borderRightWidth: 1, justifyContent: "center", paddingHorizontal: 4, width: 72 },
+  centerZone: { alignItems: "center", borderColor: "rgba(216,125,42,0.24)", borderLeftWidth: 1, borderRightWidth: 1, flexShrink: 0, justifyContent: "center", paddingHorizontal: 3, width: 68 },
   timer: { alignItems: "center", backgroundColor: "rgba(20,11,11,0.92)", borderColor: "#E59134", borderRadius: 9, borderWidth: 1, height: 46, justifyContent: "center", overflow: "hidden", width: 64 },
   timerWarning: { backgroundColor: "rgba(70,17,12,0.96)", borderColor: "#FF5C32" },
   timerGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,72,20,0.2)", borderColor: "#FF7A32", borderRadius: 9, borderWidth: 1 },

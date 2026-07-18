@@ -117,7 +117,7 @@ export default function ProfileScreen() {
           <View style={[styles.identityPanel, { borderColor: belt.color }]}>
             <View style={styles.panelHighlight} pointerEvents="none" />
             <View style={styles.hudRow}>
-              <Text style={styles.profileLabel}>ARENA PROFILE</Text>
+              <Text numberOfLines={1} style={styles.profileLabel}>ARENA PROFILE</Text>
               <View style={styles.counters}>
                 <Counter source={COIN} label="COINS" value={player.coins} />
                 <Counter source={ANTACID} label="ANTACID" value={player.antacid} />
@@ -191,10 +191,10 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 18, paddingHorizontal: 12, paddingTop: 7 },
   identityPanel: { backgroundColor: "rgba(13,9,10,0.95)", borderRadius: 15, borderWidth: 1.5, overflow: "hidden", padding: 11 },
   panelHighlight: { backgroundColor: "rgba(255,220,160,0.13)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
-  hudRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  profileLabel: { color: "#C99A5A", fontSize: 8, fontWeight: "900", letterSpacing: 1.4 },
-  counters: { flexDirection: "row", gap: 5 },
-  counter: { alignItems: "center", backgroundColor: "rgba(7,6,7,0.92)", borderColor: "rgba(223,135,46,0.58)", borderRadius: 8, borderWidth: 1, flexDirection: "row", minWidth: 82, paddingHorizontal: 6, paddingVertical: 4 },
+  hudRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minWidth: 0 },
+  profileLabel: { color: "#C99A5A", flexShrink: 1, fontSize: 8, fontWeight: "900", letterSpacing: 1.4, paddingRight: 5 },
+  counters: { flexDirection: "row", flexShrink: 0, gap: 4 },
+  counter: { alignItems: "center", backgroundColor: "rgba(7,6,7,0.92)", borderColor: "rgba(223,135,46,0.58)", borderRadius: 8, borderWidth: 1, flexDirection: "row", minWidth: 74, paddingHorizontal: 5, paddingVertical: 4 },
   counterIcon: { height: 22, marginRight: 4, width: 22 },
   counterLabel: { color: "#987B62", fontSize: 6, fontWeight: "900", letterSpacing: 0.7 },
   counterValue: { color: "#FFD06A", fontSize: 12, fontWeight: "900", lineHeight: 14 },
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
   rankSub: { color: "#957E6C", fontSize: 7, fontWeight: "800", marginTop: 2 },
   progressBlock: { backgroundColor: "rgba(7,6,7,0.66)", borderColor: "rgba(220,130,43,0.3)", borderRadius: 9, borderWidth: 1, padding: 8 },
   progressMeta: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 5 },
-  progressLabel: { color: "#C59A63", fontSize: 7, fontWeight: "900", letterSpacing: 0.9 },
-  progressValue: { color: "#FFE2A7", fontSize: 8, fontWeight: "900" },
+  progressLabel: { color: "#C59A63", flexShrink: 0, fontSize: 7, fontWeight: "900", letterSpacing: 0.9 },
+  progressValue: { color: "#FFE2A7", flexShrink: 1, fontSize: 8, fontWeight: "900", marginLeft: 6, minWidth: 0, textAlign: "right" },
   sectionHeading: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 6, marginTop: 11, paddingHorizontal: 2 },
   sectionTitle: { color: "#E8BD7A", fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
   headingRule: { backgroundColor: "rgba(218,129,42,0.3)", flex: 1, height: 1, marginLeft: 8 },

@@ -10,6 +10,6 @@ const tones: Record<Variant, { backgroundColor: string; color: string; borderCol
 };
 export default function FireBadge({ icon, label, variant = "default", backgroundColor, color }: Props) {
   const tone = tones[variant];
-  return <View style={[styles.container, { backgroundColor: backgroundColor ?? tone.backgroundColor, borderColor: tone.borderColor }]}>{icon ? <Text style={styles.icon}>{icon}</Text> : null}<Text style={[styles.label, { color: color ?? tone.color }]}>{label}</Text></View>;
+  return <View style={[styles.container, { backgroundColor: backgroundColor ?? tone.backgroundColor, borderColor: tone.borderColor }]}>{icon ? <Text style={styles.icon}>{icon}</Text> : null}<Text numberOfLines={1} style={[styles.label, { color: color ?? tone.color }]}>{label}</Text></View>;
 }
-const styles = StyleSheet.create({ container: { alignItems: "center", alignSelf: "flex-start", borderRadius: 999, borderWidth: 1, flexDirection: "row", marginBottom: 8, paddingHorizontal: 10, paddingVertical: 5 }, icon: { fontSize: 13, marginRight: 5 }, label: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 } });
+const styles = StyleSheet.create({ container: { alignItems: "center", alignSelf: "flex-start", borderRadius: 999, borderWidth: 1, flexDirection: "row", flexShrink: 1, marginBottom: 8, maxWidth: "100%", minWidth: 0, paddingHorizontal: 10, paddingVertical: 5 }, icon: { flexShrink: 0, fontSize: 13, marginRight: 5 }, label: { flexShrink: 1, fontSize: 11, fontWeight: "900", letterSpacing: 0.6 } });

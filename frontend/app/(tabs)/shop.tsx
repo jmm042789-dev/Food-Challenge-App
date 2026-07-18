@@ -38,7 +38,7 @@ function CurrencyCounter({ icon, label, value }: { icon: number; label: string; 
   return (
     <View style={styles.counter}>
       <Image source={icon} resizeMode="contain" style={styles.counterIcon} />
-      <View>
+      <View style={styles.headerTitleBlock}>
         <Text style={styles.counterLabel}>{label}</Text>
         <Text style={styles.counterValue}>{Number(value || 0).toLocaleString()}</Text>
       </View>
@@ -222,11 +222,12 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   content: { paddingHorizontal: 12, paddingTop: 6 },
-  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 8, minWidth: 0 },
+  headerTitleBlock: { flexShrink: 1, minWidth: 0, paddingRight: 6 },
   eyebrow: { color: "#B7793C", fontSize: 7, fontWeight: "900", letterSpacing: 1.5 },
   headerTitle: { color: "#FFF0D8", fontSize: 28, fontWeight: "900", letterSpacing: 1.2, lineHeight: 30 },
-  balanceRow: { flexDirection: "row", gap: 5 },
-  counter: { alignItems: "center", backgroundColor: "rgba(8,6,7,0.94)", borderColor: "rgba(225,136,45,0.58)", borderRadius: 8, borderWidth: 1, flexDirection: "row", minWidth: 88, paddingHorizontal: 7, paddingVertical: 5 },
+  balanceRow: { flexDirection: "row", flexShrink: 0, gap: 4 },
+  counter: { alignItems: "center", backgroundColor: "rgba(8,6,7,0.94)", borderColor: "rgba(225,136,45,0.58)", borderRadius: 8, borderWidth: 1, flexDirection: "row", minWidth: 78, paddingHorizontal: 6, paddingVertical: 5 },
   counterIcon: { height: 23, marginRight: 5, width: 23 },
   counterLabel: { color: "#987B62", fontSize: 6, fontWeight: "900", letterSpacing: 0.7 },
   counterValue: { color: "#FFD06A", fontSize: 12, fontWeight: "900", lineHeight: 14 },
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   itemName: { color: "#FFF0D8", flex: 1, fontSize: 13, fontWeight: "900" },
   itemMeta: { color: "#D0954C", fontSize: 7, fontWeight: "900", marginTop: 3 },
   itemDescription: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 4 },
-  itemAction: { alignItems: "flex-end", justifyContent: "center", minWidth: 76 },
+  itemAction: { alignItems: "flex-end", flexShrink: 0, justifyContent: "center", minWidth: 72 },
   rowButton: { marginBottom: 0, marginTop: 4 },
   messagePanel: { backgroundColor: "rgba(50,17,15,0.9)", borderColor: "#8F3931", borderRadius: 9, borderWidth: 1, marginTop: 10, padding: 12 },
   message: { color: "#E7B5A7", fontSize: 9, fontWeight: "900", letterSpacing: 0.8, textAlign: "center" },

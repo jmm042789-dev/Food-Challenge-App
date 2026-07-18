@@ -68,6 +68,6 @@ const styles = StyleSheet.create({
   content: { alignItems: "center", alignSelf: "center", maxWidth: 420, width: "100%" },
   actions: { marginTop: 3, width: "100%" },
   continueButton: { marginBottom: 2, marginTop: 7 },
-  secondaryActions: { flexDirection: "row", gap: 8, justifyContent: "center" },
-  secondaryButton: { flex: 1, marginBottom: 0, marginTop: 0 },
+  secondaryActions: { flexDirection: "row", gap: 8, justifyContent: "center", minWidth: 0 },
+  secondaryButton: { flex: 1, marginBottom: 0, marginTop: 0, minWidth: 0 },
 });

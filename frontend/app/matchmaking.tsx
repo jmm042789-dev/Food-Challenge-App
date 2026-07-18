@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "../src/api";
 import FireArenaBackground from "../src/game/FireArenaBackground";
@@ -10,6 +11,7 @@ import FireScreenEntrance from "../src/components/fire/FireScreenEntrance";
 
 export default function MatchmakingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [status, setStatus] = useState("searching");
   const routeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,7 +54,7 @@ export default function MatchmakingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
       <FireArenaBackground />
       <FireScreenEntrance duration="fast" distance={10}>
         <Text style={styles.title}>⚔️ MATCHMAKING</Text>

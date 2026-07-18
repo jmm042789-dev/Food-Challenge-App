@@ -47,12 +47,12 @@ player.name==="Joshua" && styles.currentPlayer
 ]}>
 <Text style={styles.rank}>{player.badge} #{player.rank}</Text>
 
-<View style={{flex:1}}>
-<Text style={styles.name}>{player.name}</Text>
+<View style={styles.playerInfo}>
+<Text numberOfLines={1} style={styles.name}>{player.name}</Text>
 <Text style={styles.level}>🔥 Grill Master</Text>
 </View>
 
-<Text style={styles.score}>
+<Text adjustsFontSizeToFit numberOfLines={1} style={styles.score}>
 {player.score.toLocaleString()}
 </Text>
 </FirePanel>
@@ -94,8 +94,9 @@ currentPlayer:{
 borderColor:"#FF8A00",
 borderWidth:2,
 },
-rank:{color:"#F6C76A",fontWeight:"900",width:80},
+rank:{color:"#F6C76A",flexShrink:0,fontWeight:"900",width:70},
+playerInfo:{flex:1,minWidth:0},
 name:{color:"#FFF7E8",fontSize:18,fontWeight:"900",flexShrink:1},
 level:{color:"#CDBEAD",marginTop:4},
-score:{color:"#F6C76A",fontWeight:"900",fontSize:18,marginLeft:10},
+score:{color:"#F6C76A",flexShrink:1,fontWeight:"900",fontSize:18,marginLeft:8,maxWidth:"32%",minWidth:0,textAlign:"right"},
 });

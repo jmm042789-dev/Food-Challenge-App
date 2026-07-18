@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
 import MatchHUD from "./MatchHUD";
+import type { HeatTier } from "../heartburn";
+import HeartburnMeter from "./HeartburnMeter";
 
 type Props = {
   level: number;
@@ -19,9 +21,17 @@ type Props = {
   location?: string;
   difficulty?: string;
   roundLabel?: string;
+  heartburn: number;
+  heatTier: HeatTier;
+  heatMultiplier: number;
+  isOverheated: boolean;
+  overheatRemainingMs: number;
+  antacidCount: number;
+  canUseAntacid: boolean;
+  onUseAntacid: () => boolean;
 };
 
-function VerticalMeter({ label, value, tone }: { label: string; value: number; tone: "combo" | "heat" }) {
+function VerticalMeter({ label, detail, value, tone }: { label: string; detail?: string; value: number; tone: "combo" | "heat" }) {
   const percent = `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` as `${number}%`;
   const warning = tone === "heat" && value >= 0.82;
   const warningScale = useRef(new Animated.Value(1)).current;
@@ -51,12 +61,12 @@ function VerticalMeter({ label, value, tone }: { label: string; value: number; t
         </View>
       </View>
       <Text style={styles.meterLabel}>{label}</Text>
+      {detail ? <Text numberOfLines={1} style={styles.meterDetail}>{detail}</Text> : null}
     </Animated.View>
   );
 }
 
 export default function GameplayHUD(props: Props) {
-  const heartburn = Math.min(1, Math.max(0.18, Math.abs(props.playerScore - props.opponentScore) * 0.04 + props.combo * 0.03));
   const comboMeter = Math.min(1, props.combo / 25);
 
   return (
@@ -75,7 +85,7 @@ export default function GameplayHUD(props: Props) {
         roundLabel={props.roundLabel}
       />
       <View style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" /></View>
-      <View style={styles.rightMeter}><VerticalMeter label="HEAT" value={heartburn} tone="heat" /></View>
+      <View style={styles.rightMeter}><HeartburnMeter heartburn={props.heartburn} heatTier={props.heatTier} heatMultiplier={props.heatMultiplier} isOverheated={props.isOverheated} overheatRemainingMs={props.overheatRemainingMs} /></View>
     </View>
   );
 }
@@ -96,4 +106,5 @@ const styles = StyleSheet.create({
   heatFill: { backgroundColor: "#D94B28" },
   meterShine: { backgroundColor: "rgba(255,230,180,0.18)", bottom: 2, left: 2, position: "absolute", top: 2, width: 3 },
   meterLabel: { color: "#DDB274", fontSize: 7, fontWeight: "900", letterSpacing: 0.6, marginTop: 4 },
+  meterDetail: { color: "#FFCA72", fontSize: 6, fontWeight: "900", marginTop: 1, maxWidth: 42, textAlign: "center" },
 });
