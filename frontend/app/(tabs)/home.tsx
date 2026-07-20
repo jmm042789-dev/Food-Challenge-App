@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, Contest, parseContests } from "../../src/api";
@@ -11,10 +11,12 @@ import FireHeader from "../../src/components/fire/FireHeader";
 import FireLoading from "../../src/components/fire/FireLoading";
 import FirePanel from "../../src/components/fire/FirePanel";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
+import DailyMissionCard from "../../src/components/fire/DailyMissionCard";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
 import SponsorStrip from "../../src/game/ui/SponsorStrip";
 import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
+import { useDailyMissions } from "../../src/missions/useDailyMissions";
 
 type Player = { coins?: number; xp?: number };
 
@@ -73,6 +75,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [contests, setContests] = useState<Contest[]>([]);
   const [player, setPlayer] = useState<Player>({ coins: 200, xp: 0 });
+  const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
+
+  useFocusEffect(useCallback(() => {
+    void refreshMissions();
+  }, [refreshMissions]));
 
   useEffect(() => {
     let active = true;
@@ -90,8 +97,8 @@ export default function HomeScreen() {
   if (loading) return <View style={styles.screen}><ArcadeBackground /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /></View>;
   if (!contests.length) return <View style={styles.screen}><ArcadeBackground /><FireEmptyState icon="!" title="No Contests Available" message="Check back again soon." /></View>;
 
-  const xp = Number(player.xp ?? 0);
-  const coins = Number(player.coins ?? 0);
+  const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
+  const coins = Number(player.coins ?? 0) + (dailyMissionState?.claimedRewards.coins ?? 0);
   const belt = beltForXp(xp);
   const next = nextBelt(xp);
   const level = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);
@@ -112,6 +119,25 @@ export default function HomeScreen() {
           </View>
           <FeaturedContest contest={featured} onEnter={() => router.push(`/play/${featured.id}`)} />
         </FireScreenEntrance>
+        {dailyMissionState ? (
+          <FireScreenEntrance delay={90} duration="fast" distance={8}>
+            <FirePanel compact title="DAILY MISSIONS" subtitle="Three fresh challenges every day" style={styles.missionsPanel}>
+              {dailyMissionState.missions.map((mission) => (
+                <DailyMissionCard
+                  key={mission.id}
+                  icon={mission.icon}
+                  title={mission.title}
+                  progress={mission.currentProgress}
+                  maxProgress={mission.goal}
+                  reward={`+${mission.reward.coins} COINS  +${mission.reward.xp} XP`}
+                  completed={mission.completed}
+                  claimed={mission.claimed}
+                  onClaim={() => { void claimMission(mission.id); }}
+                />
+              ))}
+            </FirePanel>
+          </FireScreenEntrance>
+        ) : null}
         {upcoming.length ? (
           <View style={styles.upcomingSection}>
             <View style={styles.upcomingHeading}>
@@ -133,6 +159,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#F4C06C", fontSize: 10, fontWeight: "900", letterSpacing: 1.6 },
   headingLine: { backgroundColor: "rgba(239,143,49,0.42)", flex: 1, height: 1, marginLeft: 9 },
   featuredPanel: { borderRadius: 14, paddingHorizontal: 10, paddingVertical: 10 },
+  missionsPanel: { marginTop: 10 },
   featuredHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   liveBadge: { alignItems: "center", flexDirection: "row" },
   liveDot: { backgroundColor: "#FF5C28", borderRadius: 4, height: 7, marginRight: 5, width: 7 },

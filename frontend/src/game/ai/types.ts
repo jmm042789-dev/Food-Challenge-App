@@ -14,6 +14,7 @@ export type Personality =
   | "Aggressive"
   | "Defensive"
   | "Combo Master"
+  | "Comeback Specialist"
   | "Wild";
 
 export interface Opponent {

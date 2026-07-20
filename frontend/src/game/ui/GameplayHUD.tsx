@@ -4,6 +4,7 @@ import { Animated, StyleSheet, Text, View } from "react-native";
 import MatchHUD from "./MatchHUD";
 import type { HeatTier } from "../heartburn";
 import HeartburnMeter from "./HeartburnMeter";
+import type { OpponentMood } from "../ai/OpponentMood";
 
 type Props = {
   level: number;
@@ -17,6 +18,7 @@ type Props = {
   opponentName?: string;
   opponentAvatar?: string;
   opponentPersonality?: string;
+  opponentMood: OpponentMood;
   contestName?: string;
   location?: string;
   difficulty?: string;
@@ -78,6 +80,7 @@ export default function GameplayHUD(props: Props) {
         opponentName={props.opponentName}
         opponentAvatar={props.opponentAvatar}
         opponentPersonality={props.opponentPersonality}
+        opponentMood={props.opponentMood}
         combo={props.combo}
         contestName={props.contestName}
         location={props.location}

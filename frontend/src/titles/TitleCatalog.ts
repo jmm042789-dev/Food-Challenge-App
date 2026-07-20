@@ -1,0 +1,36 @@
+import type { TitleDefinition } from "./TitleTypes";
+
+export const TITLE_CATALOG: readonly TitleDefinition[] = [
+  { id: "title_rookie_eater", displayName: "Rookie Eater", description: "Every legend starts with an empty plate.", rarity: "Common", unlockRequirement: { type: "MATCHES_PLAYED", value: 0 }, iconPlaceholder: "R", colorTheme: "#C7A47A" },
+  { id: "title_hungry_hero", displayName: "Hungry Hero", description: "Step into your first Fire Feast match.", rarity: "Common", unlockRequirement: { type: "MATCHES_PLAYED", value: 1 }, iconPlaceholder: "H", colorTheme: "#D7A45A" },
+  { id: "title_feast_regular", displayName: "Feast Regular", description: "Play 10 matches.", rarity: "Rare", unlockRequirement: { type: "MATCHES_PLAYED", value: 10 }, iconPlaceholder: "10", colorTheme: "#5FA8D3" },
+  { id: "title_the_glutton", displayName: "The Glutton", description: "Play 50 matches.", rarity: "Epic", unlockRequirement: { type: "MATCHES_PLAYED", value: 50 }, iconPlaceholder: "50", colorTheme: "#A879E8" },
+  { id: "title_feast_legend", displayName: "Feast Legend", description: "Play 100 matches.", rarity: "Legendary", unlockRequirement: { type: "MATCHES_PLAYED", value: 100 }, iconPlaceholder: "100", colorTheme: "#F4B942" },
+  { id: "title_first_victor", displayName: "First Victor", description: "Earn your first match victory.", rarity: "Common", unlockRequirement: { type: "ACHIEVEMENT", achievementId: "matches_won_001" }, iconPlaceholder: "V", colorTheme: "#D99A45" },
+  { id: "title_arena_challenger", displayName: "Arena Challenger", description: "Win 10 matches.", rarity: "Rare", unlockRequirement: { type: "WINS", value: 10 }, iconPlaceholder: "AC", colorTheme: "#58A6D8" },
+  { id: "title_arena_champion", displayName: "Arena Champion", description: "Win 50 matches.", rarity: "Legendary", unlockRequirement: { type: "WINS", value: 50 }, iconPlaceholder: "C", colorTheme: "#F0B43C" },
+  { id: "title_burger_beginner", displayName: "Burger Beginner", description: "Master the Burger Heavy Bite challenge.", rarity: "Rare", unlockRequirement: { type: "FOOD_MECHANIC_MASTERY", achievementId: "mechanic_burger_005" }, iconPlaceholder: "B", colorTheme: "#C57A3E" },
+  { id: "title_pizza_lover", displayName: "Pizza Lover", description: "Become a certified Cheese Wrangler.", rarity: "Rare", unlockRequirement: { type: "FOOD_MECHANIC_MASTERY", achievementId: "mechanic_cheese_005" }, iconPlaceholder: "P", colorTheme: "#D95F45" },
+  { id: "title_shell_saver", displayName: "Shell Saver", description: "Master Taco Shell Stability.", rarity: "Rare", unlockRequirement: { type: "FOOD_MECHANIC_MASTERY", achievementId: "mechanic_taco_005" }, iconPlaceholder: "T", colorTheme: "#D7A93E" },
+  { id: "title_slurp_specialist", displayName: "Slurp Specialist", description: "Master the Ramen Noodle Slurp.", rarity: "Rare", unlockRequirement: { type: "FOOD_MECHANIC_MASTERY", achievementId: "mechanic_ramen_005" }, iconPlaceholder: "N", colorTheme: "#D48D48" },
+  { id: "title_speed_eater", displayName: "Speed Eater", description: "Master Hot Dog Speed Sprints.", rarity: "Epic", unlockRequirement: { type: "FOOD_MECHANIC_MASTERY", achievementId: "mechanic_hotdog_005" }, iconPlaceholder: "S", colorTheme: "#E36C3D" },
+  { id: "title_wing_warrior", displayName: "Wing Warrior", description: "Master the Wings Heat Rush.", rarity: "Epic", unlockRequirement: { type: "FOOD_MECHANIC_MASTERY", achievementId: "mechanic_wings_005" }, iconPlaceholder: "W", colorTheme: "#E34A32" },
+  { id: "title_combo_rookie", displayName: "Combo Rookie", description: "Reach a 5x combo.", rarity: "Common", unlockRequirement: { type: "ACHIEVEMENT", achievementId: "combo_highest_005" }, iconPlaceholder: "5", colorTheme: "#D69243" },
+  { id: "title_combo_master", displayName: "Combo Master", description: "Reach a 15x combo.", rarity: "Epic", unlockRequirement: { type: "ACHIEVEMENT", achievementId: "combo_highest_015" }, iconPlaceholder: "15", colorTheme: "#A56DE2" },
+  { id: "title_combo_inferno", displayName: "Combo Inferno", description: "Reach a blistering 30x combo.", rarity: "Legendary", unlockRequirement: { type: "ACHIEVEMENT", achievementId: "combo_highest_030" }, iconPlaceholder: "30", colorTheme: "#F05432" },
+  { id: "title_silver_flame", displayName: "Silver Flame", description: "Reach belt rank 2.", rarity: "Rare", unlockRequirement: { type: "BELT_RANK", value: 2 }, iconPlaceholder: "II", colorTheme: "#BFC6CE" },
+  { id: "title_golden_appetite", displayName: "Golden Appetite", description: "Reach belt rank 3.", rarity: "Epic", unlockRequirement: { type: "BELT_RANK", value: 3 }, iconPlaceholder: "III", colorTheme: "#F0B938" },
+  { id: "title_platinum_feaster", displayName: "Platinum Feaster", description: "Reach belt rank 4.", rarity: "Legendary", unlockRequirement: { type: "BELT_RANK", value: 4 }, iconPlaceholder: "IV", colorTheme: "#D9E1E8" },
+  { id: "title_diamond_diner", displayName: "Diamond Diner", description: "Reach belt rank 5.", rarity: "Mythic", unlockRequirement: { type: "BELT_RANK", value: 5 }, iconPlaceholder: "V", colorTheme: "#65D4F2" },
+  { id: "title_restaurant_hopper", displayName: "Restaurant Hopper", description: "Unlock 3 restaurants.", rarity: "Rare", unlockRequirement: { type: "RESTAURANTS_UNLOCKED", value: 3 }, iconPlaceholder: "3R", colorTheme: "#4FB58B" },
+  { id: "title_food_explorer", displayName: "Food Explorer", description: "Unlock 6 restaurants.", rarity: "Epic", unlockRequirement: { type: "RESTAURANTS_UNLOCKED", value: 6 }, iconPlaceholder: "6R", colorTheme: "#6FA4E8" },
+  { id: "title_king_of_the_grill", displayName: "King of the Grill", description: "Unlock all 10 restaurants.", rarity: "Mythic", unlockRequirement: { type: "RESTAURANTS_UNLOCKED", value: 10 }, iconPlaceholder: "KG", colorTheme: "#FFCF55" },
+  { id: "title_fire_starter", displayName: "Fire Starter", description: "Complete 3 achievements.", rarity: "Rare", unlockRequirement: { type: "ACHIEVEMENTS_COMPLETED", value: 3 }, iconPlaceholder: "F", colorTheme: "#EE6A35" },
+  { id: "title_inferno_chef", displayName: "Inferno Chef", description: "Complete 8 achievements.", rarity: "Epic", unlockRequirement: { type: "ACHIEVEMENTS_COMPLETED", value: 8 }, iconPlaceholder: "IC", colorTheme: "#D84A32" },
+  { id: "title_trophy_hunter", displayName: "Trophy Hunter", description: "Complete 15 achievements.", rarity: "Legendary", unlockRequirement: { type: "ACHIEVEMENTS_COMPLETED", value: 15 }, iconPlaceholder: "TH", colorTheme: "#E8B448" },
+  { id: "title_heat_survivor", displayName: "Heat Survivor", description: "Break the 50-point score barrier.", rarity: "Rare", unlockRequirement: { type: "ACHIEVEMENT", achievementId: "best_score_050" }, iconPlaceholder: "HS", colorTheme: "#E8663D" },
+  { id: "title_xp_climber", displayName: "XP Climber", description: "Earn the XP Climber achievement.", rarity: "Epic", unlockRequirement: { type: "ACHIEVEMENT", achievementId: "xp_earned_1000" }, iconPlaceholder: "XP", colorTheme: "#778BE8" },
+  { id: "title_prestige_palate", displayName: "Prestige Palate", description: "Complete every foundation achievement.", rarity: "Mythic", unlockRequirement: { type: "ACHIEVEMENTS_COMPLETED", value: 22 }, iconPlaceholder: "P", colorTheme: "#E97BEF" },
+] as const;
+
+export const TITLE_BY_ID = new Map(TITLE_CATALOG.map((title) => [title.id, title]));

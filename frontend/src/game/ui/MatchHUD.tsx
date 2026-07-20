@@ -4,12 +4,14 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import CharacterPortrait, { type CharacterReaction } from "./CharacterPortrait";
 import TournamentBanner from "./TournamentBanner";
 import { formatMatchDuration } from "../contestDuration";
+import type { OpponentMood } from "../ai/OpponentMood";
 
 type Props = {
   timeRemaining: number;
   opponentName?: string;
   opponentAvatar?: string;
   opponentPersonality?: string;
+  opponentMood: OpponentMood;
   opponentScore: number;
   playerScore: number;
   combo?: number;
@@ -21,10 +23,10 @@ type Props = {
 
 const BLAZE = require("../../assets/characters/blaze.png");
 
-function ScoreZone({ side, name, subtitle, avatar, score, reaction, reactionKey, reactionStrength = 0, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; score: number; reaction: CharacterReaction; reactionKey: string | number; reactionStrength?: number; animatedStyle?: object }) {
+function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reactionKey, reactionStrength = 0, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; score: number; mood?: OpponentMood; reaction: CharacterReaction; reactionKey: string | number; reactionStrength?: number; animatedStyle?: object }) {
   const zone = (
     <View style={[styles.scoreZone, side === "opponent" && styles.opponentZone]}>
-      <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
+      <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" mood={mood} reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
       <View style={[styles.scoreInfo, side === "opponent" && styles.opponentInfo]}>
         <Text adjustsFontSizeToFit numberOfLines={1} style={styles.score}>{Math.floor(score).toLocaleString()}</Text>
         <Text style={styles.scoreLabel}>SCORE</Text>
@@ -34,7 +36,7 @@ function ScoreZone({ side, name, subtitle, avatar, score, reaction, reactionKey,
   return animatedStyle ? <Animated.View style={[styles.zoneWrap, animatedStyle]}>{zone}</Animated.View> : <View style={styles.zoneWrap}>{zone}</View>;
 }
 
-export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentScore, playerScore, combo = 0, contestName, roundLabel }: Props) {
+export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentMood, opponentScore, playerScore, combo = 0, contestName, roundLabel }: Props) {
   const formattedTime = formatMatchDuration(timeRemaining);
   const lowTime = timeRemaining > 0 && timeRemaining <= 10;
   const previousScore = useRef(playerScore);
@@ -108,7 +110,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
           </View>
         </View>
 
-        <ScoreZone side="opponent" name={opponentName} subtitle={opponentPersonality} avatar={opponentAvatar} score={opponentScore} reaction={opponentReaction} reactionKey={opponentReactionKey} reactionStrength={comboTier} />
+        <ScoreZone side="opponent" name={opponentName} subtitle={opponentPersonality} avatar={opponentAvatar} score={opponentScore} mood={opponentMood} reaction={opponentReaction} reactionKey={opponentReactionKey} reactionStrength={comboTier} />
       </View>
     </View>
   );

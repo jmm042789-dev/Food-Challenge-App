@@ -8,6 +8,7 @@ import FireBadge from "../../src/components/fire/FireBadge";
 import FireButton from "../../src/components/fire/FireButton";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
+import { trackAchievementEvent } from "../../src/achievements/AchievementTracker";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ANTACID = require("../../src/assets/icons/antacid.png");
@@ -100,6 +101,9 @@ export default function ShopScreen() {
         await api.equipGear(item.id);
       } else {
         await api.purchase(item.id);
+        if (item.type === "gear") {
+          await trackAchievementEvent({ type: "ITEM_ACQUIRED", ownedItemCount: player.owned_gear.length + 1 });
+        }
       }
       await load();
     } catch (purchaseError: any) {

@@ -1,14 +1,23 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 
 import { api } from "../../src/api";
-import { beltForXp, nextBelt } from "../../src/ranks";
+import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import FireBadge from "../../src/components/fire/FireBadge";
 import FireProgressBar from "../../src/components/fire/FireProgressBar";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
+import AchievementPanel from "../../src/achievements/components/AchievementPanel";
+import { useAchievements } from "../../src/achievements/useAchievements";
+import RestaurantCollectionPanel from "../../src/restaurants/components/RestaurantCollectionPanel";
+import RestaurantUnlockBanner from "../../src/restaurants/components/RestaurantUnlockBanner";
+import { useRestaurantProgress } from "../../src/restaurants/useRestaurantProgress";
+import TitleBrowserPanel from "../../src/titles/components/TitleBrowserPanel";
+import TitleUnlockBanner from "../../src/titles/components/TitleUnlockBanner";
+import { TITLE_BY_ID } from "../../src/titles/TitleCatalog";
+import { useTitleProgress } from "../../src/titles/useTitleProgress";
 
 const BLAZE = require("../../src/assets/characters/blaze.png");
 const COIN = require("../../src/assets/icons/coin.png");
@@ -84,12 +93,27 @@ export default function ProfileScreen() {
   const [player, setPlayer] = useState<Player>(FALLBACK_PLAYER);
   const [gear, setGear] = useState<Gear[]>([]);
   const [loading, setLoading] = useState(true);
+  const { state: achievementState, migrate: migrateAchievements, claim: claimAchievement } = useAchievements();
+  const { state: restaurantState, notification: restaurantNotification, dismissNotification: dismissRestaurantNotification, sync: syncRestaurants } = useRestaurantProgress();
+  const { state: titleState, notification: titleNotification, dismissNotification: dismissTitleNotification, sync: syncTitles, equip: equipTitle } = useTitleProgress();
 
   const load = useCallback(async () => {
     setLoading(true);
     const [playerResult, gearResult] = await Promise.allSettled([api.getPlayer(), api.gear()]);
     if (playerResult.status === "fulfilled" && playerResult.value) {
-      setPlayer({ ...FALLBACK_PLAYER, ...(playerResult.value as Partial<Player>) });
+      const resolvedPlayer = { ...FALLBACK_PLAYER, ...(playerResult.value as Partial<Player>) };
+      setPlayer(resolvedPlayer);
+      const resolvedXp = Number(resolvedPlayer.xp || 0);
+      const resolvedBelt = beltForXp(resolvedXp);
+      await migrateAchievements({
+        matches: resolvedPlayer.matches,
+        wins: resolvedPlayer.wins,
+        bestScore: resolvedPlayer.best_score,
+        highestCombo: resolvedPlayer.longest_combo,
+        xp: resolvedXp,
+        itemsOwned: resolvedPlayer.owned_gear.length,
+        beltRank: Math.max(1, BELTS.findIndex((item) => item.key === resolvedBelt.key) + 1),
+      });
     }
     if (gearResult.status === "fulfilled") {
       setGear(Array.isArray(gearResult.value?.items) ? gearResult.value.items : []);
@@ -97,21 +121,41 @@ export default function ProfileScreen() {
       setGear([]);
     }
     setLoading(false);
-  }, []);
+  }, [migrateAchievements]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const xp = Number(player.xp || 0);
+  const xp = Number(player.xp || 0) + (achievementState?.claimedRewards.xp ?? 0);
   const belt = beltForXp(xp);
   const next = nextBelt(xp);
   const progressValue = next ? xp - belt.min_xp : 1;
   const progressMax = next ? next.min_xp - belt.min_xp : 1;
   const equipped = gear.find((item) => item.id === player.equipped_gear);
   const starterLoadout = !equipped;
+  const beltRank = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);
+  const completedAchievementIds = useMemo(() => achievementState?.progress.filter((item) => item.completed).map((item) => item.achievementId) ?? [], [achievementState]);
+  const unlockedRestaurantIds = useMemo(() => restaurantState?.restaurants.filter((item) => item.status === "unlocked").map((item) => item.restaurantId) ?? [], [restaurantState]);
+  const equippedTitle = titleState?.equippedTitleId ? TITLE_BY_ID.get(titleState.equippedTitleId) : undefined;
+
+  useEffect(() => {
+    void syncRestaurants(xp);
+  }, [syncRestaurants, xp]);
+
+  useEffect(() => {
+    if (!achievementState || !restaurantState) return;
+    void syncTitles({
+      matchesPlayed: player.matches,
+      wins: player.wins,
+      beltRank,
+      completedAchievementIds,
+      unlockedRestaurantIds,
+    });
+  }, [achievementState, beltRank, completedAchievementIds, player.matches, player.wins, restaurantState, syncTitles, unlockedRestaurantIds]);
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <ArcadeBackground />
+      {titleNotification ? <TitleUnlockBanner notification={titleNotification} onDismiss={dismissTitleNotification} /> : restaurantNotification ? <RestaurantUnlockBanner notification={restaurantNotification} onDismiss={dismissRestaurantNotification} /> : null}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <FireScreenEntrance duration="fast" distance={9}>
           <View style={[styles.identityPanel, { borderColor: belt.color }]}>
@@ -119,7 +163,7 @@ export default function ProfileScreen() {
             <View style={styles.hudRow}>
               <Text numberOfLines={1} style={styles.profileLabel}>ARENA PROFILE</Text>
               <View style={styles.counters}>
-                <Counter source={COIN} label="COINS" value={player.coins} />
+                <Counter source={COIN} label="COINS" value={player.coins + (achievementState?.claimedRewards.coins ?? 0)} />
                 <Counter source={ANTACID} label="ANTACID" value={player.antacid} />
               </View>
             </View>
@@ -132,6 +176,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.identityInfo}>
                 <Text numberOfLines={1} style={styles.name}>{player.username}</Text>
+                <Text numberOfLines={1} style={[styles.equippedTitle, equippedTitle && { color: equippedTitle.colorTheme }]}>{equippedTitle?.displayName.toUpperCase() ?? "ROOKIE EATER"}</Text>
                 <Text style={styles.country}>{player.country}</Text>
                 <View style={styles.rankRow}>
                   <Text style={styles.rankIcon}>{belt.icon}</Text>
@@ -180,6 +225,24 @@ export default function ProfileScreen() {
           <FireBadge label={starterLoadout ? "STARTER" : "EQUIPPED"} variant={starterLoadout ? "muted" : "gold"} />
         </View>
 
+        {titleState ? (
+          <View style={styles.titleSection}>
+            <TitleBrowserPanel state={titleState} onEquip={(titleId) => { void equipTitle(titleId); }} />
+          </View>
+        ) : null}
+
+        {restaurantState ? (
+          <View style={styles.restaurantSection}>
+            <RestaurantCollectionPanel state={restaurantState} />
+          </View>
+        ) : null}
+
+        {achievementState ? (
+          <View style={styles.achievementSection}>
+            <AchievementPanel state={achievementState} onClaim={(achievementId) => { void claimAchievement(achievementId); }} />
+          </View>
+        ) : null}
+
         {loading ? <Text style={styles.loading}>REFRESHING PROFILE…</Text> : null}
       </ScrollView>
     </SafeAreaView>
@@ -206,6 +269,7 @@ const styles = StyleSheet.create({
   avatarEmoji: { fontSize: 18 },
   identityInfo: { flex: 1, minWidth: 0, paddingLeft: 4 },
   name: { color: "#FFF0D8", fontSize: 25, fontWeight: "900", letterSpacing: 0.3, lineHeight: 29 },
+  equippedTitle: { color: "#D7A45A", fontSize: 9, fontWeight: "900", letterSpacing: 0.8, marginTop: 1 },
   country: { color: "#B49B85", fontSize: 15, marginTop: 1 },
   rankRow: { alignItems: "center", flexDirection: "row", marginTop: 10 },
   rankIcon: { fontSize: 27, marginRight: 7 },
@@ -233,4 +297,7 @@ const styles = StyleSheet.create({
   gearMeta: { color: "#D0954C", fontSize: 7, fontWeight: "900", letterSpacing: 0.6, marginTop: 2 },
   gearDescription: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 4 },
   loading: { color: "#E8AD55", fontSize: 8, fontWeight: "900", letterSpacing: 1, marginTop: 10, textAlign: "center" },
+  achievementSection: { marginTop: 12 },
+  restaurantSection: { marginTop: 12 },
+  titleSection: { marginTop: 12 },
 });

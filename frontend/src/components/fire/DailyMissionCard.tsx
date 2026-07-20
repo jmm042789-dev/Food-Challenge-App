@@ -2,6 +2,7 @@ import React from "react";
 import {
   StyleSheet,
   Text,
+  Pressable,
   View,
 } from "react-native";
 
@@ -11,6 +12,9 @@ type Props = {
   progress: number;
   maxProgress: number;
   reward: string;
+  completed?: boolean;
+  claimed?: boolean;
+  onClaim?: () => void;
 };
 
 export default function DailyMissionCard({
@@ -19,6 +23,9 @@ export default function DailyMissionCard({
   progress,
   maxProgress,
   reward,
+  completed = false,
+  claimed = false,
+  onClaim,
 }: Props) {
   const percent = Math.min(progress / Math.max(maxProgress, 1), 1);
 
@@ -37,9 +44,7 @@ export default function DailyMissionCard({
             {title}
           </Text>
 
-          <Text style={styles.reward}>
-            Reward: {reward}
-          </Text>
+          <Text style={styles.reward}>{reward}</Text>
 
         </View>
 
@@ -58,9 +63,14 @@ export default function DailyMissionCard({
 
       </View>
 
-      <Text style={styles.progress}>
-        {progress} / {maxProgress}
-      </Text>
+      <View style={styles.footer}>
+        <Text style={styles.progress}>{progress} / {maxProgress}</Text>
+        {claimed ? <Text style={styles.claimed}>CLAIMED</Text> : completed ? (
+          <Pressable accessibilityRole="button" onPress={onClaim} style={styles.claimButton}>
+            <Text style={styles.claimText}>CLAIM</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
     </View>
   );
@@ -71,13 +81,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#1A1E27",
 
-    borderRadius: 20,
-
-    padding: 18,
-
-    marginBottom: 14,
-
-    borderWidth: 2,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 7,
+    borderWidth: 1,
 
     borderColor: "#343C48",
   },
@@ -89,15 +96,15 @@ const styles = StyleSheet.create({
   },
 
   icon: {
-    fontSize: 36,
-
-    marginRight: 14,
+    fontSize: 16,
+    fontWeight: "900",
+    marginRight: 9,
   },
 
   title: {
     color: "#FFFFFF",
 
-    fontSize: 18,
+    fontSize: 11,
 
     fontWeight: "900",
   },
@@ -105,15 +112,15 @@ const styles = StyleSheet.create({
   reward: {
     color: "#FFD54A",
 
-    marginTop: 4,
+    fontSize: 8,
+    marginTop: 2,
 
     fontWeight: "700",
   },
 
   track: {
-    marginTop: 18,
-
-    height: 12,
+    marginTop: 8,
+    height: 6,
 
     backgroundColor: "#2A2F3A",
 
@@ -131,13 +138,13 @@ const styles = StyleSheet.create({
   },
 
   progress: {
-    marginTop: 10,
-
+    fontSize: 8,
     color: "#AAAAAA",
-
     fontWeight: "700",
-
-    textAlign: "right",
   },
+  footer: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 5 },
+  claimButton: { backgroundColor: "#A64713", borderColor: "#F6B354", borderRadius: 7, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
+  claimText: { color: "#FFF2D2", fontSize: 8, fontWeight: "900", letterSpacing: 0.7 },
+  claimed: { color: "#6DC889", fontSize: 8, fontWeight: "900", letterSpacing: 0.6 },
 
 });

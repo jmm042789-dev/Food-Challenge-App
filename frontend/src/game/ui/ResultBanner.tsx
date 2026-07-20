@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import ImpactEffect from "./ImpactEffect";
 import CharacterPortrait from "./CharacterPortrait";
+import CinematicCount from "./CinematicCount";
 
 type ResultBannerProps = {
   result: "victory" | "defeat";
@@ -10,47 +11,50 @@ type ResultBannerProps = {
   opponentName?: string;
   opponentAvatar?: string;
   opponentPersonality?: string;
+  bannerText?: string;
+  scoresRevealed?: boolean;
+  reducedMotion?: boolean;
 };
 
 const TROPHY = require("../../assets/icons/trophy.png");
 const BLAZE = require("../../assets/characters/blaze.png");
 
-export default function ResultBanner({ result, playerScore, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality }: ResultBannerProps) {
+export default function ResultBanner({ result, playerScore, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality, bannerText, scoresRevealed = true, reducedMotion = false }: ResultBannerProps) {
   const isVictory = result === "victory";
   const trim = isVictory ? "#F2A43C" : "#B84A3D";
   const trophyScale = useRef(new Animated.Value(isVictory ? 0.6 : 0.92)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    glowOpacity.setValue(isVictory ? 0.85 : 0.35);
+    glowOpacity.setValue(reducedMotion ? 0.2 : isVictory ? 0.85 : 0.35);
     const animation = Animated.parallel([
       Animated.spring(trophyScale, { toValue: 1, friction: isVictory ? 5 : 8, tension: 180, useNativeDriver: true }),
-      Animated.timing(glowOpacity, { toValue: isVictory ? 0.2 : 0.1, duration: 650, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(glowOpacity, { toValue: isVictory ? 0.2 : 0.1, duration: reducedMotion ? 0 : 650, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]);
     animation.start();
     return () => animation.stop();
-  }, [glowOpacity, isVictory, trophyScale]);
+  }, [glowOpacity, isVictory, reducedMotion, trophyScale]);
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.worldTour}>FIRE FEAST WORLD TOUR</Text>
       <Text style={styles.complete}>MATCH COMPLETE</Text>
-      <Text style={[styles.result, isVictory ? styles.victory : styles.defeat]}>{isVictory ? "VICTORY" : "DEFEAT"}</Text>
+      <Text style={[styles.result, isVictory ? styles.victory : styles.defeat]}>{isVictory ? bannerText ?? "VICTORY!" : "DEFEAT"}</Text>
       <Text style={styles.subtitle}>{isVictory ? "THE FEAST IS YOURS" : "THE ARENA DEMANDS A REMATCH"}</Text>
 
       <Animated.View style={[styles.emblem, { borderColor: trim, transform: [{ scale: trophyScale }] }]} pointerEvents="none">
         <Animated.View style={[styles.emblemGlow, { backgroundColor: isVictory ? "rgba(238,151,42,0.55)" : "rgba(154,45,38,0.2)", opacity: glowOpacity }]} />
-        {isVictory ? <ImpactEffect trigger={1} variant="completion" size={104} /> : null}
-        {isVictory ? <ImpactEffect trigger={1} variant="combo" size={126} /> : null}
+        {isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="completion" size={104} /> : null}
+        {isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="combo" size={126} /> : null}
         <Image source={TROPHY} resizeMode="contain" style={[styles.trophy, !isVictory && styles.defeatTrophy]} />
       </Animated.View>
 
       <View style={[styles.comparison, { borderColor: trim }]}>
         <View style={styles.topHighlight} pointerEvents="none" />
         <View style={styles.competitor}>
-          {isVictory ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
+          {isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
           <CharacterPortrait image={BLAZE} name="Blaze" subtitle="You" side="player" size="compact" reaction={isVictory ? "victory" : "defeat"} reactionKey={result} />
-          <Text style={styles.score}>{Math.floor(playerScore).toLocaleString()}</Text>
+          {scoresRevealed ? <CinematicCount value={Math.floor(playerScore)} active immediate={reducedMotion} style={styles.score} /> : <Text style={styles.score}>—</Text>}
           <Text style={styles.scoreLabel}>FINAL SCORE</Text>
         </View>
         <View style={styles.vsColumn}>
@@ -59,9 +63,9 @@ export default function ResultBanner({ result, playerScore, opponentScore, oppon
           <View style={styles.rule} />
         </View>
         <View style={styles.competitor}>
-          {!isVictory ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
+          {!isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
           <CharacterPortrait fallback={opponentAvatar} name={opponentName} subtitle={opponentPersonality} side="opponent" size="compact" reaction={isVictory ? "defeat" : "victory"} reactionKey={result} />
-          <Text style={styles.score}>{Math.floor(opponentScore).toLocaleString()}</Text>
+          {scoresRevealed ? <CinematicCount value={Math.floor(opponentScore)} active immediate={reducedMotion} style={styles.score} /> : <Text style={styles.score}>—</Text>}
           <Text style={styles.scoreLabel}>FINAL SCORE</Text>
         </View>
       </View>

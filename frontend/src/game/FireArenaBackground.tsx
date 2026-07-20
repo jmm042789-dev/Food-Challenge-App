@@ -6,6 +6,23 @@ type FireArenaBackgroundProps = {
   children?: React.ReactNode;
   combo?: number;
   phase?: "intro" | "active" | "result";
+  reducedMotion?: boolean;
+};
+
+type AtmosphereTier = 0 | 1 | 2 | 3;
+
+const getAtmosphereTier = (combo: number): AtmosphereTier => {
+  if (combo >= 20) return 3;
+  if (combo >= 10) return 2;
+  if (combo >= 5) return 1;
+  return 0;
+};
+
+const ATMOSPHERE_INTENSITY: Record<AtmosphereTier, number> = {
+  0: 0,
+  1: 0.25,
+  2: 0.52,
+  3: 1,
 };
 
 const ARENA_IMAGE = require("../assets/backgrounds/arena.png");
@@ -61,7 +78,7 @@ function driftLoop(value: Animated.Value, duration: number, delay = 0) {
 }
 
 /** Fixed native-driven atmosphere layers. No per-frame JS or runtime particle generation. */
-export default function FireArenaBackground({ children, combo = 0, phase = "active" }: FireArenaBackgroundProps) {
+export default function FireArenaBackground({ children, combo = 0, phase = "active", reducedMotion = false }: FireArenaBackgroundProps) {
   const spotlightLeft = useRef(new Animated.Value(0)).current;
   const spotlightRight = useRef(new Animated.Value(0)).current;
   const smokeLeft = useRef(new Animated.Value(0)).current;
@@ -74,7 +91,12 @@ export default function FireArenaBackground({ children, combo = 0, phase = "acti
   const depthMotion = useRef(new Animated.Value(0)).current;
   const fireBreath = useRef(new Animated.Value(0)).current;
   const intensity = useRef(new Animated.Value(0)).current;
+  const milestonePulse = useRef(new Animated.Value(0)).current;
+  const previousCombo = useRef(combo);
   const emberProgress = useMemo(() => [emberSlow, emberMedium, emberFast] as const, [emberFast, emberMedium, emberSlow]);
+  const atmosphereTier = getAtmosphereTier(combo);
+  const atmosphereIntensity = ATMOSPHERE_INTENSITY[atmosphereTier];
+  const milestoneGlowOpacity = 0.025 + atmosphereTier * 0.01;
 
   useEffect(() => {
     const resultSlowdown = phase === "result" ? 1.55 : 1;
@@ -99,17 +121,35 @@ export default function FireArenaBackground({ children, combo = 0, phase = "acti
   }, [depthMotion, emberFast, emberMedium, emberSlow, fireBreath, heatHaze, lightSweep, phase, smokeLeft, smokeRight, spotlightLeft, spotlightRight]);
 
   useEffect(() => {
-    const comboIntensity = combo >= 20 ? 1 : combo >= 15 ? 0.72 : combo >= 10 ? 0.48 : combo >= 5 ? 0.25 : 0;
-    const target = phase === "result" ? 0.08 : comboIntensity;
+    const target = phase === "result" ? 0.08 : atmosphereIntensity;
     const transition = Animated.timing(intensity, {
       toValue: target,
-      duration: phase === "result" ? 1100 : 500,
+      duration: reducedMotion ? 0 : phase === "result" ? 1100 : 500,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
     transition.start();
     return () => transition.stop();
-  }, [combo, intensity, phase]);
+  }, [atmosphereIntensity, intensity, phase, reducedMotion]);
+
+  useEffect(() => {
+    const priorCombo = previousCombo.current;
+    previousCombo.current = combo;
+    milestonePulse.stopAnimation();
+    milestonePulse.setValue(0);
+
+    if (reducedMotion || phase !== "active" || combo <= priorCombo || combo < 5 || combo % 5 !== 0) return;
+
+    milestonePulse.setValue(1);
+    const pulse = Animated.timing(milestonePulse, {
+      toValue: 0,
+      duration: 360,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    pulse.start();
+    return () => pulse.stop();
+  }, [combo, milestonePulse, phase, reducedMotion]);
 
   const backdrop = (
     <View pointerEvents="none" style={styles.backdrop}>
@@ -210,7 +250,7 @@ export default function FireArenaBackground({ children, combo = 0, phase = "acti
           const progress = emberProgress[ember.speed];
           return <Animated.View key={ember.id} style={[styles.ember, { bottom: ember.bottom, height: ember.size, left: ember.left, opacity: progress.interpolate({ inputRange: [0, 0.12 + ember.delay * 0.2, 0.58 + ember.delay * 0.16, 1], outputRange: [0, ember.opacity * 0.45, ember.opacity, 0] }), transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [22, -72] }) }, { translateX: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [-ember.sway, ember.sway, -ember.sway] }) }], width: ember.size }]} />;
         })}
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: intensity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.72] }) }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: Animated.add(intensity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.72] }), milestonePulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.08] })) }]}>
           {EMBERS.slice(20).map((ember) => {
             const progress = emberProgress[ember.speed];
             return <Animated.View key={ember.id} style={[styles.ember, styles.emberHot, { bottom: ember.bottom, height: ember.size, left: ember.left, opacity: progress.interpolate({ inputRange: [0, 0.12 + ember.delay * 0.2, 0.58 + ember.delay * 0.16, 1], outputRange: [0, ember.opacity * 0.4, ember.opacity, 0] }), transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [18, -82] }) }, { translateX: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [ember.sway, -ember.sway, ember.sway] }) }], width: ember.size }]} />;
@@ -233,7 +273,7 @@ export default function FireArenaBackground({ children, combo = 0, phase = "acti
         <View style={styles.bowlCore} />
         <View style={styles.bowlBase} />
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[styles.comboWarmth, { opacity: intensity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] }) }]} />
+      <Animated.View pointerEvents="none" style={[styles.comboWarmth, { opacity: Animated.add(intensity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] }), milestonePulse.interpolate({ inputRange: [0, 1], outputRange: [0, milestoneGlowOpacity] })) }]} />
 
       <LinearGradient colors={["rgba(0,0,0,0.66)", "transparent"]} style={styles.hudContrast} />
       <LinearGradient colors={["transparent", "rgba(0,0,0,0.52)"]} style={styles.controlContrast} />

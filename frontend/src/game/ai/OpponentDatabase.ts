@@ -8,7 +8,7 @@ export const OPPONENT_DATABASE: Opponent[] = [
 
     level: 1,
     difficulty: "Easy",
-    personality: "Balanced",
+    personality: "Comeback Specialist",
 
     speed: 1.00,
     accuracy: 0.82,
@@ -27,7 +27,7 @@ export const OPPONENT_DATABASE: Opponent[] = [
 
     level: 2,
     difficulty: "Easy",
-    personality: "Balanced",
+    personality: "Combo Master",
 
     speed: 1.05,
     accuracy: 0.86,
@@ -46,7 +46,7 @@ export const OPPONENT_DATABASE: Opponent[] = [
 
     level: 3,
     difficulty: "Medium",
-    personality: "Combo Master",
+    personality: "Defensive",
 
     speed: 1.12,
     accuracy: 0.91,

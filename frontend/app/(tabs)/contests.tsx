@@ -1,16 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, Contest, parseContests } from "../../src/api";
 import { getFoodArtwork } from "../../src/assets/foodArtwork";
-import FireEmptyState from "../../src/components/fire/FireEmptyState";
 import FireLoading from "../../src/components/fire/FireLoading";
 import FirePanel from "../../src/components/fire/FirePanel";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import TournamentBanner from "../../src/game/ui/TournamentBanner";
 import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
+import TournamentPanel from "../../src/tournaments/components/TournamentPanel";
+import { getTournamentPlayerProgress } from "../../src/tournaments/TournamentProgress";
+import { useTournamentProgress } from "../../src/tournaments/useTournamentProgress";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ALL = "All";
@@ -72,6 +74,11 @@ export default function ContestsScreen() {
   const [selectedCategory, setSelectedCategory] = useState(ALL);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const { activeTournament, state: tournamentState, refresh: refreshTournament, claim: claimTournamentReward } = useTournamentProgress();
+
+  useFocusEffect(useCallback(() => {
+    void refreshTournament();
+  }, [refreshTournament]));
 
   useEffect(() => {
     let active = true;
@@ -103,15 +110,9 @@ export default function ContestsScreen() {
     () => selectedCategory === ALL ? contests : contests.filter((contest) => contest.category === selectedCategory),
     [contests, selectedCategory]
   );
+  const tournamentProgress = tournamentState ? getTournamentPlayerProgress(tournamentState, activeTournament.occurrenceId) : null;
 
   if (loading) return <View style={styles.screen}><ArcadeBackground /><FireLoading title="Loading Contests" subtitle="Setting the Fire Feast arena." /></View>;
-  if (!contests.length) return (
-    <View style={styles.screen}>
-      <ArcadeBackground />
-      <FireEmptyState icon="!" title={hasError ? "Arena Unavailable" : "No Contests Available"} message={hasError ? "The contest board could not be loaded. Please try again shortly." : "Check back soon for the next Fire Feast challenge."} />
-    </View>
-  );
-
   return (
     <View style={styles.screen}>
       <ArcadeBackground />
@@ -137,6 +138,15 @@ export default function ContestsScreen() {
               </View>
             </View>
 
+            {tournamentProgress ? (
+              <TournamentPanel
+                tournament={activeTournament}
+                progress={tournamentProgress}
+                onEnter={() => router.push(`/play/${activeTournament.entryContestId}?tournament=${encodeURIComponent(activeTournament.occurrenceId)}`)}
+                onClaimReward={(rewardId) => { void claimTournamentReward(rewardId); }}
+              />
+            ) : null}
+
             <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName="TOURNAMENT BOARD" roundLabel={`${contests.length} EVENTS`} variant="compact" />
 
             <FlatList
@@ -161,7 +171,7 @@ export default function ContestsScreen() {
             </View>
           </View>
         }
-        ListEmptyComponent={<Text style={styles.noEvents}>No contests in this category.</Text>}
+        ListEmptyComponent={<Text style={styles.noEvents}>{hasError ? "Regular contest board unavailable. Weekly tournament remains open." : "No contests in this category."}</Text>}
       />
     </View>
   );
