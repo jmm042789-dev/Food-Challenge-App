@@ -11,6 +11,7 @@ from services.player_service import (
     get_or_create_player,
     find_player,
     apply_match_result,
+    mark_tutorial_done,
 )
 
 from services.contest_service import featured, categories
@@ -78,6 +79,16 @@ def test():
 @app.post("/api/player")
 def create_player_endpoint(data: PlayerCreate):
     return get_or_create_player(data.device_id)
+
+
+@app.post("/api/player/tutorial_done")
+def tutorial_done_endpoint(data: PlayerCreate):
+    player = mark_tutorial_done(data.device_id)
+
+    if not player:
+        raise HTTPException(status_code=404, detail="player not found")
+
+    return player
 
 
 @app.get("/api/player/{device_id}")

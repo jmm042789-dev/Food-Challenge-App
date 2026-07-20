@@ -45,6 +45,8 @@ def create_player(device_id: str):
         "last_claim_date": None,
 
         "streak_days": 0,
+
+        "tutorial_done": False,
     }
 
     players[device_id] = player
@@ -69,6 +71,21 @@ def get_or_create_player(device_id: str):
         return create_player(device_id)
 
     return players[device_id]
+
+
+def mark_tutorial_done(device_id: str):
+    """
+    Marks an existing player's tutorial as complete.
+    """
+
+    player = find_player(device_id)
+
+    if not player:
+        return None
+
+    player["tutorial_done"] = True
+
+    return player
 
 
 def apply_match_result(device_id: str, opponent_id: str, won: bool):

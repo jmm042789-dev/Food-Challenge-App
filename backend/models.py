@@ -32,6 +32,7 @@ class Player(BaseModel):
 
     last_claim_date: Optional[str] = None
     streak_days: int = 0
+    tutorial_done: bool = False
 
 
 # ==========================================================
