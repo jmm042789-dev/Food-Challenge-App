@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { api } from "../src/api";
+import { api, cacheBootstrapPlayer } from "../src/api";
 import FireEmptyState from "../src/components/fire/FireEmptyState";
 import FireLoading from "../src/components/fire/FireLoading";
 import ArcadeBackground from "../src/game/ui/ArcadeBackground";
@@ -32,15 +32,20 @@ export default function Index() {
           return;
         }
 
+        let playerForHome: unknown = player;
         if (player.tutorial_done === true && player.welcome_reward_claimed === false) {
           try {
-            await api.claimWelcomeReward();
+            const rewardResult = await api.claimWelcomeReward() as { player?: unknown };
+            if (rewardResult.player) playerForHome = rewardResult.player;
           } catch {
             // Reward recovery must never block a completed player from Home.
           }
         }
 
-        if (active) router.replace("/(tabs)/home");
+        if (active) {
+          cacheBootstrapPlayer(playerForHome);
+          router.replace("/(tabs)/home");
+        }
       } catch {
         if (active) setError(true);
       }

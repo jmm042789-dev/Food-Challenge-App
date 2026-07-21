@@ -18,6 +18,17 @@ if (__DEV__) {
 }
 
 const DEVICE_KEY = "chompchamps_device_id";
+let bootstrapPlayerCache: unknown | undefined;
+
+export function cacheBootstrapPlayer(player: unknown): void {
+  bootstrapPlayerCache = player;
+}
+
+export function consumeBootstrapPlayer(): unknown | undefined {
+  const player = bootstrapPlayerCache;
+  bootstrapPlayerCache = undefined;
+  return player;
+}
 
 export type Contest = {
   id: string;

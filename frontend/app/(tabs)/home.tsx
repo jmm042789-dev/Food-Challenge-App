@@ -4,7 +4,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, Contest, parseContests } from "../../src/api";
+import { api, consumeBootstrapPlayer, Contest, parseContests } from "../../src/api";
 import { getFoodArtwork } from "../../src/assets/foodArtwork";
 import FireButton from "../../src/components/fire/FireButton";
 import FireEmptyState from "../../src/components/fire/FireEmptyState";
@@ -129,7 +129,11 @@ export default function HomeScreen() {
   useEffect(() => {
     let active = true;
     async function loadHome() {
-      const [contestResult, playerResult] = await Promise.allSettled([api.listContests(), api.getPlayer()]);
+      const cachedPlayer = consumeBootstrapPlayer();
+      const playerRequest = cachedPlayer === undefined
+        ? api.getPlayer()
+        : Promise.resolve(cachedPlayer);
+      const [contestResult, playerResult] = await Promise.allSettled([api.listContests(), playerRequest]);
       if (!active) return;
       if (contestResult.status === "fulfilled") setContests(parseContests(contestResult.value));
       if (playerResult.status === "fulfilled" && playerResult.value) setPlayer(playerResult.value as Player);
