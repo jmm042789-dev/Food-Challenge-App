@@ -145,7 +145,7 @@ function createRisingLoop(
   );
 }
 
-export default function FoodArena({
+function FoodArena({
   contestId,
   combo,
   timeRemaining,
@@ -315,16 +315,19 @@ export default function FoodArena({
     [emberA, emberB, emberC, emberD, emberE, emberF],
   );
 
-  const foodRotation = Animated.add(
-    impactRotation,
-    idleRotation.interpolate({
-      inputRange: [0, 1],
-      outputRange: [-0.9, 0.9],
+  const foodRotation = useMemo(
+    () => Animated.add(
+      impactRotation,
+      idleRotation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-0.9, 0.9],
+      }),
+    ).interpolate({
+      inputRange: [-4, 4],
+      outputRange: ["-4deg", "4deg"],
     }),
-  ).interpolate({
-    inputRange: [-4, 4],
-    outputRange: ["-4deg", "4deg"],
-  });
+    [idleRotation, impactRotation],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -752,38 +755,58 @@ export default function FoodArena({
     }).start();
   };
 
-  const haloOpacity = Animated.add(
-    haloIntensity.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.22, 0.58],
-    }),
-    Animated.add(
-      urgency.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 0.2],
-      }),
-      haloPulse.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 0.18],
-      }),
+  const haloOpacity = useMemo(
+    () => Animated.add(
+      haloIntensity.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.58] }),
+      Animated.add(
+        urgency.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] }),
+        haloPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.18] }),
+      ),
     ),
+    [haloIntensity, haloPulse, urgency],
   );
 
-  const haloScale = Animated.add(
-    haloIntensity.interpolate({
-      inputRange: [0, 1],
-      outputRange: [1, 1.1],
-    }),
-    Animated.add(
-      urgency.interpolate({
+  const haloScale = useMemo(
+    () => Animated.add(
+      haloIntensity.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }),
+      Animated.add(
+        urgency.interpolate({ inputRange: [0, 1], outputRange: [0, 0.05] }),
+        haloPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.08] }),
+      ),
+    ),
+    [haloIntensity, haloPulse, urgency],
+  );
+
+  const arenaGlowOpacity = useMemo(
+    () => Animated.add(
+      haloIntensity.interpolate({ inputRange: [0, 1], outputRange: [0.28, 0.66] }),
+      hitFlash.interpolate({ inputRange: [0, 1], outputRange: [0, 0.28] }),
+    ),
+    [haloIntensity, hitFlash],
+  );
+
+  const foodBackGlowOpacity = useMemo(
+    () => Animated.add(
+      haloIntensity.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.58] }),
+      hitFlash.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, 0.05],
-      }),
-      haloPulse.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 0.08],
+        outputRange: [
+          0,
+          reducedMotion
+            ? 0.1
+            : clamp((0.38 + impactTier * 0.06) * flashIntensity, 0.28, 0.68),
+        ],
       }),
     ),
+    [flashIntensity, haloIntensity, hitFlash, impactTier, reducedMotion],
+  );
+
+  const pedestalGlowOpacity = useMemo(
+    () => Animated.add(
+      haloIntensity.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.66] }),
+      hitFlash.interpolate({ inputRange: [0, 1], outputRange: [0, 0.25] }),
+    ),
+    [haloIntensity, hitFlash],
   );
 
   return (
@@ -913,16 +936,7 @@ export default function FoodArena({
           styles.arenaGlowInner,
           {
             height: size + 36,
-            opacity: Animated.add(
-              haloIntensity.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.28, 0.66],
-              }),
-              hitFlash.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.28],
-              }),
-            ),
+            opacity: arenaGlowOpacity,
             transform: [
               {
                 scale: floorPulse.interpolate({
@@ -1054,21 +1068,7 @@ export default function FoodArena({
                 styles.foodBackGlow,
                 {
                   height: size * 0.82,
-                  opacity: Animated.add(
-                    haloIntensity.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.15, 0.58],
-                    }),
-                    hitFlash.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [
-                        0,
-                        reducedMotion
-                          ? 0.1
-                          : clamp((0.38 + impactTier * 0.06) * flashIntensity, 0.28, 0.68),
-                      ],
-                    }),
-                  ),
+                  opacity: foodBackGlowOpacity,
                   transform: [
                     {
                       scale: haloPulse.interpolate({
@@ -1220,16 +1220,7 @@ export default function FoodArena({
         style={[
           styles.pedestalGlow,
           {
-            opacity: Animated.add(
-              haloIntensity.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.25, 0.66],
-              }),
-              hitFlash.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.25],
-              }),
-            ),
+            opacity: pedestalGlowOpacity,
             transform: [
               {
                 scaleX: floorPulse.interpolate({
@@ -1540,3 +1531,5 @@ const styles = StyleSheet.create({
     opacity: 0.48,
   },
 });
+
+export default React.memo(FoodArena);

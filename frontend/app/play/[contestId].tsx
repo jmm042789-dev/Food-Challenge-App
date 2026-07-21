@@ -336,10 +336,25 @@ export default function ContestScreen() {
     }
   }, [currentOpponent.id, foodProfile.id, highestCombo, matchRouteKey, opponentScore, playAudioEvent, state.score, state.status, tournamentOccurrenceId]);
 
+  const arenaCallbacksRef = useRef({
+    commentate,
+    combo: state.combo,
+    playAudioEvent,
+    status: state.status,
+    tap,
+  });
+  arenaCallbacksRef.current = {
+    commentate,
+    combo: state.combo,
+    playAudioEvent,
+    status: state.status,
+    tap,
+  };
+
   const handleMechanicCompleted = useCallback((mechanicType: FoodMechanicType) => {
     void trackAchievementEvent({ type: "FOOD_MECHANIC_COMPLETED", mechanicType });
-    void playAudioEvent("PERFECT_MECHANIC");
-  }, [playAudioEvent]);
+    void arenaCallbacksRef.current.playAudioEvent("PERFECT_MECHANIC");
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -420,17 +435,18 @@ export default function ContestScreen() {
     };
   }, [matchRouteKey, selectedContestId]);
 
-  const handleTap = () => {
-    if (state.status !== "PLAYING") return;
-    tap();
+  const handleTap = useCallback(() => {
+    const { commentate: commentateLatest, combo, playAudioEvent: playAudioEventLatest, status, tap: tapLatest } = arenaCallbacksRef.current;
+    if (status !== "PLAYING") return;
+    tapLatest();
     cameraRef.current?.bitePunch();
-    void playAudioEvent("CORRECT_BITE");
+    void playAudioEventLatest("CORRECT_BITE");
     if (!firstBiteCommented.current) {
       firstBiteCommented.current = true;
-      commentate({ type: "FIRST_BITE" });
+      commentateLatest({ type: "FIRST_BITE" });
     }
 
-    const nextCombo = state.combo + 1;
+    const nextCombo = combo + 1;
     if (nextCombo >= 100) {
       setFeedbackText("+200");
       setComboLabel("EPIC COMBO!");
@@ -454,7 +470,7 @@ export default function ContestScreen() {
     setShowScore(true);
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
-  };
+  }, []);
 
   const handleUseAntacid = (): boolean => {
   const used = useAntacid();
