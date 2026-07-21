@@ -87,7 +87,7 @@ export default function GameplayHUD(props: Props) {
         difficulty={props.difficulty}
         roundLabel={props.roundLabel}
       />
-      <View style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" /></View>
+      <View accessibilityLabel="Combo progress" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 25, now: Math.min(25, Math.max(0, props.combo)) }} style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" /></View>
       <View style={styles.rightMeter}><HeartburnMeter heartburn={props.heartburn} heatTier={props.heatTier} heatMultiplier={props.heatMultiplier} isOverheated={props.isOverheated} overheatRemainingMs={props.overheatRemainingMs} /></View>
     </View>
   );

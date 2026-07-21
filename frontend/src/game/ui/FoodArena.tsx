@@ -951,9 +951,10 @@ function FoodArena({
       />
 
       <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Bite food"
+        accessibilityElementsHidden
+        accessible={false}
         disabled={!active}
+        importantForAccessibility="no-hide-descendants"
         onPress={tap}
         style={styles.foodPressable}
       >

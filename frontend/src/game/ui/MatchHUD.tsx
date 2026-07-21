@@ -55,6 +55,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
   const opponentReaction: CharacterReaction = opponentScored ? "scoring" : playerScored ? "hit" : comboTier ? "combo" : tied ? "idle" : playerLeading ? "behind" : "leading";
   const playerReactionKey = comboMilestone ? `combo-${combo}` : `lead-${playerLeading}`;
   const opponentReactionKey = `opponent-${opponentScore}-player-${playerScore}-combo-${comboTier}`;
+  const accessibilitySummary = `Score ${Math.floor(playerScore)}. Combo ${combo}. ${formattedTime} remaining.`;
 
   useEffect(() => {
     const increased = playerScore > previousScore.current;
@@ -88,7 +89,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
   }, [lowTime, timeRemaining, timerGlow, timerScale]);
 
   return (
-    <View style={styles.dashboard}>
+    <View accessible accessibilityLabel={accessibilitySummary} style={styles.dashboard}>
       <View pointerEvents="none" style={styles.topHighlight} />
       <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName={contestName} roundLabel={roundLabel} variant="compact" embedded />
       <View style={styles.divider} />

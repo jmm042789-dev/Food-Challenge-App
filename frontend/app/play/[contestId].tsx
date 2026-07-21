@@ -136,6 +136,7 @@ export default function ContestScreen() {
   const previousArenaLead = useRef<"PLAYER" | "OPPONENT" | "TIED">("TIED");
   const arenaCloseMatch = useRef(false);
   const arenaFinalTenSent = useRef(false);
+  const lastAccessibilityCountdown = useRef<number | null>(null);
   const lastArenaPlayerCombo = useRef(0);
   const lastArenaOpponentCombo = useRef(0);
   const firstBiteCommented = useRef(false);
@@ -201,6 +202,7 @@ export default function ContestScreen() {
     previousArenaLead.current = "TIED";
     arenaCloseMatch.current = false;
     arenaFinalTenSent.current = false;
+    lastAccessibilityCountdown.current = null;
     lastArenaPlayerCombo.current = 0;
     lastArenaOpponentCombo.current = 0;
     firstBiteCommented.current = false;
@@ -281,6 +283,14 @@ export default function ContestScreen() {
     commentate({ type: "FINAL_10_SECONDS" });
     void playAudioEvent("FINAL_10");
   }, [commentate, playAudioEvent, reactArena, state.status, timeRemaining]);
+
+  useEffect(() => {
+    if (state.status !== "PLAYING" || ![5, 3, 2, 1].includes(timeRemaining) || lastAccessibilityCountdown.current === timeRemaining) return;
+    lastAccessibilityCountdown.current = timeRemaining;
+    AccessibilityInfo.announceForAccessibility(
+      timeRemaining === 5 ? "5 seconds remaining" : String(timeRemaining),
+    );
+  }, [state.status, timeRemaining]);
 
   useEffect(() => {
     if (state.status !== "FINISHED" || missionRecordedMatch.current === matchRouteKey) return;
