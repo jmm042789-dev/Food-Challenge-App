@@ -18,20 +18,32 @@ export default function MatchmakingScreen() {
   useEffect(() => {
     let alive = true;
     let interval: ReturnType<typeof setInterval> | undefined;
+    let statusRequestInFlight = false;
+    let matchHandled = false;
 
     const run = async () => {
       try {
         await api.matchmakingJoin();
         interval = setInterval(async () => {
-          const res = await api.matchmakingStatus();
-          if (!alive) return;
+          if (!alive || statusRequestInFlight || matchHandled) return;
 
-          if (res.status === "matched") {
-            if (interval) clearInterval(interval);
-            setStatus("found");
-            routeTimer.current = setTimeout(() => {
-              router.replace(`/play/${res.match_id}`);
-            }, 1800);
+          statusRequestInFlight = true;
+          try {
+            const res = await api.matchmakingStatus();
+            if (!alive || matchHandled) return;
+
+            if (res.status === "matched") {
+              matchHandled = true;
+              if (interval) clearInterval(interval);
+              setStatus("found");
+              routeTimer.current = setTimeout(() => {
+                router.replace(`/play/${res.match_id}`);
+              }, 1800);
+            }
+          } catch {
+            // The API helper logs request failures; keep polling on the next tick.
+          } finally {
+            statusRequestInFlight = false;
           }
         }, 1200);
       } catch {
