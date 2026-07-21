@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../src/api";
@@ -16,18 +16,29 @@ export default function TutorialScreen() {
   const insets = useSafeAreaInsets();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submissionInFlight = useRef(false);
+  const tutorialCompleted = useRef(false);
 
   async function completeTutorial() {
-    if (submitting) return;
+    if (submissionInFlight.current) return;
 
+    submissionInFlight.current = true;
     setSubmitting(true);
     setError(null);
 
     try {
-      await api.markTutorialDone();
-      router.replace("/(tabs)/home");
+      if (!tutorialCompleted.current) {
+        await api.markTutorialDone();
+        tutorialCompleted.current = true;
+      }
+
+      await api.claimWelcomeReward();
+      router.replace({ pathname: "/(tabs)/home", params: { welcome: "1" } });
     } catch {
-      setError("We couldn't save your progress. Please try again.");
+      setError(tutorialCompleted.current
+        ? "Your tutorial is saved, but we couldn't collect your welcome reward. Please try again."
+        : "We couldn't save your progress. Please try again.");
+      submissionInFlight.current = false;
       setSubmitting(false);
     }
   }

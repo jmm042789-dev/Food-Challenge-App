@@ -9,11 +9,8 @@ import ArcadeBackground from "../src/game/ui/ArcadeBackground";
 
 type BootstrapPlayer = {
   tutorial_done?: unknown;
+  welcome_reward_claimed?: unknown;
 };
-
-function onboardingIsComplete(player: BootstrapPlayer): boolean | null {
-  return typeof player.tutorial_done === "boolean" ? player.tutorial_done : null;
-}
 
 export default function Index() {
   const router = useRouter();
@@ -30,8 +27,20 @@ export default function Index() {
         const player = await api.getPlayer() as BootstrapPlayer;
         if (!active) return;
 
-        const completed = onboardingIsComplete(player);
-        router.replace(completed === false ? "/tutorial" : "/(tabs)/home");
+        if (player.tutorial_done === false) {
+          router.replace("/tutorial");
+          return;
+        }
+
+        if (player.tutorial_done === true && player.welcome_reward_claimed === false) {
+          try {
+            await api.claimWelcomeReward();
+          } catch {
+            // Reward recovery must never block a completed player from Home.
+          }
+        }
+
+        if (active) router.replace("/(tabs)/home");
       } catch {
         if (active) setError(true);
       }

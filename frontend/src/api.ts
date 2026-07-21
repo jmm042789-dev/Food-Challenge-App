@@ -199,6 +199,14 @@ export const api = {
     });
   },
 
+  claimWelcomeReward: async () => {
+    const id = await getDeviceId();
+    return req(`/player/welcome_reward`, {
+      method: "POST",
+      body: JSON.stringify({ device_id: id }),
+    });
+  },
+
   // =========================
   // GAME DATA
   // =========================

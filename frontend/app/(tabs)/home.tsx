@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, Contest, parseContests } from "../../src/api";
@@ -19,6 +19,42 @@ import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import { useDailyMissions } from "../../src/missions/useDailyMissions";
 
 type Player = { coins?: number; xp?: number };
+
+const WELCOME_COIN = require("../../src/assets/icons/coin.png");
+const WELCOME_ANTACID = require("../../src/assets/icons/antacid.png");
+const WELCOME_XP = require("../../src/assets/icons/xp-crystal.png");
+
+function WelcomeRewardModal({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
+  const insets = useSafeAreaInsets();
+  const rewards = [
+    { label: "+200 Coins", source: WELCOME_COIN },
+    { label: "+1 Antacid", source: WELCOME_ANTACID },
+    { label: "+50 XP", source: WELCOME_XP },
+  ];
+
+  return (
+    <Modal animationType="fade" onRequestClose={onDismiss} statusBarTranslucent transparent visible={visible}>
+      <View accessibilityViewIsModal style={[styles.welcomeBackdrop, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <FireScreenEntrance distance={8} scaleFrom={0.96} style={styles.welcomeEntrance}>
+          <FirePanel accent="gold" elevated highlighted style={styles.welcomePanel}>
+            <Text accessibilityRole="header" style={styles.welcomeTitle}>WELCOME TO FIRE FEAST</Text>
+            <Text style={styles.welcomeEyebrow}>WELCOME REWARD</Text>
+            <View style={styles.welcomeRewards}>
+              {rewards.map((reward) => (
+                <View accessible accessibilityLabel={reward.label} key={reward.label} style={styles.welcomeReward}>
+                  <Image resizeMode="contain" source={reward.source} style={styles.welcomeRewardIcon} />
+                  <Text style={styles.welcomeRewardText}>{reward.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.welcomeGuidance}>Tap Play to enter your first feast.</Text>
+            <FireButton accessibilityLabel="Let's Feast" fullWidth onPress={onDismiss} title="LET’S FEAST" variant="gold" />
+          </FirePanel>
+        </FireScreenEntrance>
+      </View>
+    </Modal>
+  );
+}
 
 function FeaturedContest({ contest, onEnter }: { contest: Contest; onEnter: () => void }) {
   const artwork = getFoodArtwork(contest.id);
@@ -71,11 +107,18 @@ function UpcomingContest({ contest, onEnter }: { contest: Contest; onEnter: () =
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { welcome } = useLocalSearchParams<{ welcome?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [contests, setContests] = useState<Contest[]>([]);
   const [player, setPlayer] = useState<Player>({ coins: 200, xp: 0 });
+  const [showWelcome, setShowWelcome] = useState(welcome === "1");
   const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
+
+  const dismissWelcome = useCallback(() => {
+    setShowWelcome(false);
+    router.setParams({ welcome: undefined });
+  }, [router]);
 
   useFocusEffect(useCallback(() => {
     void refreshMissions();
@@ -94,8 +137,8 @@ export default function HomeScreen() {
     return () => { active = false; };
   }, []);
 
-  if (loading) return <View style={styles.screen}><ArcadeBackground /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /></View>;
-  if (!contests.length) return <View style={styles.screen}><ArcadeBackground /><FireEmptyState icon="!" title="No Contests Available" message="Check back again soon." /></View>;
+  if (loading) return <View style={styles.screen}><ArcadeBackground /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
+  if (!contests.length) return <View style={styles.screen}><ArcadeBackground /><FireEmptyState icon="!" title="No Contests Available" message="Check back again soon." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
 
   const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
   const coins = Number(player.coins ?? 0) + (dailyMissionState?.claimedRewards.coins ?? 0);
@@ -148,6 +191,7 @@ export default function HomeScreen() {
           </View>
         ) : null}
       </ScrollView>
+      <WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} />
     </View>
   );
 }
@@ -191,4 +235,14 @@ const styles = StyleSheet.create({
   rowPrize: { color: "#FFC052", fontSize: 13, fontWeight: "900", maxWidth: "100%" },
   rowEntry: { color: "#A98C76", fontSize: 7, fontWeight: "900", marginTop: 2 },
   chevron: { color: "#E3903C", fontSize: 23, position: "absolute", right: -2, top: 4 },
+  welcomeBackdrop: { alignItems: "center", backgroundColor: "rgba(7,4,5,0.92)", flex: 1, justifyContent: "center", paddingHorizontal: 16 },
+  welcomeEntrance: { maxWidth: 400, width: "100%" },
+  welcomePanel: { paddingHorizontal: 18, paddingVertical: 20 },
+  welcomeTitle: { color: "#FFF3DE", fontSize: 24, fontWeight: "900", letterSpacing: 0.8, lineHeight: 29, textAlign: "center" },
+  welcomeEyebrow: { color: "#E8A94F", fontSize: 9, fontWeight: "900", letterSpacing: 1.5, marginTop: 6, textAlign: "center" },
+  welcomeRewards: { flexDirection: "row", gap: 7, justifyContent: "space-between", marginTop: 18 },
+  welcomeReward: { alignItems: "center", backgroundColor: "rgba(83,39,17,0.55)", borderColor: "rgba(241,170,72,0.45)", borderRadius: 11, borderWidth: 1, flex: 1, minWidth: 0, paddingHorizontal: 4, paddingVertical: 10 },
+  welcomeRewardIcon: { height: 34, width: 34 },
+  welcomeRewardText: { color: "#FFD27D", fontSize: 10, fontWeight: "900", marginTop: 6, textAlign: "center" },
+  welcomeGuidance: { color: "#D8C5B3", fontSize: 14, lineHeight: 20, marginTop: 18, textAlign: "center" },
 });

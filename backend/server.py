@@ -12,6 +12,9 @@ from services.player_service import (
     find_player,
     apply_match_result,
     mark_tutorial_done,
+    claim_welcome_reward,
+    TutorialIncompleteError,
+    WelcomeRewardUnavailableError,
 )
 
 from services.contest_service import featured, categories
@@ -89,6 +92,21 @@ def tutorial_done_endpoint(data: PlayerCreate):
         raise HTTPException(status_code=404, detail="player not found")
 
     return player
+
+
+@app.post("/api/player/welcome_reward")
+def welcome_reward_endpoint(data: PlayerCreate):
+    try:
+        result = claim_welcome_reward(data.device_id)
+    except TutorialIncompleteError:
+        raise HTTPException(status_code=409, detail="tutorial must be completed first")
+    except WelcomeRewardUnavailableError:
+        raise HTTPException(status_code=409, detail="welcome reward is not available for this player")
+
+    if not result:
+        raise HTTPException(status_code=404, detail="player not found")
+
+    return result
 
 
 @app.get("/api/player/{device_id}")

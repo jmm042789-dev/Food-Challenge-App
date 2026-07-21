@@ -6,7 +6,25 @@ All player-related logic belongs here.
 Eventually server.py should only call these functions.
 """
 
+from threading import Lock
+
 from database import players
+
+
+WELCOME_REWARD = {
+    "coins": 200,
+    "antacid": 1,
+    "xp": 50,
+}
+_welcome_reward_lock = Lock()
+
+
+class TutorialIncompleteError(Exception):
+    pass
+
+
+class WelcomeRewardUnavailableError(Exception):
+    pass
 
 # ==========================================================
 # PLAYER CREATION
@@ -47,6 +65,8 @@ def create_player(device_id: str):
         "streak_days": 0,
 
         "tutorial_done": False,
+
+        "welcome_reward_claimed": False,
     }
 
     players[device_id] = player
@@ -86,6 +106,44 @@ def mark_tutorial_done(device_id: str):
     player["tutorial_done"] = True
 
     return player
+
+
+def claim_welcome_reward(device_id: str):
+    """
+    Grants the one-time welcome reward to an eligible existing player.
+    """
+
+    with _welcome_reward_lock:
+        player = find_player(device_id)
+
+        if not player:
+            return None
+
+        if player.get("tutorial_done") is not True:
+            raise TutorialIncompleteError
+
+        claim_state = player.get("welcome_reward_claimed")
+
+        if claim_state is True:
+            return {
+                "player": player,
+                "granted": False,
+                "reward": {"coins": 0, "antacid": 0, "xp": 0},
+            }
+
+        if claim_state is not False:
+            raise WelcomeRewardUnavailableError
+
+        player["coins"] += WELCOME_REWARD["coins"]
+        player["antacid"] += WELCOME_REWARD["antacid"]
+        player["xp"] += WELCOME_REWARD["xp"]
+        player["welcome_reward_claimed"] = True
+
+        return {
+            "player": player,
+            "granted": True,
+            "reward": dict(WELCOME_REWARD),
+        }
 
 
 def apply_match_result(device_id: str, opponent_id: str, won: bool):
