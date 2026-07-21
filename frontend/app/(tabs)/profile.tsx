@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 
 import { api } from "../../src/api";
 import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
@@ -90,6 +91,7 @@ function StatTile({ label, value, accent = false }: { label: string; value: numb
 }
 
 export default function ProfileScreen() {
+  const isFocused = useIsFocused();
   const [player, setPlayer] = useState<Player>(FALLBACK_PLAYER);
   const [gear, setGear] = useState<Gear[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +156,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <ArcadeBackground />
+      <ArcadeBackground active={isFocused} />
       {titleNotification ? <TitleUnlockBanner notification={titleNotification} onDismiss={dismissTitleNotification} /> : restaurantNotification ? <RestaurantUnlockBanner notification={restaurantNotification} onDismiss={dismissRestaurantNotification} /> : null}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <FireScreenEntrance duration="fast" distance={9}>

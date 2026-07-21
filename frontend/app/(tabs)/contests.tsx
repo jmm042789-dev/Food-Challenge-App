@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, Contest, parseContests } from "../../src/api";
@@ -67,6 +68,7 @@ function ContestRow({ contest, onPress }: { contest: Contest; onPress: () => voi
 }
 
 export default function ContestsScreen() {
+  const isFocused = useIsFocused();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [contests, setContests] = useState<Contest[]>([]);
@@ -112,10 +114,10 @@ export default function ContestsScreen() {
   );
   const tournamentProgress = tournamentState ? getTournamentPlayerProgress(tournamentState, activeTournament.occurrenceId) : null;
 
-  if (loading) return <View style={styles.screen}><ArcadeBackground /><FireLoading title="Loading Contests" subtitle="Setting the Fire Feast arena." /></View>;
+  if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Contests" subtitle="Setting the Fire Feast arena." /></View>;
   return (
     <View style={styles.screen}>
-      <ArcadeBackground />
+      <ArcadeBackground active={isFocused} />
       <FlatList
         data={visibleContests}
         keyExtractor={(contest) => contest.id}

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Image, SectionList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../src/api";
@@ -57,6 +58,7 @@ function Price({ item }: { item: ShopItem }) {
 }
 
 export default function ShopScreen() {
+  const isFocused = useIsFocused();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [player, setPlayer] = useState<Player>(EMPTY_PLAYER);
   const [loading, setLoading] = useState(true);
@@ -198,7 +200,7 @@ export default function ShopScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <ArcadeBackground />
+      <ArcadeBackground active={isFocused} />
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}

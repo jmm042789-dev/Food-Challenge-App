@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Image, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, Contest, parseContests } from "../../src/api";
@@ -106,6 +107,7 @@ function UpcomingContest({ contest, onEnter }: { contest: Contest; onEnter: () =
 }
 
 export default function HomeScreen() {
+  const isFocused = useIsFocused();
   const router = useRouter();
   const { welcome } = useLocalSearchParams<{ welcome?: string | string[] }>();
   const insets = useSafeAreaInsets();
@@ -137,8 +139,8 @@ export default function HomeScreen() {
     return () => { active = false; };
   }, []);
 
-  if (loading) return <View style={styles.screen}><ArcadeBackground /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
-  if (!contests.length) return <View style={styles.screen}><ArcadeBackground /><FireEmptyState icon="!" title="No Contests Available" message="Check back again soon." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
+  if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
+  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon="!" title="No Contests Available" message="Check back again soon." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
 
   const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
   const coins = Number(player.coins ?? 0) + (dailyMissionState?.claimedRewards.coins ?? 0);
@@ -150,7 +152,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <ArcadeBackground />
+      <ArcadeBackground active={isFocused} />
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 8) }]} showsVerticalScrollIndicator={false}>
         <FireScreenEntrance duration="fast" distance={8}>
           <FireHeader level={level} xp={xp} nextLevelXp={nextLevelXp} coins={coins} />

@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useIsFocused } from "@react-navigation/native";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import FirePanel from "../../src/components/fire/FirePanel";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
@@ -21,9 +22,10 @@ const leaders=[
 ];
 
 export default function LeaderboardScreen(){
+const isFocused = useIsFocused();
 return(
 <SafeAreaView style={styles.container} edges={["top"]}>
-<ArcadeBackground/>
+<ArcadeBackground active={isFocused}/>
 <ScrollView contentContainerStyle={styles.content}>
 <FireScreenEntrance distance={12}>
 <Text style={styles.header}>🏆 FIRE FEAST RANKINGS</Text>

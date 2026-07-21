@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, Easing, Image, StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 type FireArenaBackgroundProps = {
+  active?: boolean;
   children?: React.ReactNode;
   combo?: number;
   phase?: "intro" | "active" | "result";
@@ -78,7 +79,7 @@ function driftLoop(value: Animated.Value, duration: number, delay = 0) {
 }
 
 /** Fixed native-driven atmosphere layers. No per-frame JS or runtime particle generation. */
-export default function FireArenaBackground({ children, combo = 0, phase = "active", reducedMotion = false }: FireArenaBackgroundProps) {
+export default function FireArenaBackground({ active = true, children, combo = 0, phase = "active", reducedMotion = false }: FireArenaBackgroundProps) {
   const spotlightLeft = useRef(new Animated.Value(0)).current;
   const spotlightRight = useRef(new Animated.Value(0)).current;
   const smokeLeft = useRef(new Animated.Value(0)).current;
@@ -93,12 +94,30 @@ export default function FireArenaBackground({ children, combo = 0, phase = "acti
   const intensity = useRef(new Animated.Value(0)).current;
   const milestonePulse = useRef(new Animated.Value(0)).current;
   const previousCombo = useRef(combo);
+  const [systemReducedMotion, setSystemReducedMotion] = useState(false);
   const emberProgress = useMemo(() => [emberSlow, emberMedium, emberFast] as const, [emberFast, emberMedium, emberSlow]);
   const atmosphereTier = getAtmosphereTier(combo);
   const atmosphereIntensity = ATMOSPHERE_INTENSITY[atmosphereTier];
   const milestoneGlowOpacity = 0.025 + atmosphereTier * 0.01;
 
   useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setSystemReducedMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setSystemReducedMotion,
+    );
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active || reducedMotion || systemReducedMotion) return;
+
     const resultSlowdown = phase === "result" ? 1.55 : 1;
     const animations = [
       ambientLoop(spotlightLeft, 7200),
@@ -118,7 +137,7 @@ export default function FireArenaBackground({ children, combo = 0, phase = "acti
     ];
     animations.forEach((animation) => animation.start());
     return () => animations.forEach((animation) => animation.stop());
-  }, [depthMotion, emberFast, emberMedium, emberSlow, fireBreath, heatHaze, lightSweep, phase, smokeLeft, smokeRight, spotlightLeft, spotlightRight]);
+  }, [active, depthMotion, emberFast, emberMedium, emberSlow, fireBreath, heatHaze, lightSweep, phase, reducedMotion, smokeLeft, smokeRight, spotlightLeft, spotlightRight, systemReducedMotion]);
 
   useEffect(() => {
     const target = phase === "result" ? 0.08 : atmosphereIntensity;
