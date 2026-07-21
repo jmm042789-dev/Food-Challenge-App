@@ -61,7 +61,7 @@ function VerticalMeter({ label, detail, value, tone, reducedMotion }: { label: s
   return (
     <Animated.View style={[styles.meterGroup, { transform: [{ scale: warningScale }] }]} pointerEvents="none">
       <View style={styles.meterConnector} />
-      <Text style={styles.meterValue}>{Math.round(value * 100)}</Text>
+      <Text maxFontSizeMultiplier={1.5} style={styles.meterValue}>{Math.round(value * 100)}</Text>
       <View style={[styles.meterShell, warning && styles.meterShellWarning]}>
         <Animated.View style={[styles.heatGlow, { opacity: warningGlow }]} />
         <View style={styles.meterTrack}>
@@ -69,8 +69,8 @@ function VerticalMeter({ label, detail, value, tone, reducedMotion }: { label: s
           <View style={styles.meterShine} />
         </View>
       </View>
-      <Text style={styles.meterLabel}>{label}</Text>
-      {detail ? <Text numberOfLines={1} style={styles.meterDetail}>{detail}</Text> : null}
+      <Text maxFontSizeMultiplier={1.5} style={styles.meterLabel}>{label}</Text>
+      {detail ? <Text maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.meterDetail}>{detail}</Text> : null}
     </Animated.View>
   );
 }

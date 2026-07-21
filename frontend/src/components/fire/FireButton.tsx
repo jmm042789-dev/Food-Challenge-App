@@ -57,7 +57,7 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
       <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
         <Animated.View pointerEvents="none" style={[styles.ring, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]}><Image source={require("../../assets/ui/animations/button-click-ring.png")} style={styles.ringImage} /></Animated.View>
         <View pointerEvents="none" style={[styles.highlight, { backgroundColor: tone.trim, opacity: pressed ? 0.28 : 0.16 }]} />
-        {loading ? <ActivityIndicator color="#FFF7E8" /> : <View style={styles.content}>{leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}<View><Text style={[styles.text, { fontSize: measure.font }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}</View>}
+        {loading ? <ActivityIndicator color="#FFF7E8" /> : <View style={styles.content}>{leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}<View style={styles.labelBlock}><Text style={[styles.text, { fontSize: measure.font }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}</View>}
       </Animated.View>
     </Pressable>
   </View>;
@@ -68,6 +68,6 @@ const styles = StyleSheet.create({
   button: { alignItems: "center", borderRadius: 15, borderWidth: 1, elevation: 5, justifyContent: "center", overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 6 },
   ring: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   ringImage: { height: 88, tintColor: "#FF9B3D", width: 88 },
-  highlight: { height: 1, left: 10, position: "absolute", right: 10, top: 1 }, content: { alignItems: "center", flexDirection: "row", justifyContent: "center" },
+  highlight: { height: 1, left: 10, position: "absolute", right: 10, top: 1 }, content: { alignItems: "center", flexDirection: "row", justifyContent: "center", minWidth: 0 }, labelBlock: { flexShrink: 1, minWidth: 0 },
   text: { color: "#FFF7E8", fontWeight: "900", letterSpacing: 0.8, textAlign: "center" }, subtitle: { color: "#FFE0B2", fontSize: 10, fontWeight: "700", marginTop: 1, textAlign: "center" }, leftIcon: { marginRight: 7 }, rightIcon: { marginLeft: 7 },
 });

@@ -129,11 +129,11 @@ export default function ShopScreen() {
         <View style={styles.itemArt}><Text style={styles.itemEmoji}>{item.icon || "🔥"}</Text></View>
         <View style={styles.itemInfo}>
           <View style={styles.itemTitleRow}>
-            <Text numberOfLines={1} style={styles.itemName}>{item.name}</Text>
+            <Text numberOfLines={2} style={styles.itemName}>{item.name}</Text>
             {status !== "available" ? <FireBadge label={status.toUpperCase()} variant={status === "equipped" ? "success" : "gold"} /> : null}
           </View>
-          <Text numberOfLines={1} style={styles.itemMeta}>{[item.rarity, item.perk].filter(Boolean).join(" · ")}</Text>
-          <Text numberOfLines={2} style={styles.itemDescription}>{item.description}</Text>
+          <Text numberOfLines={2} style={styles.itemMeta}>{[item.rarity, item.perk].filter(Boolean).join(" · ")}</Text>
+          <Text numberOfLines={3} style={styles.itemDescription}>{item.description}</Text>
         </View>
         <View style={styles.itemAction}>
           <Price item={item} />
@@ -173,7 +173,7 @@ export default function ShopScreen() {
               <View style={styles.featuredInfo}>
                 <FireBadge label="FEATURED" variant="gold" />
                 <Text numberOfLines={2} style={styles.featuredName}>{featured.name}</Text>
-                <Text numberOfLines={2} style={styles.featuredDescription}>{featured.description}</Text>
+                <Text numberOfLines={3} style={styles.featuredDescription}>{featured.description}</Text>
                 <View style={styles.featuredMeta}>
                   <Price item={featured} />
                   <Text style={styles.featuredPerk}>{featured.perk}</Text>

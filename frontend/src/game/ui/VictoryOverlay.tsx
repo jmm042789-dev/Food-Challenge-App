@@ -103,7 +103,7 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   }, [coinsEarned, stage, xpEarned]);
 
   return (
-    <View style={[styles.overlay, result === "victory" ? styles.victoryOverlay : styles.defeatOverlay]}>
+    <View accessibilityViewIsModal importantForAccessibility="yes" style={[styles.overlay, result === "victory" ? styles.victoryOverlay : styles.defeatOverlay]}>
       {!isComplete ? <Pressable accessibilityRole="button" accessibilityLabel="Skip victory presentation" onPress={complete} style={[styles.skip, { top: Math.max(insets.top, 10) }]}><Text style={styles.skipText}>SKIP</Text></Pressable> : null}
       {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={styles.confetti}>{[0, 1, 2, 3, 4, 5].map((item) => <View key={item} style={[styles.spark, { left: `${10 + item * 16}%`, top: 36 + (item % 3) * 18 }]} />)}</View> : null}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10), paddingBottom: Math.max(insets.bottom, 10) }]}>

@@ -534,6 +534,11 @@ export default function ContestScreen() {
 
   return (
     <View style={styles.container}>
+      <View
+        accessibilityElementsHidden={showCountdown || result !== null}
+        importantForAccessibility={showCountdown || result !== null ? "no-hide-descendants" : "auto"}
+        style={styles.gameplayLayer}
+      >
       <ArcadeBackground combo={state.combo} phase={state.status === "FINISHED" ? "result" : state.status === "PLAYING" ? "active" : "intro"} reducedMotion={reducedMotion} />
       <ArenaEffects atmosphere={atmosphere} reducedMotion={reducedMotion} />
       <CommentaryOverlay item={commentary} reducedMotion={reducedMotion} />
@@ -547,29 +552,6 @@ export default function ContestScreen() {
         reducedMotion={reducedMotion}
         resetKey={matchRouteKey}
         onComplete={startGame}
-      />
-
-      <CountdownOverlay
-        visible={showCountdown}
-        value={countdownValue}
-        contestId={selectedContestId}
-        contestName={contest?.name ?? (selectedContestId.replace(/-/g, " ") || "Featured Challenge")}
-        location={contest?.location ?? "Fire Feast Arena"}
-        food={contest?.food ?? "Featured Feast"}
-        difficulty={contest?.difficulty ?? "Elite"}
-        roundLabel={roundLabel}
-        opponentName={currentOpponent.name}
-        opponentAvatar={currentOpponent.avatar}
-        opponentPersonality={currentOpponent.personality}
-        restaurantName={contest?.restaurant_name}
-        restaurantLogoUrl={contest?.restaurant_logo_url}
-        city={contest?.city}
-        state={contest?.state}
-        verified={contest?.verified}
-        sponsored={contest?.sponsored}
-        sponsorName={contest?.sponsor_name}
-        sponsorLogoUrl={contest?.sponsor_logo_url}
-        sponsorMessage={contest?.sponsor_message}
       />
 
       <EffectsLayer
@@ -619,6 +601,30 @@ export default function ContestScreen() {
         </Animated.View>
       </SceneMotion>
       </CameraController>
+      </View>
+
+      <CountdownOverlay
+        visible={showCountdown}
+        value={countdownValue}
+        contestId={selectedContestId}
+        contestName={contest?.name ?? (selectedContestId.replace(/-/g, " ") || "Featured Challenge")}
+        location={contest?.location ?? "Fire Feast Arena"}
+        food={contest?.food ?? "Featured Feast"}
+        difficulty={contest?.difficulty ?? "Elite"}
+        roundLabel={roundLabel}
+        opponentName={currentOpponent.name}
+        opponentAvatar={currentOpponent.avatar}
+        opponentPersonality={currentOpponent.personality}
+        restaurantName={contest?.restaurant_name}
+        restaurantLogoUrl={contest?.restaurant_logo_url}
+        city={contest?.city}
+        state={contest?.state}
+        verified={contest?.verified}
+        sponsored={contest?.sponsored}
+        sponsorName={contest?.sponsor_name}
+        sponsorLogoUrl={contest?.sponsor_logo_url}
+        sponsorMessage={contest?.sponsor_message}
+      />
 
       {result ? (
         <VictoryOverlay
@@ -662,6 +668,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0B0F17",
+  },
+  gameplayLayer: {
+    flex: 1,
   },
   overlay: {
     flex: 1,

@@ -29,8 +29,8 @@ function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reacti
     <View style={[styles.scoreZone, side === "opponent" && styles.opponentZone]}>
       <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" mood={mood} reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
       <View style={[styles.scoreInfo, side === "opponent" && styles.opponentInfo]}>
-        <Text adjustsFontSizeToFit numberOfLines={1} style={styles.score}>{Math.floor(score).toLocaleString()}</Text>
-        <Text style={styles.scoreLabel}>SCORE</Text>
+        <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.score}>{Math.floor(score).toLocaleString()}</Text>
+        <Text maxFontSizeMultiplier={1.5} style={styles.scoreLabel}>SCORE</Text>
       </View>
     </View>
   );
@@ -116,12 +116,12 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
         <View style={styles.centerZone}>
           <Animated.View style={[styles.timer, lowTime && styles.timerWarning, { transform: [{ scale: timerScale }] }]}>
             <Animated.View pointerEvents="none" style={[styles.timerGlow, { opacity: timerGlow }]} />
-            <Text style={styles.timerLabel}>TIME</Text>
-            <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.time, lowTime && styles.timeWarning]}>{formattedTime}</Text>
+            <Text maxFontSizeMultiplier={1.5} style={styles.timerLabel}>TIME</Text>
+            <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.5} numberOfLines={1} style={[styles.time, lowTime && styles.timeWarning]}>{formattedTime}</Text>
           </Animated.View>
           <View style={styles.centerMeta}>
-            <View style={styles.vsBadge}><Text style={styles.vs}>VS</Text></View>
-            <Text numberOfLines={1} style={styles.comboReadout}>x{combo}</Text>
+            <View style={styles.vsBadge}><Text maxFontSizeMultiplier={1.5} style={styles.vs}>VS</Text></View>
+            <Text maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.comboReadout}>x{combo}</Text>
           </View>
         </View>
 

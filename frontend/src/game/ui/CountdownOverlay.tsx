@@ -161,7 +161,7 @@ export default function CountdownOverlay({
   const go = value === "GO";
 
   return (
-    <View pointerEvents="none" style={styles.overlay}>
+    <View accessibilityViewIsModal importantForAccessibility="yes" pointerEvents="none" style={styles.overlay}>
       <View style={styles.topSpotlight} />
       <Animated.View style={[styles.lightSweep, { transform: [{ translateX: sweepX }, { rotate: "18deg" }] }]} />
       <Animated.View style={[styles.fireWash, { opacity: fireOpacity }]} />

@@ -163,7 +163,7 @@ export default function ProfileScreen() {
           <View style={[styles.identityPanel, { borderColor: belt.color }]}>
             <View style={styles.panelHighlight} pointerEvents="none" />
             <View style={styles.hudRow}>
-              <Text numberOfLines={1} style={styles.profileLabel}>ARENA PROFILE</Text>
+              <Text numberOfLines={2} style={styles.profileLabel}>ARENA PROFILE</Text>
               <View style={styles.counters}>
                 <Counter source={COIN} label="COINS" value={player.coins + (achievementState?.claimedRewards.coins ?? 0)} />
                 <Counter source={ANTACID} label="ANTACID" value={player.antacid} />
@@ -177,8 +177,8 @@ export default function ProfileScreen() {
                 <View style={styles.avatarBadge}><Text style={styles.avatarEmoji}>{player.avatar_emoji || "🍔"}</Text></View>
               </View>
               <View style={styles.identityInfo}>
-                <Text numberOfLines={1} style={styles.name}>{player.username}</Text>
-                <Text numberOfLines={1} style={[styles.equippedTitle, equippedTitle && { color: equippedTitle.colorTheme }]}>{equippedTitle?.displayName.toUpperCase() ?? "ROOKIE EATER"}</Text>
+                <Text numberOfLines={2} style={styles.name}>{player.username}</Text>
+                <Text numberOfLines={2} style={[styles.equippedTitle, equippedTitle && { color: equippedTitle.colorTheme }]}>{equippedTitle?.displayName.toUpperCase() ?? "ROOKIE EATER"}</Text>
                 <Text style={styles.country}>{player.country}</Text>
                 <View style={styles.rankRow}>
                   <Text style={styles.rankIcon}>{belt.icon}</Text>
@@ -220,9 +220,9 @@ export default function ProfileScreen() {
         <View style={styles.loadoutPanel}>
           <View style={styles.gearIconFrame}><Text style={styles.gearIcon}>{equipped?.icon || "👕"}</Text></View>
           <View style={styles.gearInfo}>
-            <Text numberOfLines={1} style={styles.gearName}>{equipped?.name || "Starter Outfit"}</Text>
-            <Text numberOfLines={1} style={styles.gearMeta}>{equipped ? `${equipped.rarity || "GEAR"} · ${equipped.slot || "LOADOUT"}` : "DEFAULT LOADOUT"}</Text>
-            <Text numberOfLines={2} style={styles.gearDescription}>{equipped?.description || equipped?.perk || "No special perk equipped."}</Text>
+            <Text numberOfLines={2} style={styles.gearName}>{equipped?.name || "Starter Outfit"}</Text>
+            <Text numberOfLines={2} style={styles.gearMeta}>{equipped ? `${equipped.rarity || "GEAR"} · ${equipped.slot || "LOADOUT"}` : "DEFAULT LOADOUT"}</Text>
+            <Text numberOfLines={3} style={styles.gearDescription}>{equipped?.description || equipped?.perk || "No special perk equipped."}</Text>
           </View>
           <FireBadge label={starterLoadout ? "STARTER" : "EQUIPPED"} variant={starterLoadout ? "muted" : "gold"} />
         </View>
