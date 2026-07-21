@@ -42,8 +42,8 @@ export default function RestaurantIdentity({ name, logoUrl, city, state, address
         {!compact && addressLine ? <Text numberOfLines={2} style={styles.address}>{addressLine}</Text> : null}
         {!compact && (safeWebsite || safeMenu) ? (
           <View style={styles.actions}>
-            {safeWebsite ? <Pressable accessibilityRole="link" onPress={() => { void openExternalUrl(safeWebsite); }} style={styles.link}><Text style={styles.linkText}>WEBSITE</Text></Pressable> : null}
-            {safeMenu ? <Pressable accessibilityRole="link" onPress={() => { void openExternalUrl(safeMenu); }} style={styles.link}><Text style={styles.linkText}>MENU</Text></Pressable> : null}
+            {safeWebsite ? <Pressable accessibilityLabel={`${name} website`} accessibilityRole="link" onPress={() => { void openExternalUrl(safeWebsite); }} style={styles.link}><Text style={styles.linkText}>WEBSITE</Text></Pressable> : null}
+            {safeMenu ? <Pressable accessibilityLabel={`${name} menu`} accessibilityRole="link" onPress={() => { void openExternalUrl(safeMenu); }} style={styles.link}><Text style={styles.linkText}>MENU</Text></Pressable> : null}
           </View>
         ) : null}
       </View>
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   locationCompact: { fontSize: 6, marginTop: 0 },
   address: { color: "#9F8B7A", fontSize: 7, marginTop: 2 },
   actions: { flexDirection: "row", gap: 6, marginTop: 6 },
-  link: { backgroundColor: "rgba(119,56,17,0.7)", borderColor: "#D98738", borderRadius: 5, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
+  link: { alignItems: "center", backgroundColor: "rgba(119,56,17,0.7)", borderColor: "#D98738", borderRadius: 5, borderWidth: 1, justifyContent: "center", minHeight: 44, minWidth: 44, paddingHorizontal: 8 },
   linkText: { color: "#FFE3B1", fontSize: 7, fontWeight: "900", letterSpacing: 0.6 },
 });

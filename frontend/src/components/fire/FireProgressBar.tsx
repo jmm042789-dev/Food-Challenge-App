@@ -42,9 +42,11 @@ export default function FireProgressBar({
 
   const fillWidth = width.interpolate({ inputRange: [0, 100], outputRange: ["0%", "100%"] });
   const fillColor = colors[variant];
+  const accessibilityMax = Math.max(1, max);
+  const accessibilityNow = Math.max(0, Math.min(accessibilityMax, value));
 
   return (
-    <View style={style}>
+    <View accessibilityLabel={label ?? "Progress"} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: accessibilityMax, now: accessibilityNow }} style={style}>
       {(label || showValue) ? (
         <View style={styles.meta}>
           {label ? <Text style={styles.label}>{label}</Text> : <View />}

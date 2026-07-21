@@ -31,7 +31,7 @@ function ContestRow({ contest, onPress }: { contest: Contest; onPress: () => voi
   const artwork = getFoodArtwork(contest.id);
 
   return (
-    <FirePanel compact onPress={onPress} borderColor={contest.color ?? "rgba(225, 133, 45, 0.68)"} style={styles.contestRow}>
+    <FirePanel accessibilityHint="Opens contest details" accessibilityLabel={`${contest.name}, ${contest.food}, ${contest.difficulty}`} compact onPress={onPress} borderColor={contest.color ?? "rgba(225, 133, 45, 0.68)"} style={styles.contestRow}>
       <View style={styles.thumbnailFrame}>
         <View style={styles.thumbnailGlow} />
         <Image
@@ -160,7 +160,7 @@ export default function ContestsScreen() {
               renderItem={({ item }) => {
                 const active = item === selectedCategory;
                 return (
-                  <Pressable onPress={() => setSelectedCategory(item)} style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.tabPressed]}>
+                  <Pressable accessibilityLabel={`${item} contests`} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => setSelectedCategory(item)} style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.tabPressed]}>
                     <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.toUpperCase()}</Text>
                   </Pressable>
                 );
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   coinLabel: { color: "#B58B59", fontSize: 7, fontWeight: "900", letterSpacing: 1 },
   coinValue: { color: "#FFD16A", fontSize: 15, fontWeight: "900", lineHeight: 17 },
   tabs: { gap: 5, paddingBottom: 8, paddingRight: 10, paddingTop: 3 },
-  tab: { backgroundColor: "rgba(13,10,11,0.9)", borderColor: "rgba(151,94,50,0.38)", borderRadius: 8, borderWidth: 1, minWidth: 54, paddingHorizontal: 10, paddingVertical: 7 },
+  tab: { alignItems: "center", backgroundColor: "rgba(13,10,11,0.9)", borderColor: "rgba(151,94,50,0.38)", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 44, minWidth: 54, paddingHorizontal: 10 },
   tabActive: { backgroundColor: "rgba(139,67,17,0.92)", borderColor: "#F2A13D" },
   tabPressed: { opacity: 0.8 },
   tabText: { color: "#9E8876", fontSize: 8, fontWeight: "900", letterSpacing: 0.7, textAlign: "center" },

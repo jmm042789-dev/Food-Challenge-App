@@ -66,7 +66,7 @@ export default function DailyMissionCard({
       <View style={styles.footer}>
         <Text style={styles.progress}>{progress} / {maxProgress}</Text>
         {claimed ? <Text style={styles.claimed}>CLAIMED</Text> : completed ? (
-          <Pressable accessibilityRole="button" onPress={onClaim} style={styles.claimButton}>
+          <Pressable accessibilityLabel={`Claim reward for ${title}`} accessibilityRole="button" onPress={onClaim} style={styles.claimButton}>
             <Text style={styles.claimText}>CLAIM</Text>
           </Pressable>
         ) : null}
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   footer: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 5 },
-  claimButton: { backgroundColor: "#A64713", borderColor: "#F6B354", borderRadius: 7, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
+  claimButton: { alignItems: "center", backgroundColor: "#A64713", borderColor: "#F6B354", borderRadius: 7, borderWidth: 1, justifyContent: "center", minHeight: 44, minWidth: 44, paddingHorizontal: 10 },
   claimText: { color: "#FFF2D2", fontSize: 8, fontWeight: "900", letterSpacing: 0.7 },
   claimed: { color: "#6DC889", fontSize: 8, fontWeight: "900", letterSpacing: 0.6 },
 

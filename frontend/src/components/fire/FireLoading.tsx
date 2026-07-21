@@ -12,8 +12,8 @@ export default function FireLoading({
   subtitle = "Preparing your feast",
 }: FireLoadingProps) {
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#FF8A00" />
+    <View accessibilityLabel={`${title}. ${subtitle}`} accessibilityLiveRegion="polite" accessibilityRole="progressbar" accessibilityState={{ busy: true }} style={styles.container}>
+      <ActivityIndicator accessible={false} size="large" color="#FF8A00" />
 
       <Text style={styles.title}>{title}</Text>
 

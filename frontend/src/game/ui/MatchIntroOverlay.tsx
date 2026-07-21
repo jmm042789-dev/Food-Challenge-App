@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { MatchIntroData } from "../MatchIntro";
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function MatchIntroOverlay({ visible, data, reducedMotion, resetKey, onComplete }: Props) {
+  const insets = useSafeAreaInsets();
   const restaurantOpacity = useRef(new Animated.Value(0)).current;
   const versusOpacity = useRef(new Animated.Value(0)).current;
   const challengeOpacity = useRef(new Animated.Value(0)).current;
@@ -113,7 +115,7 @@ export default function MatchIntroOverlay({ visible, data, reducedMotion, resetK
         {data.foodName ? <Text numberOfLines={1} style={styles.foodName}>{data.foodName.toUpperCase()}</Text> : null}
       </Animated.View>
 
-      <Pressable accessibilityRole="button" accessibilityLabel="Skip match introduction" onPress={finish} style={styles.skip}><Text style={styles.skipText}>SKIP INTRO</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Skip match introduction" onPress={finish} style={[styles.skip, { top: insets.top + 12 }]}><Text style={styles.skipText}>SKIP INTRO</Text></Pressable>
     </View>
   );
 }
@@ -124,6 +126,6 @@ const styles = StyleSheet.create({
   restaurant: { alignItems: "center", position: "absolute", top: "14%", width: "88%" }, kicker: { color: "#B98551", fontSize: 8, fontWeight: "900", letterSpacing: 1.8 }, restaurantName: { color: "#FFD16C", fontSize: 29, fontWeight: "900", marginTop: 3, textAlign: "center" }, theme: { color: "#BFA17F", fontSize: 9, fontWeight: "800", letterSpacing: 1, marginTop: 2 },
   versus: { alignItems: "center", flexDirection: "row", justifyContent: "center", position: "absolute", width: "96%" }, fighter: { borderRadius: 12, borderWidth: 1, justifyContent: "center", minHeight: 104, padding: 9, width: "38%" }, playerCard: { backgroundColor: "rgba(50,24,14,0.94)", borderColor: "#D98939" }, opponentCard: { backgroundColor: "rgba(42,16,18,0.94)", borderColor: "#CB5E3A" }, role: { color: "#9E8068", fontSize: 6, fontWeight: "900", letterSpacing: 1 }, fighterName: { color: "#FFF0D8", fontSize: 14, fontWeight: "900", marginTop: 3 }, subtitle: { color: "#E2A954", fontSize: 8, fontWeight: "900", marginTop: 3 }, detail: { color: "#A98E7A", fontSize: 7, fontWeight: "800", marginTop: 2 }, vsBadge: { alignItems: "center", backgroundColor: "#A34112", borderColor: "#FFB64C", borderRadius: 25, borderWidth: 2, height: 50, justifyContent: "center", marginHorizontal: -3, width: 50, zIndex: 2 }, vsText: { color: "#FFF0C7", fontSize: 20, fontStyle: "italic", fontWeight: "900" },
   challenge: { alignItems: "center", bottom: "14%", position: "absolute", width: "88%" }, challengeName: { color: "#FFF0D2", fontSize: 20, fontWeight: "900", marginTop: 3, textAlign: "center" }, foodName: { color: "#E89942", fontSize: 10, fontWeight: "900", letterSpacing: 1, marginTop: 3 },
-  skip: { borderColor: "rgba(215,148,76,0.62)", borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7, position: "absolute", right: 12, top: 12 }, skipText: { color: "#D9C1A6", fontSize: 8, fontWeight: "900", letterSpacing: 0.7 },
+  skip: { alignItems: "center", borderColor: "rgba(215,148,76,0.62)", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 44, minWidth: 44, paddingHorizontal: 12, position: "absolute", right: 12 }, skipText: { color: "#D9C1A6", fontSize: 8, fontWeight: "900", letterSpacing: 0.7 },
   screenReaderText: { height: 1, left: -10000, position: "absolute", width: 1 },
 });

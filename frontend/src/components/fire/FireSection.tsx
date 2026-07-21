@@ -37,6 +37,8 @@ export default function FireSection({
 
         {actionLabel ? (
           <Pressable
+            accessibilityLabel={actionLabel}
+            accessibilityRole="button"
             style={styles.actionButton}
             onPress={onActionPress}
           >
@@ -78,10 +80,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actionButton: {
+    alignItems: "center",
     backgroundColor: "#FF8A00",
     borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 14,
-    paddingVertical: 8,
   },
   actionText: {
     color: "#FFF",

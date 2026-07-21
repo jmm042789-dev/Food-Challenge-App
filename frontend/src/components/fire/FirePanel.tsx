@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle, type AccessibilityRole, type AccessibilityState } from "react-native";
 
 type Accent = "default" | "gold" | "danger" | "success" | "featured";
 type Props = {
@@ -15,11 +15,15 @@ type Props = {
   borderColor?: string;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
 };
 
 const accentColor: Record<Accent, string> = { default: "rgba(255,141,41,0.45)", gold: "rgba(246,199,106,0.7)", danger: "rgba(209,72,63,0.65)", success: "rgba(89,168,111,0.6)", featured: "rgba(255,156,45,0.82)" };
 
-export default function FirePanel({ children, title, subtitle, icon, headerRight, compact = false, elevated = false, accent = "default", highlighted = false, borderColor, onPress, style }: Props) {
+export default function FirePanel({ children, title, subtitle, icon, headerRight, compact = false, elevated = false, accent = "default", highlighted = false, borderColor, onPress, style, accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState }: Props) {
   const trim = borderColor ?? accentColor[highlighted ? "featured" : accent];
   const body = (
     <View style={[styles.panel, compact && styles.compact, elevated && styles.elevated, { borderColor: trim }, style]}>
@@ -28,7 +32,7 @@ export default function FirePanel({ children, title, subtitle, icon, headerRight
       <View style={(title || subtitle || icon || headerRight) ? styles.content : undefined}>{children}</View>
     </View>
   );
-  return onPress ? <Pressable onPress={onPress} style={({ pressed }) => pressed ? styles.pressed : undefined}>{body}</Pressable> : body;
+  return onPress ? <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? "button"} accessibilityState={accessibilityState} onPress={onPress} style={({ pressed }) => pressed ? styles.pressed : undefined}>{body}</Pressable> : body;
 }
 
 const styles = StyleSheet.create({

@@ -15,7 +15,7 @@ const tones: Record<Variant, { base: string; trim: string }> = {
   danger: { base: "#7A2424", trim: "#E36A61" }, success: { base: "#24553A", trim: "#75C78C" },
   ghost: { base: "rgba(18,14,15,0.82)", trim: "rgba(255,170,84,0.45)" }, gold: { base: "#9C6311", trim: "#FFD77A" },
 };
-const sizing: Record<Size, { height: number; font: number; px: number }> = { compact: { height: 40, font: 12, px: 13 }, small: { height: 50, font: 14, px: 18 }, medium: { height: 60, font: 16, px: 22 }, large: { height: 72, font: 19, px: 28 } };
+const sizing: Record<Size, { minHeight: number; font: number; px: number }> = { compact: { minHeight: 44, font: 12, px: 13 }, small: { minHeight: 50, font: 14, px: 18 }, medium: { minHeight: 60, font: 16, px: 22 }, large: { minHeight: 72, font: 19, px: 28 } };
 
 export default function FireButton({ title = "START CHALLENGE", onPress, disabled = false, loading = false, size = "medium", variant = "primary", leftIcon, rightIcon, subtitle, fullWidth = false, style, accessibilityLabel }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -38,7 +38,7 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
   };
   return <View style={[styles.wrapper, fullWidth && styles.fullWidth, style]}>
     <Pressable accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive }} disabled={inactive} onPress={onPress} onPressIn={() => { setPressed(true); animate(0.93); }} onPressOut={release}>
-      <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, height: measure.height, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
+      <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
         <Animated.View pointerEvents="none" style={[styles.ring, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]}><Image source={require("../../assets/ui/animations/button-click-ring.png")} style={styles.ringImage} /></Animated.View>
         <View pointerEvents="none" style={[styles.highlight, { backgroundColor: tone.trim, opacity: pressed ? 0.28 : 0.16 }]} />
         {loading ? <ActivityIndicator color="#FFF7E8" /> : <View style={styles.content}>{leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}<View><Text style={[styles.text, { fontSize: measure.font }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}</View>}
