@@ -19,6 +19,7 @@ type Props = {
   location?: string;
   difficulty?: string;
   roundLabel?: string;
+  reducedMotion?: boolean;
 };
 
 const BLAZE = require("../../assets/characters/blaze.png");
@@ -36,7 +37,7 @@ function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reacti
   return animatedStyle ? <Animated.View style={[styles.zoneWrap, animatedStyle]}>{zone}</Animated.View> : <View style={styles.zoneWrap}>{zone}</View>;
 }
 
-export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentMood, opponentScore, playerScore, combo = 0, contestName, roundLabel }: Props) {
+export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentMood, opponentScore, playerScore, combo = 0, contestName, roundLabel, reducedMotion = false }: Props) {
   const formattedTime = formatMatchDuration(timeRemaining);
   const lowTime = timeRemaining > 0 && timeRemaining <= 10;
   const previousScore = useRef(playerScore);
@@ -60,6 +61,13 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
   useEffect(() => {
     const increased = playerScore > previousScore.current;
     previousScore.current = playerScore;
+    if (reducedMotion) {
+      scoreScale.stopAnimation();
+      scoreFlash.stopAnimation();
+      scoreScale.setValue(1);
+      scoreFlash.setValue(0);
+      return;
+    }
     if (!increased) return;
     scoreScale.stopAnimation();
     scoreScale.setValue(1.1);
@@ -70,12 +78,18 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
     ]);
     animation.start();
     return () => animation.stop();
-  }, [playerScore, scoreFlash, scoreScale]);
+  }, [playerScore, reducedMotion, scoreFlash, scoreScale]);
 
   useEffect(() => { previousOpponentScore.current = opponentScore; }, [opponentScore]);
 
   useEffect(() => {
-    if (!lowTime) return;
+    if (!lowTime || reducedMotion) {
+      timerScale.stopAnimation();
+      timerGlow.stopAnimation();
+      timerScale.setValue(1);
+      timerGlow.setValue(0);
+      return;
+    }
     timerScale.stopAnimation();
     timerGlow.stopAnimation();
     timerScale.setValue(1.07);
@@ -86,7 +100,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
     ]);
     animation.start();
     return () => animation.stop();
-  }, [lowTime, timeRemaining, timerGlow, timerScale]);
+  }, [lowTime, reducedMotion, timeRemaining, timerGlow, timerScale]);
 
   return (
     <View accessible accessibilityLabel={accessibilitySummary} style={styles.dashboard}>

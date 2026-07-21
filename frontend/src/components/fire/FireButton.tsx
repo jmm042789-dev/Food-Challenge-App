@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Image, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { useReducedMotionPreference } from "./FireProgressBar";
 
 type Variant = "primary" | "secondary" | "danger" | "success" | "ghost" | "gold";
 type Size = "compact" | "small" | "medium" | "large";
@@ -22,10 +23,15 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
   const ringOpacity = useRef(new Animated.Value(0)).current;
   const ringScale = useRef(new Animated.Value(0.55)).current;
   const [pressed, setPressed] = useState(false);
+  const reducedMotion = useReducedMotionPreference();
   const tone = tones[variant]; const measure = sizing[size]; const inactive = disabled || loading;
-  const animate = (toValue: number) => Animated.spring(scale, { toValue, friction: 7, tension: 220, useNativeDriver: true }).start();
+  const animate = (toValue: number) => {
+    if (reducedMotion) return;
+    Animated.spring(scale, { toValue, friction: 7, tension: 220, useNativeDriver: true }).start();
+  };
   const release = () => {
     setPressed(false);
+    if (reducedMotion) return;
     animate(1);
     ringOpacity.stopAnimation();
     ringScale.stopAnimation();
@@ -36,6 +42,16 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
       Animated.timing(ringScale, { toValue: 1.15, duration: 260, useNativeDriver: true }),
     ]).start();
   };
+
+  useEffect(() => {
+    if (!reducedMotion) return;
+    scale.stopAnimation();
+    ringOpacity.stopAnimation();
+    ringScale.stopAnimation();
+    scale.setValue(1);
+    ringOpacity.setValue(0);
+    ringScale.setValue(0.55);
+  }, [reducedMotion, ringOpacity, ringScale, scale]);
   return <View style={[styles.wrapper, fullWidth && styles.fullWidth, style]}>
     <Pressable accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive }} disabled={inactive} onPress={onPress} onPressIn={() => { setPressed(true); animate(0.93); }} onPressOut={release}>
       <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>

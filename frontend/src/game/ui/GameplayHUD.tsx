@@ -5,6 +5,7 @@ import MatchHUD from "./MatchHUD";
 import type { HeatTier } from "../heartburn";
 import HeartburnMeter from "./HeartburnMeter";
 import type { OpponentMood } from "../ai/OpponentMood";
+import { useReducedMotionPreference } from "../../components/fire/FireProgressBar";
 
 type Props = {
   level: number;
@@ -33,14 +34,20 @@ type Props = {
   onUseAntacid: () => boolean;
 };
 
-function VerticalMeter({ label, detail, value, tone }: { label: string; detail?: string; value: number; tone: "combo" | "heat" }) {
+function VerticalMeter({ label, detail, value, tone, reducedMotion }: { label: string; detail?: string; value: number; tone: "combo" | "heat"; reducedMotion: boolean }) {
   const percent = `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` as `${number}%`;
   const warning = tone === "heat" && value >= 0.82;
   const warningScale = useRef(new Animated.Value(1)).current;
   const warningGlow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!warning) return;
+    if (!warning || reducedMotion) {
+      warningScale.stopAnimation();
+      warningGlow.stopAnimation();
+      warningScale.setValue(1);
+      warningGlow.setValue(0);
+      return;
+    }
     warningScale.setValue(1.035);
     warningGlow.setValue(0.75);
     const animation = Animated.parallel([
@@ -49,7 +56,7 @@ function VerticalMeter({ label, detail, value, tone }: { label: string; detail?:
     ]);
     animation.start();
     return () => animation.stop();
-  }, [value, warning, warningGlow, warningScale]);
+  }, [reducedMotion, value, warning, warningGlow, warningScale]);
 
   return (
     <Animated.View style={[styles.meterGroup, { transform: [{ scale: warningScale }] }]} pointerEvents="none">
@@ -70,6 +77,7 @@ function VerticalMeter({ label, detail, value, tone }: { label: string; detail?:
 
 export default function GameplayHUD(props: Props) {
   const comboMeter = Math.min(1, props.combo / 25);
+  const reducedMotion = useReducedMotionPreference();
 
   return (
     <View style={styles.container}>
@@ -86,8 +94,9 @@ export default function GameplayHUD(props: Props) {
         location={props.location}
         difficulty={props.difficulty}
         roundLabel={props.roundLabel}
+        reducedMotion={reducedMotion}
       />
-      <View accessibilityLabel="Combo progress" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 25, now: Math.min(25, Math.max(0, props.combo)) }} style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" /></View>
+      <View accessibilityLabel="Combo progress" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 25, now: Math.min(25, Math.max(0, props.combo)) }} style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" reducedMotion={reducedMotion} /></View>
       <View style={styles.rightMeter}><HeartburnMeter heartburn={props.heartburn} heatTier={props.heatTier} heatMultiplier={props.heatMultiplier} isOverheated={props.isOverheated} overheatRemainingMs={props.overheatRemainingMs} /></View>
     </View>
   );

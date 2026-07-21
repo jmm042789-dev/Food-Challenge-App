@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, Animated, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 
 type Variant = "xp" | "coins" | "health" | "heartburn" | "combo" | "timer" | "opponent" | "default";
 
@@ -24,6 +24,27 @@ const colors: Record<Variant, string> = {
   default: "#FF8A00",
 };
 
+export function useReducedMotionPreference(): boolean {
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setReducedMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReducedMotion,
+    );
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  return reducedMotion;
+}
+
 export default function FireProgressBar({
   value,
   max = 100,
@@ -35,10 +56,18 @@ export default function FireProgressBar({
 }: FireProgressBarProps) {
   const percent = useMemo(() => Math.max(0, Math.min(100, max > 0 ? (value / max) * 100 : 0)), [max, value]);
   const width = useRef(new Animated.Value(percent)).current;
+  const reducedMotion = useReducedMotionPreference();
 
   useEffect(() => {
-    Animated.timing(width, { toValue: percent, duration: 260, useNativeDriver: false }).start();
-  }, [percent, width]);
+    width.stopAnimation();
+    if (reducedMotion) {
+      width.setValue(percent);
+      return;
+    }
+    const animation = Animated.timing(width, { toValue: percent, duration: 260, useNativeDriver: false });
+    animation.start();
+    return () => animation.stop();
+  }, [percent, reducedMotion, width]);
 
   const fillWidth = width.interpolate({ inputRange: [0, 100], outputRange: ["0%", "100%"] });
   const fillColor = colors[variant];
