@@ -385,7 +385,7 @@ export function useGameLoop({
   // ANTACID
   // ======================================
 
-  const useAntacid =
+  const applyAntacid =
     useCallback((): boolean => {
       if (
         statusRef.current !== "PLAYING" ||
@@ -900,6 +900,6 @@ export function useGameLoop({
 
     addHeartburn,
     addCompletedFoodHeartburn,
-    useAntacid,
+    applyAntacid,
   };
 }

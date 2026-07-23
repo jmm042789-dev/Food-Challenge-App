@@ -171,7 +171,7 @@ export default function HomeScreen() {
         </FireScreenEntrance>
         <FireScreenEntrance delay={60} duration="fast" distance={10}>
           <View style={styles.sectionHeading}>
-            <Text style={styles.eyebrow}>TONIGHT'S MAIN EVENT</Text>
+            <Text style={styles.eyebrow}>{"TONIGHT'S MAIN EVENT"}</Text>
             <View style={styles.headingLine} />
           </View>
           <FeaturedContest contest={featured} onEnter={() => router.push(`/play/${featured.id}`)} />

@@ -79,7 +79,7 @@ export default function ContestScreen() {
   overheatRemainingMs,
   antacidCount,
   canUseAntacid,
-  useAntacid,
+  applyAntacid,
   resolvedBiteHeat,
 } = useGameLoop({
   duration: matchDurationSeconds,
@@ -538,7 +538,7 @@ export default function ContestScreen() {
   }, []);
 
   const handleUseAntacid = (): boolean => {
-  const used = useAntacid();
+  const used = applyAntacid();
 
   if (!used) {
     return false;
