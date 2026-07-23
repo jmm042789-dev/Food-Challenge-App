@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, Contest, parseContests } from "../../src/api";
 import { getFoodArtwork } from "../../src/assets/foodArtwork";
 import FireLoading from "../../src/components/fire/FireLoading";
+import FireEmptyState from "../../src/components/fire/FireEmptyState";
 import FirePanel from "../../src/components/fire/FirePanel";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import TournamentBanner from "../../src/game/ui/TournamentBanner";
@@ -76,6 +77,7 @@ export default function ContestsScreen() {
   const [selectedCategory, setSelectedCategory] = useState(ALL);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const { activeTournament, state: tournamentState, refresh: refreshTournament, claim: claimTournamentReward } = useTournamentProgress();
 
   useFocusEffect(useCallback(() => {
@@ -102,7 +104,7 @@ export default function ContestsScreen() {
     }
     loadContests();
     return () => { active = false; };
-  }, []);
+  }, [loadAttempt]);
 
   const categories = useMemo(
     () => [ALL, ...Array.from(new Set(contests.map((contest) => contest.category).filter((category): category is string => Boolean(category))))],
@@ -173,7 +175,7 @@ export default function ContestsScreen() {
             </View>
           </View>
         }
-        ListEmptyComponent={<Text style={styles.noEvents}>{hasError ? "Regular contest board unavailable. Weekly tournament remains open." : "No contests in this category."}</Text>}
+        ListEmptyComponent={hasError ? <FireEmptyState icon="!" title="Contest Board Unavailable" message="Check your connection and try again." buttonLabel="RETRY" onPress={() => setLoadAttempt((current) => current + 1)} /> : <Text style={styles.noEvents}>No contests in this category.</Text>}
       />
     </View>
   );

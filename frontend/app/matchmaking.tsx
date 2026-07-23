@@ -13,7 +13,10 @@ export default function MatchmakingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState("searching");
+  const [attempt, setAttempt] = useState(0);
   const routeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const joined = useRef(false);
+  const canceling = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -22,7 +25,10 @@ export default function MatchmakingScreen() {
     let matchHandled = false;
 
     const run = async () => {
+      setStatus("searching");
       try {
+        if (joined.current) return;
+        joined.current = true;
         await api.matchmakingJoin();
         interval = setInterval(async () => {
           if (!alive || statusRequestInFlight || matchHandled) return;
@@ -47,6 +53,7 @@ export default function MatchmakingScreen() {
           }
         }, 1200);
       } catch {
+        joined.current = false;
         if (alive) setStatus("error");
       }
     };
@@ -56,13 +63,22 @@ export default function MatchmakingScreen() {
       alive = false;
       if (interval) clearInterval(interval);
       if (routeTimer.current) clearTimeout(routeTimer.current);
-      api.matchmakingLeave().catch(() => {});
+      if (joined.current) {
+        joined.current = false;
+        void api.matchmakingLeave().catch(() => {});
+      }
     };
-  }, [router]);
+  }, [attempt, router]);
 
-  const cancel = async () => {
-    await api.matchmakingLeave();
-    router.back();
+  const cancel = () => {
+    if (canceling.current) return;
+    canceling.current = true;
+    if (routeTimer.current) clearTimeout(routeTimer.current);
+    router.replace("/(tabs)/home");
+    if (joined.current) {
+      joined.current = false;
+      void api.matchmakingLeave().catch(() => {});
+    }
   };
 
   return (
@@ -87,6 +103,7 @@ export default function MatchmakingScreen() {
           {status === "error" ? (
             <FireScreenEntrance duration="fast" distance={8}>
               <Text style={styles.error}>Connection Error</Text>
+              <FireButton title="Retry" onPress={() => setAttempt((current) => current + 1)} variant="secondary" size="small" />
             </FireScreenEntrance>
           ) : null}
           <FireButton title="Cancel" onPress={cancel} variant="ghost" size="small" />

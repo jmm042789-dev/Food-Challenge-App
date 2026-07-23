@@ -15,6 +15,7 @@ import { useGameLoop } from "../../src/game/useGameLoop";
 import { resolveContestDurationSeconds } from "../../src/game/contestDuration";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import FireButton from "../../src/components/fire/FireButton";
+import FireEmptyState from "../../src/components/fire/FireEmptyState";
 import HeatScreenOverlay from "../../src/game/ui/HeatScreenOverlay";
 import HeatTierBanner from "../../src/game/ui/HeatTierBanner";
 import AntacidCoolingFeedback from "../../src/game/ui/AntacidCoolingFeedback";
@@ -50,6 +51,9 @@ export default function ContestScreen() {
   const matchRouteKey = `${selectedContestId}:${replayToken}:${tournamentOccurrenceId}`;
   const [contest, setContest] = useState<Contest | null>(null);
   const [contestLoaded, setContestLoaded] = useState(false);
+  const [matchStartError, setMatchStartError] = useState(false);
+  const [matchStartAttempt, setMatchStartAttempt] = useState(0);
+  const [resultSubmitAttempt, setResultSubmitAttempt] = useState(0);
   const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
   const [introPlayer, setIntroPlayer] = useState({ name: "Hungry Hero", rank: beltForXp(0).name, title: undefined as string | undefined });
   const matchDurationSeconds = resolveContestDurationSeconds(contest);
@@ -112,6 +116,11 @@ export default function ContestScreen() {
   const started = useRef(false);
   const matchStartedAt = useRef<number | null>(null);
   const scoreFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const serverOpponentId = useRef<string | null>(null);
+  const resultRequestInFlight = useRef(false);
+  const submittedResultKey = useRef<string | null>(null);
+  const resultRetryCount = useRef(0);
+  const resultRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousStatus = useRef(state.status);
   const lastCameraCombo = useRef(state.combo);
   const missionRecordedMatch = useRef<string | null>(null);
@@ -159,6 +168,7 @@ export default function ContestScreen() {
 
   useEffect(() => () => {
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
+    if (resultRetryTimer.current) clearTimeout(resultRetryTimer.current);
   }, []);
 
   useEffect(() => {
@@ -209,9 +219,46 @@ export default function ContestScreen() {
     perfectChainCommented.current = false;
     highScoreCommented.current = false;
     activeResultKey.current = matchRouteKey;
+    serverOpponentId.current = null;
+    resultRequestInFlight.current = false;
+    submittedResultKey.current = null;
+    resultRetryCount.current = 0;
     setResultAchievements([]);
     setResultTournament(null);
   }, [matchRouteKey]);
+
+  useEffect(() => {
+    if (state.status !== "FINISHED" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
+    const opponentId = serverOpponentId.current;
+    if (!opponentId) return;
+
+    resultRequestInFlight.current = true;
+    const duration = matchStartedAt.current === null
+      ? matchDurationSeconds
+      : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
+    void api.submitResult({
+      contest_id: selectedContestId,
+      score: state.score,
+      duration_sec: duration,
+      won: state.score > opponentScore,
+      opponent_id: opponentId,
+      tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
+      is_tournament: Boolean(tournamentOccurrenceId),
+    }).then(() => {
+      submittedResultKey.current = matchRouteKey;
+    }).catch(() => {
+      // The persisted match remains open, so bounded retries are safe.
+      if (resultRetryCount.current < 2) {
+        resultRetryCount.current += 1;
+        resultRetryTimer.current = setTimeout(
+          () => setResultSubmitAttempt((current) => current + 1),
+          resultRetryCount.current * 1000,
+        );
+      }
+    }).finally(() => {
+      resultRequestInFlight.current = false;
+    });
+  }, [antacidCount, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultSubmitAttempt, selectedContestId, state.score, state.status, tournamentOccurrenceId]);
 
   useEffect(() => {
     const priorStatus = previousArenaStatus.current;
@@ -400,11 +447,12 @@ export default function ContestScreen() {
     let active = true;
     started.current = false;
     setContestLoaded(false);
+    setMatchStartError(false);
     setContest(null);
 
     async function loadContestDetails() {
       try {
-        const [contestResult, playerResult, titleResult] = await Promise.allSettled([api.listContests(), api.getPlayer(), loadTitleProgress()]);
+        const [contestResult, playerResult, titleResult, matchResult] = await Promise.allSettled([api.listContests(), api.getPlayer(), loadTitleProgress(), api.startMatch(selectedContestId)]);
         const contests = contestResult.status === "fulfilled" ? parseContests(contestResult.value) : [];
         const contestIndex = contests.findIndex((item) => item.id === selectedContestId);
 
@@ -427,14 +475,21 @@ export default function ContestScreen() {
           setNextContestId(contests[contestIndex + 1]?.id ?? null);
           setRoundLabel(`ROUND ${contestIndex + 1}`);
         }
+        if (active && matchResult.status === "fulfilled") {
+          const opponentId = String(matchResult.value?.opponent?.id ?? "");
+          if (!opponentId) throw new Error("Match start did not return an opponent");
+          serverOpponentId.current = opponentId;
+          setContestLoaded(true);
+        } else if (active) {
+          setMatchStartError(true);
+        }
       } catch {
         if (active) {
           setContest(null);
           setNextContestId(null);
           setRoundLabel("WORLD TOUR EVENT");
+          setMatchStartError(true);
         }
-      } finally {
-        if (active) setContestLoaded(true);
       }
     }
 
@@ -443,7 +498,7 @@ export default function ContestScreen() {
     return () => {
       active = false;
     };
-  }, [matchRouteKey, selectedContestId]);
+  }, [matchRouteKey, matchStartAttempt, selectedContestId]);
 
   const handleTap = useCallback(() => {
     const { commentate: commentateLatest, combo, playAudioEvent: playAudioEventLatest, status, tap: tapLatest } = arenaCallbacksRef.current;
@@ -531,6 +586,21 @@ export default function ContestScreen() {
     opponentName: currentOpponent.name,
     opponentSubtitle: currentOpponent.personality,
   }), [contest?.food, contest?.name, currentOpponent.name, currentOpponent.personality, foodProfile.displayName, foodProfile.id, introPlayer.name, introPlayer.rank, introPlayer.title, tournamentOccurrenceId]);
+
+  if (matchStartError) {
+    return (
+      <View style={styles.container}>
+        <ArcadeBackground reducedMotion={reducedMotion} />
+        <FireEmptyState
+          icon="!"
+          title="Unable to Start the Feast"
+          message="Check your connection or coin balance, then try again."
+          buttonLabel="RETRY"
+          onPress={() => setMatchStartAttempt((current) => current + 1)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

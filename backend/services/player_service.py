@@ -6,9 +6,11 @@ All player-related logic belongs here.
 Eventually server.py should only call these functions.
 """
 
-from threading import Lock
-
-from database import players
+from database import (
+    create_or_get_player,
+    find_player_document,
+    update_player_document,
+)
 
 
 WELCOME_REWARD = {
@@ -16,9 +18,6 @@ WELCOME_REWARD = {
     "antacid": 1,
     "xp": 50,
 }
-_welcome_reward_lock = Lock()
-
-
 class TutorialIncompleteError(Exception):
     pass
 
@@ -30,7 +29,7 @@ class WelcomeRewardUnavailableError(Exception):
 # PLAYER CREATION
 # ==========================================================
 
-def create_player(device_id: str):
+def _new_player(device_id: str):
     """
     Creates a brand-new player.
     """
@@ -69,9 +68,11 @@ def create_player(device_id: str):
         "welcome_reward_claimed": False,
     }
 
-    players[device_id] = player
-
     return player
+
+
+def create_player(device_id: str):
+    return create_or_get_player(_new_player(device_id))
 
 
 def find_player(device_id: str):
@@ -79,7 +80,7 @@ def find_player(device_id: str):
     Return a player if they exist.
     """
 
-    return players.get(device_id)
+    return find_player_document(device_id)
 
 
 def get_or_create_player(device_id: str):
@@ -87,10 +88,7 @@ def get_or_create_player(device_id: str):
     Gets an existing player or creates one if missing.
     """
 
-    if device_id not in players:
-        return create_player(device_id)
-
-    return players[device_id]
+    return create_or_get_player(_new_player(device_id))
 
 
 def mark_tutorial_done(device_id: str):
@@ -103,9 +101,10 @@ def mark_tutorial_done(device_id: str):
     if not player:
         return None
 
-    player["tutorial_done"] = True
-
-    return player
+    return update_player_document(
+        device_id,
+        {"$set": {"tutorial_done": True}},
+    )
 
 
 def claim_welcome_reward(device_id: str):
@@ -113,63 +112,36 @@ def claim_welcome_reward(device_id: str):
     Grants the one-time welcome reward to an eligible existing player.
     """
 
-    with _welcome_reward_lock:
-        player = find_player(device_id)
-
-        if not player:
-            return None
-
-        if player.get("tutorial_done") is not True:
-            raise TutorialIncompleteError
-
-        claim_state = player.get("welcome_reward_claimed")
-
-        if claim_state is True:
-            return {
-                "player": player,
-                "granted": False,
-                "reward": {"coins": 0, "antacid": 0, "xp": 0},
-            }
-
-        if claim_state is not False:
-            raise WelcomeRewardUnavailableError
-
-        player["coins"] += WELCOME_REWARD["coins"]
-        player["antacid"] += WELCOME_REWARD["antacid"]
-        player["xp"] += WELCOME_REWARD["xp"]
-        player["welcome_reward_claimed"] = True
-
+    player = update_player_document(
+        device_id,
+        {
+            "$inc": WELCOME_REWARD,
+            "$set": {"welcome_reward_claimed": True},
+        },
+        extra_filter={
+            "tutorial_done": True,
+            "welcome_reward_claimed": False,
+        },
+    )
+    if player:
         return {
             "player": player,
             "granted": True,
             "reward": dict(WELCOME_REWARD),
         }
 
-
-def apply_match_result(device_id: str, opponent_id: str, won: bool):
-    """
-    Applies match results to both players.
-    """
-
     player = find_player(device_id)
-    opponent = find_player(opponent_id)
-
-    if not player or not opponent:
+    if not player:
         return None
-
-    if won:
-        record_win(device_id)
-        record_loss(opponent_id)
-
-        player["coins"] += 50
-        player["xp"] += 25
-    else:
-        record_loss(device_id)
-        record_win(opponent_id)
-
-        player["xp"] += 10
-
-    return player
+    if player.get("tutorial_done") is not True:
+        raise TutorialIncompleteError
+    if player.get("welcome_reward_claimed") is True:
+        return {
+            "player": player,
+            "granted": False,
+            "reward": {"coins": 0, "antacid": 0, "xp": 0},
+        }
+    raise WelcomeRewardUnavailableError
 
 
 # ==========================================================
@@ -183,10 +155,7 @@ def get_player(device_id: str):
     Creates one automatically if needed.
     """
 
-    if device_id not in players:
-        return create_player(device_id)
-
-    return players[device_id]
+    return get_or_create_player(device_id)
 
 
 # ==========================================================
@@ -195,10 +164,8 @@ def get_player(device_id: str):
 
 def add_coins(device_id: str, amount: int):
 
-    player = get_player(device_id)
-
-    player["coins"] += amount
-
+    get_or_create_player(device_id)
+    player = update_player_document(device_id, {"$inc": {"coins": amount}})
     return player["coins"]
 
 
@@ -208,12 +175,9 @@ def add_coins(device_id: str, amount: int):
 
 def add_xp(device_id: str, amount: int):
 
-    player = get_player(device_id)
-
-    player["xp"] += amount
-
-    check_level_up(player)
-
+    get_or_create_player(device_id)
+    player = update_player_document(device_id, {"$inc": {"xp": amount}})
+    player = check_level_up(player)
     return player["xp"]
 
 
@@ -223,10 +187,8 @@ def add_xp(device_id: str, amount: int):
 
 def add_antacid(device_id: str, amount: int):
 
-    player = get_player(device_id)
-
-    player["antacid"] += amount
-
+    get_or_create_player(device_id)
+    player = update_player_document(device_id, {"$inc": {"antacid": amount}})
     return player["antacid"]
 
 
@@ -236,28 +198,20 @@ def add_antacid(device_id: str, amount: int):
 
 def record_win(device_id: str):
 
-    player = get_player(device_id)
-
-    player["wins"] += 1
-
-    player["matches"] += 1
-
-    player["elo"] += 25
-
-    return player
+    get_or_create_player(device_id)
+    return update_player_document(
+        device_id,
+        {"$inc": {"wins": 1, "matches": 1, "elo": 25}},
+    )
 
 
 def record_loss(device_id: str):
 
-    player = get_player(device_id)
-
-    player["losses"] += 1
-
-    player["matches"] += 1
-
-    player["elo"] -= 10
-
-    return player
+    get_or_create_player(device_id)
+    return update_player_document(
+        device_id,
+        {"$inc": {"losses": 1, "matches": 1, "elo": -10}},
+    )
 
 
 # ==========================================================
@@ -266,21 +220,15 @@ def record_loss(device_id: str):
 
 def update_best_score(device_id: str, score: int):
 
-    player = get_player(device_id)
-
-    if score > player["best_score"]:
-        player["best_score"] = score
-
+    get_or_create_player(device_id)
+    player = update_player_document(device_id, {"$max": {"best_score": score}})
     return player["best_score"]
 
 
 def update_combo(device_id: str, combo: int):
 
-    player = get_player(device_id)
-
-    if combo > player["longest_combo"]:
-        player["longest_combo"] = combo
-
+    get_or_create_player(device_id)
+    player = update_player_document(device_id, {"$max": {"longest_combo": combo}})
     return player["longest_combo"]
 
 
@@ -294,14 +242,20 @@ def xp_needed(level: int):
 
 
 def check_level_up(player):
-
     while player["xp"] >= xp_needed(player["level"]):
-
-        player["xp"] -= xp_needed(player["level"])
-
-        player["level"] += 1
-
-        player["coins"] += 100
+        level = player["level"]
+        player = update_player_document(
+            player["device_id"],
+            {
+                "$inc": {
+                    "xp": -xp_needed(level),
+                    "level": 1,
+                    "coins": 100,
+                }
+            },
+            extra_filter={"level": level, "xp": {"$gte": xp_needed(level)}},
+        ) or find_player(player["device_id"])
+    return player
 
 
 # ==========================================================
@@ -310,12 +264,11 @@ def check_level_up(player):
 
 def unlock_gear(device_id: str, gear_id: str):
 
-    player = get_player(device_id)
-
-    if gear_id not in player["owned_gear"]:
-
-        player["owned_gear"].append(gear_id)
-
+    get_or_create_player(device_id)
+    player = update_player_document(
+        device_id,
+        {"$addToSet": {"owned_gear": gear_id}},
+    )
     return player["owned_gear"]
 
 

@@ -194,7 +194,7 @@ export default function ShopScreen() {
         </FireScreenEntrance>
       ) : null}
 
-      {error ? <View style={styles.messagePanel}><Text style={styles.message}>{error}</Text></View> : null}
+      {error ? <View style={styles.messagePanel}><Text style={styles.message}>{error}</Text><FireButton title="RETRY" onPress={() => { void load(); }} size="small" variant="secondary" /></View> : null}
     </>
   );
 

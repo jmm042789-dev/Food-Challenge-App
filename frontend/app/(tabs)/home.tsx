@@ -112,6 +112,8 @@ export default function HomeScreen() {
   const { welcome } = useLocalSearchParams<{ welcome?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [contests, setContests] = useState<Contest[]>([]);
   const [player, setPlayer] = useState<Player>({ coins: 200, xp: 0 });
   const [showWelcome, setShowWelcome] = useState(welcome === "1");
@@ -129,22 +131,28 @@ export default function HomeScreen() {
   useEffect(() => {
     let active = true;
     async function loadHome() {
+      setLoading(true);
+      setLoadError(false);
       const cachedPlayer = consumeBootstrapPlayer();
       const playerRequest = cachedPlayer === undefined
         ? api.getPlayer()
         : Promise.resolve(cachedPlayer);
       const [contestResult, playerResult] = await Promise.allSettled([api.listContests(), playerRequest]);
       if (!active) return;
-      if (contestResult.status === "fulfilled") setContests(parseContests(contestResult.value));
+      if (contestResult.status === "fulfilled") {
+        setContests(parseContests(contestResult.value));
+      } else {
+        setLoadError(true);
+      }
       if (playerResult.status === "fulfilled" && playerResult.value) setPlayer(playerResult.value as Player);
       setLoading(false);
     }
     loadHome();
     return () => { active = false; };
-  }, []);
+  }, [loadAttempt]);
 
   if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
-  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon="!" title="No Contests Available" message="Check back again soon." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
+  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
 
   const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
   const coins = Number(player.coins ?? 0) + (dailyMissionState?.claimedRewards.coins ?? 0);

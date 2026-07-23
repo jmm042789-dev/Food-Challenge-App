@@ -29,6 +29,7 @@ class Player(BaseModel):
     longest_combo: int = 0
 
     owned_gear: List[str] = Field(default_factory=list)
+    equipped_gear: Optional[str] = None
 
     last_claim_date: Optional[str] = None
     streak_days: int = 0
@@ -48,11 +49,28 @@ class QueuePlayer(BaseModel):
 
 class MatchResult(BaseModel):
     device_id: str
+    contest_id: str
     opponent_id: str
-
-    score: int
-
+    score: int = Field(ge=0)
+    duration_sec: int = Field(ge=0)
     won: bool = False
+    tums_used: int = Field(default=0, ge=0)
+    is_tournament: bool = False
+
+
+class MatchStart(BaseModel):
+    device_id: str
+    contest_id: str
+
+
+class PurchaseRequest(BaseModel):
+    device_id: str
+    item_id: str
+
+
+class EquipRequest(BaseModel):
+    device_id: str
+    gear_id: Optional[str] = None
 
 
 # ==========================================================

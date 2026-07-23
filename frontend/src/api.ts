@@ -30,6 +30,10 @@ export function consumeBootstrapPlayer(): unknown | undefined {
   return player;
 }
 
+export function peekBootstrapPlayer(): unknown | undefined {
+  return bootstrapPlayerCache;
+}
+
 export type Contest = {
   id: string;
   name: string;

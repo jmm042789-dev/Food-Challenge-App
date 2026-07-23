@@ -1,21 +1,47 @@
 import logging
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 import uuid
-from database import players, queue, active_matches
+from database import (
+    active_matches,
+    database_connected,
+    initialize_database,
+    player_count,
+    queue,
+)
 
 from services.player_service import (
     get_or_create_player,
     find_player,
-    apply_match_result,
     mark_tutorial_done,
     claim_welcome_reward,
     TutorialIncompleteError,
     WelcomeRewardUnavailableError,
 )
+from services.leaderboard_service import get_leaderboard
+from services.match_service import (
+    ContestNotFoundError,
+    InsufficientCoinsError as MatchInsufficientCoinsError,
+    MatchAlreadyActiveError,
+    MatchNotFoundError,
+    MatchValidationError,
+    PlayerNotFoundError,
+    start_match,
+    submit_result,
+)
+from services.shop_service import (
+    AlreadyOwnedError,
+    GearNotOwnedError,
+    InsufficientCoinsError as ShopInsufficientCoinsError,
+    ItemNotFoundError,
+    equip_item,
+    purchase_item,
+)
+from models import EquipRequest, MatchResult, MatchStart, PurchaseRequest
 
 from services.contest_service import featured, categories
 
@@ -24,10 +50,25 @@ from data.contests import CONTESTS
 from data.shop import SHOP_ITEMS
 from data.gear import GEAR
 
-app = FastAPI()
+ENVIRONMENT = os.getenv("FIRE_FEAST_ENV", "development").strip().lower()
+IS_PRODUCTION = ENVIRONMENT == "production"
+configured_origins = [
+    origin.strip()
+    for origin in os.getenv("FIRE_FEAST_CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if IS_PRODUCTION and any(not origin.startswith("https://") for origin in configured_origins):
+    raise RuntimeError("Production CORS origins must use HTTPS")
+allowed_origins = configured_origins if IS_PRODUCTION else (configured_origins or ["*"])
+
+app = FastAPI(
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else "/openapi.json",
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,13 +76,23 @@ app.add_middleware(
 logger = logging.getLogger(__name__)
 
 
+def require_diagnostics():
+    if IS_PRODUCTION:
+        raise HTTPException(status_code=404, detail="not found")
+
+
+@app.on_event("startup")
+def startup_database():
+    initialize_database()
+
+
 @app.get("/api/health")
 def health():
     """Lightweight process health check for hosting platforms."""
-    return {"status": "ok"}
+    return {"status": "ok" if database_connected() else "degraded"}
 
 # =========================
-# MEMORY DATABASE
+# DATABASE
 # =========================
 
 
@@ -53,26 +104,22 @@ def health():
 class PlayerCreate(BaseModel):
     device_id: str
 
-class MatchResult(BaseModel):
-    device_id: str
-    opponent_id: str
-    score: int
-    won: bool = False
-
 # =========================
 # ROOT TEST
 # =========================
 
 @app.get("/api/")
 def root():
+    require_diagnostics()
     return {
         "ok": True,
         "message": "Backend is working 🚀",
-        "mongo_connected": True
+        "mongo_connected": database_connected()
     }
 
 @app.get("/api/test")
 def test():
+    require_diagnostics()
     return {"ok": True}
 
 # =========================
@@ -122,10 +169,9 @@ def get_player_endpoint(device_id: str):
 def join_queue(data: PlayerCreate):
     device_id = data.device_id
 
-    if device_id not in players:
+    player = find_player(device_id)
+    if not player:
         return {"error": "player not found"}
-
-    player = players[device_id]
 
     # prevent duplicates
     for p in queue:
@@ -186,20 +232,30 @@ def leave_queue(data: PlayerCreate):
 # MATCH RESULT + ELO
 # =========================
 
+@app.post("/api/match/start")
+def match_start_endpoint(data: MatchStart):
+    try:
+        return start_match(data.device_id, data.contest_id)
+    except PlayerNotFoundError:
+        raise HTTPException(status_code=404, detail="player not found")
+    except ContestNotFoundError:
+        raise HTTPException(status_code=404, detail="contest not found")
+    except MatchInsufficientCoinsError:
+        raise HTTPException(status_code=400, detail="not enough coins")
+    except MatchAlreadyActiveError:
+        raise HTTPException(status_code=409, detail="another match is already active")
+
+
 @app.post("/api/match/result")
 def match_result(data: MatchResult):
-    player = find_player(data.device_id)
-    opponent = find_player(data.opponent_id)
-
-    if not player or not opponent:
-        return {"error": "player not found"}
-
-    updated_player = apply_match_result(data.device_id, data.opponent_id, data.won)
-
-    return {
-        "status": "ok",
-        "player_elo": updated_player["elo"],
-    }
+    try:
+        return submit_result(data)
+    except PlayerNotFoundError:
+        raise HTTPException(status_code=404, detail="player not found")
+    except MatchNotFoundError:
+        raise HTTPException(status_code=409, detail="no matching active match")
+    except MatchValidationError:
+        raise HTTPException(status_code=400, detail="match result does not match the active match")
 
 # =========================
 # SHOP / GEAR
@@ -214,14 +270,40 @@ def shop():
 def gear():
     return {"items": GEAR}
 
+
+@app.post("/api/purchase")
+def purchase_endpoint(data: PurchaseRequest):
+    try:
+        return purchase_item(data.device_id, data.item_id)
+    except ItemNotFoundError:
+        raise HTTPException(status_code=404, detail="item not found")
+    except ShopInsufficientCoinsError:
+        raise HTTPException(status_code=400, detail="not enough coins")
+    except AlreadyOwnedError:
+        raise HTTPException(status_code=400, detail="item already owned")
+
+
+@app.post("/api/player/equip")
+def equip_endpoint(data: EquipRequest):
+    try:
+        return equip_item(data.device_id, data.gear_id)
+    except GearNotOwnedError:
+        raise HTTPException(status_code=400, detail="you do not own that gear")
+
+
+@app.get("/api/leaderboard")
+def leaderboard_endpoint():
+    return get_leaderboard()
+
 # =========================
 # DEBUG
 # =========================
 
 @app.get("/api/debug-db")
 def debug():
+    require_diagnostics()
     return {
-        "players": len(players),
+        "players": player_count(),
         "queue": len(queue),
         "matches": len(active_matches)
     }

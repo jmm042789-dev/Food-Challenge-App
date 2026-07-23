@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { api, cacheBootstrapPlayer } from "../src/api";
+import { api, cacheBootstrapPlayer, peekBootstrapPlayer } from "../src/api";
 import FireEmptyState from "../src/components/fire/FireEmptyState";
 import FireLoading from "../src/components/fire/FireLoading";
 import ArcadeBackground from "../src/game/ui/ArcadeBackground";
@@ -19,6 +19,7 @@ export default function Index() {
 
   useEffect(() => {
     let active = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function bootstrap() {
       setError(false);
@@ -47,12 +48,29 @@ export default function Index() {
           router.replace("/(tabs)/home");
         }
       } catch {
-        if (active) setError(true);
+        if (!active) return;
+
+        const cachedPlayer = peekBootstrapPlayer() as BootstrapPlayer | undefined;
+        if (cachedPlayer && cachedPlayer.tutorial_done !== false) {
+          router.replace("/(tabs)/home");
+          return;
+        }
+
+        if (attempt === 0) {
+          retryTimer = setTimeout(() => {
+            if (active) setAttempt(1);
+          }, 750);
+        } else {
+          setError(true);
+        }
       }
     }
 
     void bootstrap();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [attempt, router]);
 
   return (

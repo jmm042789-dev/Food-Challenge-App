@@ -8,6 +8,7 @@ import { api } from "../../src/api";
 import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import FireBadge from "../../src/components/fire/FireBadge";
 import FireProgressBar from "../../src/components/fire/FireProgressBar";
+import FireButton from "../../src/components/fire/FireButton";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import AchievementPanel from "../../src/achievements/components/AchievementPanel";
@@ -95,12 +96,14 @@ export default function ProfileScreen() {
   const [player, setPlayer] = useState<Player>(FALLBACK_PLAYER);
   const [gear, setGear] = useState<Gear[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const { state: achievementState, migrate: migrateAchievements, claim: claimAchievement } = useAchievements();
   const { state: restaurantState, notification: restaurantNotification, dismissNotification: dismissRestaurantNotification, sync: syncRestaurants } = useRestaurantProgress();
   const { state: titleState, notification: titleNotification, dismissNotification: dismissTitleNotification, sync: syncTitles, equip: equipTitle } = useTitleProgress();
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     const [playerResult, gearResult] = await Promise.allSettled([api.getPlayer(), api.gear()]);
     if (playerResult.status === "fulfilled" && playerResult.value) {
       const resolvedPlayer = { ...FALLBACK_PLAYER, ...(playerResult.value as Partial<Player>) };
@@ -116,7 +119,7 @@ export default function ProfileScreen() {
         itemsOwned: resolvedPlayer.owned_gear.length,
         beltRank: Math.max(1, BELTS.findIndex((item) => item.key === resolvedBelt.key) + 1),
       });
-    }
+    } else setLoadError(true);
     if (gearResult.status === "fulfilled") {
       setGear(Array.isArray(gearResult.value?.items) ? gearResult.value.items : []);
     } else {
@@ -246,6 +249,7 @@ export default function ProfileScreen() {
         ) : null}
 
         {loading ? <Text style={styles.loading}>REFRESHING PROFILE…</Text> : null}
+        {loadError && !loading ? <View style={styles.loadError}><Text style={styles.loading}>PROFILE COULD NOT BE REFRESHED</Text><FireButton title="RETRY" onPress={() => { void load(); }} size="small" variant="secondary" /></View> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -299,6 +303,7 @@ const styles = StyleSheet.create({
   gearMeta: { color: "#D0954C", fontSize: 7, fontWeight: "900", letterSpacing: 0.6, marginTop: 2 },
   gearDescription: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 4 },
   loading: { color: "#E8AD55", fontSize: 8, fontWeight: "900", letterSpacing: 1, marginTop: 10, textAlign: "center" },
+  loadError: { alignItems: "center", gap: 8, marginTop: 8 },
   achievementSection: { marginTop: 12 },
   restaurantSection: { marginTop: 12 },
   titleSection: { marginTop: 12 },

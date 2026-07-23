@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -8,21 +8,40 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
+import { api } from "../../src/api";
+import FireEmptyState from "../../src/components/fire/FireEmptyState";
+import FireLoading from "../../src/components/fire/FireLoading";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import FirePanel from "../../src/components/fire/FirePanel";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 
-const leaders=[
-{rank:1,name:"Blaze",score:12840,badge:"🥇"},
-{rank:2,name:"Joshua",score:12110,badge:"🥈"},
-{rank:3,name:"Chef Rex",score:11790,badge:"🥉"},
-{rank:4,name:"WingMaster",score:11125,badge:"⭐"},
-{rank:5,name:"BurgerBoss",score:10950,badge:"⭐"},
-{rank:6,name:"SpicySam",score:10380,badge:"⭐"},
-];
+type Leader = { rank: number; username: string; score: number; is_you?: boolean; belt?: { name?: string } };
+
+const badgeFor = (rank: number) => rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "⭐";
 
 export default function LeaderboardScreen(){
 const isFocused = useIsFocused();
+const [leaders, setLeaders] = useState<Leader[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState(false);
+const load = useCallback(async () => {
+  setLoading(true);
+  setError(false);
+  try {
+    const response = await api.leaderboard();
+    setLeaders(Array.isArray(response?.leaderboard) ? response.leaderboard : []);
+  } catch {
+    setError(true);
+  } finally {
+    setLoading(false);
+  }
+}, []);
+useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+if (loading && !leaders.length) return <SafeAreaView style={styles.container} edges={["top"]}><ArcadeBackground active={isFocused}/><FireLoading title="Loading Rankings" subtitle="Finding the arena leaders." /></SafeAreaView>;
+if (error && !leaders.length) return <SafeAreaView style={styles.container} edges={["top"]}><ArcadeBackground active={isFocused}/><FireEmptyState icon="!" title="Rankings Unavailable" message="Check your connection and try again." buttonLabel="RETRY" onPress={() => { void load(); }} /></SafeAreaView>;
+if (!leaders.length) return <SafeAreaView style={styles.container} edges={["top"]}><ArcadeBackground active={isFocused}/><FireEmptyState icon="🏆" title="No Rankings Yet" message="Complete a feast to claim the first spot." /></SafeAreaView>;
 return(
 <SafeAreaView style={styles.container} edges={["top"]}>
 <ArcadeBackground active={isFocused}/>
@@ -33,7 +52,7 @@ return(
 
 <FirePanel title="ARENA LEADER" elevated accent="gold" style={styles.podium}>
 <Text style={styles.crown}>👑</Text>
-<Text style={styles.podiumName}>{leaders[0].name}</Text>
+<Text style={styles.podiumName}>{leaders[0].username}</Text>
 <Text style={styles.podiumScore}>{leaders[0].score.toLocaleString()} pts</Text>
 </FirePanel>
 
@@ -42,16 +61,16 @@ return(
 </FireScreenEntrance>
 {leaders.map(player=>(
 <FirePanel
-key={player.rank}
+key={`${player.rank}-${player.username}`}
 style={[
 styles.card,
-player.name==="Joshua" && styles.currentPlayer
+player.is_you && styles.currentPlayer
 ]}>
-<Text style={styles.rank}>{player.badge} #{player.rank}</Text>
+<Text style={styles.rank}>{badgeFor(player.rank)} #{player.rank}</Text>
 
 <View style={styles.playerInfo}>
-<Text numberOfLines={1} style={styles.name}>{player.name}</Text>
-<Text style={styles.level}>🔥 Grill Master</Text>
+<Text numberOfLines={1} style={styles.name}>{player.username}</Text>
+<Text style={styles.level}>🔥 {player.belt?.name ?? "Arena Challenger"}</Text>
 </View>
 
 <Text adjustsFontSizeToFit numberOfLines={1} style={styles.score}>

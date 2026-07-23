@@ -4,7 +4,11 @@ export function validExternalUrl(value?: string): string | null {
   if (!value) return null;
   try {
     const parsed = new URL(value);
-    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
+    if (parsed.protocol === "https:") return parsed.toString();
+    const localDevelopmentUrl = __DEV__
+      && parsed.protocol === "http:"
+      && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
+    return localDevelopmentUrl ? parsed.toString() : null;
   } catch {
     return null;
   }
