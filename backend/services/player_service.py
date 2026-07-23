@@ -6,10 +6,21 @@ All player-related logic belongs here.
 Eventually server.py should only call these functions.
 """
 
+import uuid
+from datetime import datetime, timezone
+
 from database import (
+    create_guest_player,
     create_or_get_player,
     find_player_document,
+    installation_has_guest,
     update_player_document,
+)
+from auth import (
+    AUTH_TOKEN_VERSION,
+    generate_auth_token,
+    hash_auth_token,
+    hash_installation_id,
 )
 
 
@@ -18,6 +29,44 @@ WELCOME_REWARD = {
     "antacid": 1,
     "xp": 50,
 }
+
+
+class BootstrapAlreadyCompletedError(Exception):
+    pass
+
+
+def bootstrap_guest(installation_id: str) -> dict:
+    """Create one authenticated guest for an installation.
+
+    A repeated unauthenticated bootstrap never returns or rotates credentials.
+    This prevents replay from minting additional valid tokens.
+    """
+    installation_hash = hash_installation_id(installation_id)
+    if installation_has_guest(installation_hash):
+        raise BootstrapAlreadyCompletedError
+
+    player_id = f"guest_{uuid.uuid4().hex}"
+    auth_token = generate_auth_token()
+    now = datetime.now(timezone.utc).isoformat()
+    document = _new_player(player_id)
+    document.update(
+        {
+            "player_id": player_id,
+            "auth_token_hash": hash_auth_token(auth_token),
+            "installation_id_hash": installation_hash,
+            "token_created_at": now,
+            "token_version": AUTH_TOKEN_VERSION,
+        }
+    )
+    player = create_guest_player(document)
+    if player is None:
+        raise BootstrapAlreadyCompletedError
+    return {
+        "player": player,
+        "player_id": player_id,
+        "auth_token": auth_token,
+        "migrated": False,
+    }
 class TutorialIncompleteError(Exception):
     pass
 
@@ -105,6 +154,17 @@ def mark_tutorial_done(device_id: str):
         device_id,
         {"$set": {"tutorial_done": True}},
     )
+
+
+def update_player_profile(device_id: str, values: dict):
+    allowed = {
+        key: value
+        for key, value in values.items()
+        if key in {"username", "country", "avatar_emoji"} and value is not None
+    }
+    if not allowed:
+        return find_player(device_id)
+    return update_player_document(device_id, {"$set": allowed})
 
 
 def claim_welcome_reward(device_id: str):

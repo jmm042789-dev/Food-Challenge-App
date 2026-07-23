@@ -14,7 +14,6 @@ def get_leaderboard(limit: int = 50) -> dict:
                 "score": int(player.get("best_score", 0)),
                 "avatar": player.get("avatar_emoji", "🤤"),
                 "is_you": False,
-                "device_id": player.get("device_id", ""),
                 "belt": belt_for_xp(int(player.get("xp", 0))),
             }
         )

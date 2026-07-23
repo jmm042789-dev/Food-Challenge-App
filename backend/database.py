@@ -31,7 +31,16 @@ def _public_document(document: Optional[dict]) -> Optional[dict]:
     result.pop("_id", None)
     result.pop("active_match", None)
     result.pop("last_match_result", None)
+    result.pop("auth_token_hash", None)
+    result.pop("installation_id_hash", None)
+    result.pop("token_created_at", None)
+    result.pop("token_version", None)
+    result.pop("legacy_auth_migrated_at", None)
     return result
+
+
+def public_player_document(document: Optional[dict]) -> Optional[dict]:
+    return _public_document(document)
 
 
 def initialize_database() -> None:
@@ -39,6 +48,18 @@ def initialize_database() -> None:
     mongo_client.admin.command("ping")
     player_collection.create_index(
         [("device_id", ASCENDING)], unique=True, name="player_device_id_unique"
+    )
+    player_collection.create_index(
+        [("player_id", ASCENDING)],
+        unique=True,
+        sparse=True,
+        name="player_id_unique",
+    )
+    player_collection.create_index(
+        [("installation_id_hash", ASCENDING)],
+        unique=True,
+        sparse=True,
+        name="player_installation_unique",
     )
     settings_collection.update_one(
         {"_id": "global"},
@@ -67,6 +88,25 @@ def create_or_get_player(defaults: dict) -> dict:
         # A simultaneous first request may win the unique-device insert.
         document = player_collection.find_one({"device_id": defaults["device_id"]})
     return _public_document(document) or dict(defaults)
+
+
+def create_guest_player(document: dict) -> Optional[dict]:
+    """Insert one authenticated guest, or return None for a bootstrap replay."""
+    try:
+        player_collection.insert_one(document)
+    except DuplicateKeyError:
+        return None
+    return _public_document(document)
+
+
+def installation_has_guest(installation_id_hash: str) -> bool:
+    return (
+        player_collection.count_documents(
+            {"installation_id_hash": installation_id_hash},
+            limit=1,
+        )
+        > 0
+    )
 
 
 def find_player_document(device_id: str) -> Optional[dict]:

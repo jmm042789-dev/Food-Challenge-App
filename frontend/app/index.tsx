@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { api, cacheBootstrapPlayer, peekBootstrapPlayer } from "../src/api";
+import { api, cacheBootstrapPlayer, isAuthenticationError, peekBootstrapPlayer } from "../src/api";
 import FireEmptyState from "../src/components/fire/FireEmptyState";
 import FireLoading from "../src/components/fire/FireLoading";
 import ArcadeBackground from "../src/game/ui/ArcadeBackground";
@@ -14,7 +14,7 @@ type BootstrapPlayer = {
 
 export default function Index() {
   const router = useRouter();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function Index() {
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function bootstrap() {
-      setError(false);
+      setError(null);
 
       try {
         const player = await api.getPlayer() as BootstrapPlayer;
@@ -47,11 +47,12 @@ export default function Index() {
           cacheBootstrapPlayer(playerForHome);
           router.replace("/(tabs)/home");
         }
-      } catch {
+      } catch (bootstrapError) {
         if (!active) return;
 
+        const authenticationFailure = isAuthenticationError(bootstrapError);
         const cachedPlayer = peekBootstrapPlayer() as BootstrapPlayer | undefined;
-        if (cachedPlayer && cachedPlayer.tutorial_done !== false) {
+        if (!authenticationFailure && cachedPlayer && cachedPlayer.tutorial_done !== false) {
           router.replace("/(tabs)/home");
           return;
         }
@@ -61,7 +62,11 @@ export default function Index() {
             if (active) setAttempt(1);
           }, 750);
         } else {
-          setError(true);
+          setError(
+            authenticationFailure
+              ? "This guest account could not be verified. Retry without clearing local app data."
+              : "Check your connection and try again.",
+          );
         }
       }
     }
@@ -80,7 +85,7 @@ export default function Index() {
         <FireEmptyState
           icon="!"
           title="Unable to Enter the Arena"
-          message="Check your connection and try again."
+          message={error}
           buttonLabel="RETRY"
           onPress={() => setAttempt((current) => current + 1)}
         />

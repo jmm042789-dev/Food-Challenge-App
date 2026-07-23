@@ -11,6 +11,16 @@ class PlayerCreate(BaseModel):
     device_id: str
 
 
+class GuestBootstrapRequest(BaseModel):
+    installation_id: str = Field(min_length=16, max_length=256)
+
+
+class PlayerProfileUpdate(BaseModel):
+    username: Optional[str] = Field(default=None, min_length=1, max_length=40)
+    country: Optional[str] = Field(default=None, max_length=16)
+    avatar_emoji: Optional[str] = Field(default=None, max_length=16)
+
+
 class Player(BaseModel):
     device_id: str
 
