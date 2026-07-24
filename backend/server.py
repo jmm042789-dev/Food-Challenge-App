@@ -1,8 +1,9 @@
 import logging
 import os
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import time
 import uuid
 from database import (
@@ -10,6 +11,7 @@ from database import (
     database_connected,
     initialize_database,
     player_count,
+    public_player_document,
     queue,
 )
 
@@ -52,6 +54,7 @@ from models import (
     PurchaseRequest,
 )
 from auth import authenticated_player
+from rate_limit import rate_limit
 
 from services.contest_service import featured, categories
 
@@ -84,6 +87,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logger = logging.getLogger(__name__)
+
+MAX_REQUEST_BYTES = 16 * 1024
+
+bootstrap_limit = rate_limit("guest-bootstrap", requests=10, window_seconds=60)
+matchmaking_join_limit = rate_limit("matchmaking-join", requests=30, window_seconds=60)
+match_start_limit = rate_limit("match-start", requests=20, window_seconds=60)
+match_result_limit = rate_limit("match-result", requests=30, window_seconds=60)
+purchase_limit = rate_limit("purchase", requests=30, window_seconds=60)
+tutorial_limit = rate_limit("tutorial-reward", requests=10, window_seconds=60)
+welcome_limit = rate_limit("welcome-reward", requests=10, window_seconds=60)
+
+
+@app.middleware("http")
+async def reject_oversized_requests(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            parsed_length = int(content_length)
+            if parsed_length < 0:
+                return JSONResponse(status_code=400, content={"detail": "invalid request"})
+            if parsed_length > MAX_REQUEST_BYTES:
+                return JSONResponse(status_code=413, content={"detail": "request too large"})
+        except ValueError:
+            return JSONResponse(status_code=400, content={"detail": "invalid request"})
+    return await call_next(request)
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(_request: Request, error: Exception):
+    logger.error("Unhandled API error (%s)", type(error).__name__)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "internal server error"},
+    )
 
 
 def require_diagnostics():
@@ -129,7 +166,7 @@ def test():
 # PLAYER SYSTEM
 # =========================
 
-@app.post("/api/auth/guest")
+@app.post("/api/auth/guest", dependencies=[Depends(bootstrap_limit)])
 def guest_bootstrap_endpoint(data: GuestBootstrapRequest):
     try:
         return bootstrap_guest(data.installation_id)
@@ -145,11 +182,11 @@ def create_player_endpoint(
     data: PlayerCreate,
     authorization: str | None = Header(default=None),
 ):
-    authenticated_player(data.device_id, authorization)
-    return find_player(data.device_id)
+    player = authenticated_player(data.device_id, authorization)
+    return public_player_document(player)
 
 
-@app.post("/api/player/tutorial_done")
+@app.post("/api/player/tutorial_done", dependencies=[Depends(tutorial_limit)])
 def tutorial_done_endpoint(
     data: PlayerCreate,
     authorization: str | None = Header(default=None),
@@ -163,7 +200,7 @@ def tutorial_done_endpoint(
     return player
 
 
-@app.post("/api/player/welcome_reward")
+@app.post("/api/player/welcome_reward", dependencies=[Depends(welcome_limit)])
 def welcome_reward_endpoint(
     data: PlayerCreate,
     authorization: str | None = Header(default=None),
@@ -187,9 +224,8 @@ def get_player_endpoint(
     device_id: str,
     authorization: str | None = Header(default=None),
 ):
-    authenticated_player(device_id, authorization)
-    player = find_player(device_id)
-    return player if player else {"error": "player not found"}
+    player = authenticated_player(device_id, authorization)
+    return public_player_document(player)
 
 
 @app.patch("/api/player/{device_id}")
@@ -208,17 +244,13 @@ def update_player_endpoint(
 # MATCHMAKING
 # =========================
 
-@app.post("/api/matchmaking/join")
+@app.post("/api/matchmaking/join", dependencies=[Depends(matchmaking_join_limit)])
 def join_queue(
     data: PlayerCreate,
     authorization: str | None = Header(default=None),
 ):
     device_id = data.device_id
-    authenticated_player(device_id, authorization)
-
-    player = find_player(device_id)
-    if not player:
-        return {"error": "player not found"}
+    player = authenticated_player(device_id, authorization)
 
     # prevent duplicates
     for p in queue:
@@ -287,7 +319,7 @@ def leave_queue(
 # MATCH RESULT + ELO
 # =========================
 
-@app.post("/api/match/start")
+@app.post("/api/match/start", dependencies=[Depends(match_start_limit)])
 def match_start_endpoint(
     data: MatchStart,
     authorization: str | None = Header(default=None),
@@ -305,7 +337,7 @@ def match_start_endpoint(
         raise HTTPException(status_code=409, detail="another match is already active")
 
 
-@app.post("/api/match/result")
+@app.post("/api/match/result", dependencies=[Depends(match_result_limit)])
 def match_result(
     data: MatchResult,
     authorization: str | None = Header(default=None),
@@ -334,7 +366,7 @@ def gear():
     return {"items": GEAR}
 
 
-@app.post("/api/purchase")
+@app.post("/api/purchase", dependencies=[Depends(purchase_limit)])
 def purchase_endpoint(
     data: PurchaseRequest,
     authorization: str | None = Header(default=None),

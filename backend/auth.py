@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import re
 import secrets
 from typing import Optional
 
@@ -13,6 +14,8 @@ from database import find_internal_player
 AUTH_TOKEN_BYTES = 32
 AUTH_TOKEN_VERSION = 1
 AUTHENTICATION_ERROR = "invalid or missing authentication credentials"
+PLAYER_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+MAX_AUTH_TOKEN_LENGTH = 512
 
 
 def generate_auth_token() -> str:
@@ -39,7 +42,13 @@ def authenticate_bearer(authorization: Optional[str]) -> dict:
     if not authorization:
         raise _unauthorized()
     scheme, separator, token = authorization.partition(" ")
-    if separator != " " or scheme.lower() != "bearer" or not token:
+    if (
+        separator != " "
+        or scheme.lower() != "bearer"
+        or not token
+        or len(token) > MAX_AUTH_TOKEN_LENGTH
+        or any(character.isspace() for character in token)
+    ):
         raise _unauthorized()
 
     # The public ID is supplied separately by each protected route. Looking up
@@ -52,6 +61,8 @@ def authenticated_player(
     player_id: str,
     authorization: Optional[str] = Header(default=None),
 ) -> dict:
+    if not PLAYER_ID_PATTERN.fullmatch(player_id):
+        raise _unauthorized()
     credential = authenticate_bearer(authorization)
     player = find_internal_player(player_id)
     expected_hash = player.get("auth_token_hash") if player else None

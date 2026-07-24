@@ -1,24 +1,60 @@
-from typing import List, Optional
+import unicodedata
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+
+
+Identifier = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._:-]+$",
+    ),
+]
+
+
+class RequestModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+def _clean_display_text(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError("value must not be blank")
+    unsafe_categories = {"Cc", "Cs", "Zl", "Zp"}
+    if any(
+        unicodedata.category(character) in unsafe_categories
+        for character in cleaned
+    ):
+        raise ValueError("control characters are not allowed")
+    return cleaned
 
 
 # ==========================================================
 # PLAYER
 # ==========================================================
 
-class PlayerCreate(BaseModel):
-    device_id: str
+class PlayerCreate(RequestModel):
+    device_id: Identifier
 
 
-class GuestBootstrapRequest(BaseModel):
-    installation_id: str = Field(min_length=16, max_length=256)
+class GuestBootstrapRequest(RequestModel):
+    installation_id: Identifier = Field(min_length=16, max_length=128)
 
 
-class PlayerProfileUpdate(BaseModel):
+class PlayerProfileUpdate(RequestModel):
     username: Optional[str] = Field(default=None, min_length=1, max_length=40)
     country: Optional[str] = Field(default=None, max_length=16)
     avatar_emoji: Optional[str] = Field(default=None, max_length=16)
+
+    @field_validator("username", "country", "avatar_emoji")
+    @classmethod
+    def validate_display_text(cls, value: Optional[str]) -> Optional[str]:
+        return _clean_display_text(value)
 
 
 class Player(BaseModel):
@@ -57,30 +93,30 @@ class QueuePlayer(BaseModel):
     joined_at: float
 
 
-class MatchResult(BaseModel):
-    device_id: str
-    contest_id: str
-    opponent_id: str
-    score: int = Field(ge=0)
-    duration_sec: int = Field(ge=0)
+class MatchResult(RequestModel):
+    device_id: Identifier
+    contest_id: Identifier
+    opponent_id: Identifier
+    score: int = Field(ge=0, le=10_000_000)
+    duration_sec: int = Field(ge=0, le=86_400)
     won: bool = False
-    tums_used: int = Field(default=0, ge=0)
+    tums_used: int = Field(default=0, ge=0, le=10_000)
     is_tournament: bool = False
 
 
-class MatchStart(BaseModel):
-    device_id: str
-    contest_id: str
+class MatchStart(RequestModel):
+    device_id: Identifier
+    contest_id: Identifier
 
 
-class PurchaseRequest(BaseModel):
-    device_id: str
-    item_id: str
+class PurchaseRequest(RequestModel):
+    device_id: Identifier
+    item_id: Identifier
 
 
-class EquipRequest(BaseModel):
-    device_id: str
-    gear_id: Optional[str] = None
+class EquipRequest(RequestModel):
+    device_id: Identifier
+    gear_id: Optional[Identifier] = None
 
 
 # ==========================================================
