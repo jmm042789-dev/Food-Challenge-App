@@ -5,6 +5,8 @@ export type CameraControllerHandle = {
   bitePunch: (strength?: number) => void;
   comboPunch: (strength?: number) => void;
   shake: (strength?: number) => void;
+  countdownSettle: () => void;
+  defeatSettle: () => void;
   victoryZoom: () => void;
   reset: () => void;
 };
@@ -54,6 +56,7 @@ const CameraController = forwardRef<CameraControllerHandle, CameraControllerProp
     useImperativeHandle(ref, () => ({
       bitePunch: (strength = 1) => punch(0.03, strength),
       comboPunch: (strength = 1) => punch(0.06, strength),
+      countdownSettle: () => punch(0.022, 1),
       shake: (strength = 8) => {
         stopShakeAnimation();
         translateX.setValue(0);
@@ -85,6 +88,15 @@ const CameraController = forwardRef<CameraControllerHandle, CameraControllerProp
             tension: 110,
             useNativeDriver: true,
           }),
+        ]);
+        scaleAnimation.current.start();
+      },
+      defeatSettle: () => {
+        stopScaleAnimation();
+        scale.setValue(1);
+        scaleAnimation.current = Animated.sequence([
+          Animated.timing(scale, { toValue: 0.985, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 0.992, friction: 10, tension: 100, useNativeDriver: true }),
         ]);
         scaleAnimation.current.start();
       },

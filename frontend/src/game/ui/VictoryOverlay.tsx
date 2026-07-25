@@ -25,6 +25,15 @@ type VictoryOverlayProps = {
 };
 
 const VICTORY_BANNERS = ["VICTORY!", "DOMINATING PERFORMANCE!", "WHAT A FEAST!", "CHAMPION!", "UNSTOPPABLE!"] as const;
+const VICTORY_CONFETTI = [
+  { left: "8%", delay: 0, drift: -18, color: "#FFD06A" },
+  { left: "20%", delay: 90, drift: 14, color: "#FF6A2A" },
+  { left: "33%", delay: 35, drift: -10, color: "#FFF0B8" },
+  { left: "47%", delay: 145, drift: 18, color: "#FF9C35" },
+  { left: "61%", delay: 60, drift: -16, color: "#FFD06A" },
+  { left: "74%", delay: 120, drift: 12, color: "#FF6A2A" },
+  { left: "88%", delay: 20, drift: -12, color: "#FFF0B8" },
+] as const;
 let lastVictoryBanner = "";
 
 const chooseBanner = () => {
@@ -45,6 +54,7 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   const banner = useMemo(() => result === "victory" ? chooseBanner() : "DEFEAT", [result]);
   const noticeOpacity = useRef(new Animated.Value(0)).current;
   const noticeY = useRef(new Animated.Value(0)).current;
+  const celebration = useRef(new Animated.Value(0)).current;
   const isComplete = stage >= 5;
   const notices = useMemo(() => [
     ...achievements.map((item) => ({ key: `achievement:${item.achievementId}`, eyebrow: "ACHIEVEMENT UNLOCKED", title: item.title, detail: `REWARD  ${item.reward.coins} COINS · ${item.reward.xp} XP`, color: "#FFD06A" })),
@@ -63,6 +73,19 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
     AccessibilityInfo.announceForAccessibility(result === "victory" ? "Victory. Match rewards are being revealed." : "Match complete. Defeat.");
     return () => { mounted.current = false; clearTimers(); noticeOpacity.stopAnimation(); noticeY.stopAnimation(); };
   }, [noticeOpacity, noticeY, result]);
+
+  useEffect(() => {
+    celebration.stopAnimation();
+    celebration.setValue(reducedMotion ? 1 : 0);
+    if (reducedMotion) return;
+    const animation = Animated.timing(celebration, {
+      toValue: 1,
+      duration: result === "victory" ? 1450 : 720,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [celebration, reducedMotion, result]);
 
   useEffect(() => {
     clearTimers();
@@ -104,8 +127,22 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
 
   return (
     <View accessibilityViewIsModal importantForAccessibility="yes" style={[styles.overlay, result === "victory" ? styles.victoryOverlay : styles.defeatOverlay]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.resultLighting,
+          result === "defeat" && styles.defeatLighting,
+          {
+            opacity: celebration.interpolate({
+              inputRange: [0, 0.16, 1],
+              outputRange: result === "victory" ? [0.72, 0.28, 0.08] : [0.26, 0.14, 0.06],
+            }),
+            transform: [{ scale: celebration.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.28] }) }],
+          },
+        ]}
+      />
       {!isComplete ? <Pressable accessibilityRole="button" accessibilityLabel="Skip victory presentation" onPress={complete} style={[styles.skip, { top: Math.max(insets.top, 10) }]}><Text style={styles.skipText}>SKIP</Text></Pressable> : null}
-      {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={styles.confetti}>{[0, 1, 2, 3, 4, 5].map((item) => <View key={item} style={[styles.spark, { left: `${10 + item * 16}%`, top: 36 + (item % 3) * 18 }]} />)}</View> : null}
+      {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={styles.confetti}>{VICTORY_CONFETTI.map((item, index) => <Animated.View key={item.left} style={[styles.spark, { backgroundColor: item.color, left: item.left, opacity: celebration.interpolate({ inputRange: [0, 0.1 + item.delay / 2400, 0.82, 1], outputRange: [0, 0.9, 0.7, 0] }), transform: [{ translateX: celebration.interpolate({ inputRange: [0, 1], outputRange: [0, item.drift] }) }, { translateY: celebration.interpolate({ inputRange: [0, 1], outputRange: [-30 - index * 5, 580 + index * 18] }) }, { rotate: `${18 + index * 31}deg` }] }]} />)}</View> : null}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10), paddingBottom: Math.max(insets.bottom, 10) }]}>
         <View style={styles.content}>
           <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName={contestName} location={location} food={foodName} difficulty={difficulty} roundLabel={roundLabel} variant="compact" restaurantName={restaurantName} restaurantLogoUrl={restaurantLogoUrl} city={city} state={state} verified={verified} sponsored={sponsored} sponsorName={sponsorName} sponsorLogoUrl={sponsorLogoUrl} sponsorMessage={sponsorMessage} showPartnerDetails />
@@ -123,9 +160,11 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 2000 }, victoryOverlay: { backgroundColor: "rgba(7,5,6,0.96)" }, defeatOverlay: { backgroundColor: "rgba(36,7,9,0.96)" },
+  resultLighting: { alignSelf: "center", backgroundColor: "rgba(255,133,24,0.5)", borderRadius: 260, height: 420, position: "absolute", top: "5%", width: 420 },
+  defeatLighting: { backgroundColor: "rgba(128,31,32,0.32)" },
   scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 15 }, content: { alignItems: "center", alignSelf: "center", maxWidth: 420, width: "100%" },
   skip: { backgroundColor: "rgba(17,9,9,0.9)", borderColor: "#B98550", borderRadius: 15, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 7, position: "absolute", right: 14, zIndex: 30 }, skipText: { color: "#F2D0A2", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
-  confetti: { ...StyleSheet.absoluteFillObject, overflow: "hidden" }, spark: { backgroundColor: "#FFB52E", height: 7, opacity: 0.75, position: "absolute", transform: [{ rotate: "25deg" }], width: 3 },
+  confetti: { ...StyleSheet.absoluteFillObject, overflow: "hidden" }, spark: { borderRadius: 2, height: 9, position: "absolute", top: 0, width: 4 },
   rankUp: { alignItems: "center", backgroundColor: "rgba(27,18,15,0.98)", borderColor: "#FFD06A", borderRadius: 10, borderWidth: 1, marginTop: 6, padding: 7, width: "100%" }, rankName: { fontSize: 15, fontWeight: "900", marginTop: 2 },
   notice: { alignItems: "center", backgroundColor: "rgba(31,14,11,0.98)", borderRadius: 11, borderWidth: 1.5, marginTop: 6, paddingHorizontal: 12, paddingVertical: 8, width: "100%" }, noticeEyebrow: { color: "#E7B565", fontSize: 8, fontWeight: "900", letterSpacing: 1.1, textAlign: "center" }, noticeTitle: { fontSize: 16, fontWeight: "900", marginTop: 2, textAlign: "center" }, noticeDetail: { color: "#BFA080", fontSize: 7, fontWeight: "800", marginTop: 2, textAlign: "center" },
   tournamentProgress: { backgroundColor: "rgba(16,11,12,0.98)", borderColor: "rgba(226,147,55,0.55)", borderRadius: 10, borderWidth: 1, marginTop: 6, padding: 8, width: "100%" }, tournamentScore: { color: "#FFF0D7", fontSize: 11, fontWeight: "900", marginBottom: 4, marginTop: 3, textAlign: "center" },

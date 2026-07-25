@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 import MatchHUD from "./MatchHUD";
 import type { HeatTier } from "../heartburn";
@@ -32,40 +32,55 @@ type Props = {
   antacidCount: number;
   canUseAntacid: boolean;
   onUseAntacid: () => boolean;
+  coolingTrigger?: number;
 };
 
 function VerticalMeter({ label, detail, value, tone, reducedMotion }: { label: string; detail?: string; value: number; tone: "combo" | "heat"; reducedMotion: boolean }) {
-  const percent = `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` as `${number}%`;
   const warning = tone === "heat" && value >= 0.82;
   const warningScale = useRef(new Animated.Value(1)).current;
   const warningGlow = useRef(new Animated.Value(0)).current;
+  const fillProgress = useRef(new Animated.Value(value)).current;
+  const previousValue = useRef(value);
 
   useEffect(() => {
-    if (!warning || reducedMotion) {
+    const animation = Animated.timing(fillProgress, {
+      toValue: Math.max(0, Math.min(1, value)),
+      duration: reducedMotion ? 0 : 140,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [fillProgress, reducedMotion, value]);
+
+  useEffect(() => {
+    const comboIncreased = tone === "combo" && value > previousValue.current;
+    previousValue.current = value;
+    if ((!warning && !comboIncreased) || reducedMotion) {
       warningScale.stopAnimation();
       warningGlow.stopAnimation();
       warningScale.setValue(1);
       warningGlow.setValue(0);
       return;
     }
-    warningScale.setValue(1.035);
-    warningGlow.setValue(0.75);
+    warningScale.setValue(comboIncreased ? 1.045 + value * 0.025 : 1.035);
+    warningGlow.setValue(comboIncreased ? 0.58 : 0.75);
     const animation = Animated.parallel([
       Animated.spring(warningScale, { toValue: 1, friction: 8, tension: 180, useNativeDriver: true }),
-      Animated.timing(warningGlow, { toValue: 0.25, duration: 420, useNativeDriver: true }),
+      Animated.timing(warningGlow, { toValue: warning ? 0.25 : 0, duration: 320, useNativeDriver: true }),
     ]);
     animation.start();
     return () => animation.stop();
-  }, [reducedMotion, value, warning, warningGlow, warningScale]);
+  }, [reducedMotion, tone, value, warning, warningGlow, warningScale]);
 
   return (
     <Animated.View style={[styles.meterGroup, { transform: [{ scale: warningScale }] }]} pointerEvents="none">
       <View style={styles.meterConnector} />
       <Text maxFontSizeMultiplier={1.5} style={styles.meterValue}>{Math.round(value * 100)}</Text>
       <View style={[styles.meterShell, warning && styles.meterShellWarning]}>
-        <Animated.View style={[styles.heatGlow, { opacity: warningGlow }]} />
+        <Animated.View style={[styles.heatGlow, tone === "combo" && styles.comboGlow, { opacity: warningGlow }]} />
         <View style={styles.meterTrack}>
-          <View style={[styles.meterFill, tone === "combo" ? styles.comboFill : styles.heatFill, { height: percent }]} />
+          <Animated.View style={[styles.meterFill, tone === "combo" ? styles.comboFill : styles.heatFill, { height: fillProgress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]} />
           <View style={styles.meterShine} />
         </View>
       </View>
@@ -97,7 +112,7 @@ export default function GameplayHUD(props: Props) {
         reducedMotion={reducedMotion}
       />
       <View accessibilityLabel="Combo progress" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 25, now: Math.min(25, Math.max(0, props.combo)) }} style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" reducedMotion={reducedMotion} /></View>
-      <View style={styles.rightMeter}><HeartburnMeter heartburn={props.heartburn} heatTier={props.heatTier} heatMultiplier={props.heatMultiplier} isOverheated={props.isOverheated} overheatRemainingMs={props.overheatRemainingMs} /></View>
+      <View style={styles.rightMeter}><HeartburnMeter heartburn={props.heartburn} heatTier={props.heatTier} heatMultiplier={props.heatMultiplier} isOverheated={props.isOverheated} overheatRemainingMs={props.overheatRemainingMs} coolingTrigger={props.coolingTrigger} /></View>
     </View>
   );
 }
@@ -112,6 +127,7 @@ const styles = StyleSheet.create({
   meterShell: { backgroundColor: "rgba(8,6,7,0.97)", borderColor: "rgba(238,145,48,0.76)", borderRadius: 8, borderTopLeftRadius: 2, borderTopRightRadius: 2, borderWidth: 1, height: 108, padding: 4, width: 30 },
   meterShellWarning: { backgroundColor: "rgba(54,10,8,0.96)", borderColor: "#FF6038", borderWidth: 2 },
   heatGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,72,25,0.3)", borderRadius: 9 },
+  comboGlow: { backgroundColor: "rgba(255,188,62,0.28)" },
   meterTrack: { backgroundColor: "rgba(50,25,20,0.92)", borderRadius: 6, flex: 1, justifyContent: "flex-end", overflow: "hidden" },
   meterFill: { borderRadius: 5, minHeight: 3, width: "100%" },
   comboFill: { backgroundColor: "#F39A2D" },

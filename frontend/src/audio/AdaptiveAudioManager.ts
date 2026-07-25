@@ -5,6 +5,7 @@ import type { AdaptiveAudioContext, AudioSettings, MusicState, SoundEvent } from
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const effects = new Map<SoundEvent, AudioPlayer>();
+const lastPlayedAt = new Map<SoundEvent, number>();
 let settings = DEFAULT_AUDIO_SETTINGS;
 let settingsPromise: Promise<AudioSettings> | null = null;
 let musicPlayer: AudioPlayer | null = null;
@@ -76,6 +77,9 @@ export async function playSound(event: SoundEvent): Promise<void> {
   await ensureSettings();
   const definition = SOUND_REGISTRY[event];
   if (!definition.source || effectVolume() <= 0) return;
+  const now = Date.now();
+  if (now - (lastPlayedAt.get(event) ?? 0) < (definition.minIntervalMs ?? 0)) return;
+  lastPlayedAt.set(event, now);
   let player = effects.get(event);
   if (!player) { player = createAudioPlayer(definition.source); effects.set(event, player); }
   player.volume = effectVolume(); player.pause(); await player.seekTo(0); player.play();
@@ -100,5 +104,5 @@ export function stopMusic(fadeMs = 280) {
 export function releaseAudio() {
   transitionToken++; if (duckTimer) clearTimeout(duckTimer); duckTimer = null; duckPriority = 0; duckLevel = 1;
   if (musicPlayer) { musicPlayer.pause(); musicPlayer.release(); musicPlayer = null; }
-  effects.forEach((player) => player.release()); effects.clear(); musicState = null;
+  effects.forEach((player) => player.release()); effects.clear(); lastPlayedAt.clear(); musicState = null;
 }

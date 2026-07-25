@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import Header, HTTPException
 
-from database import find_internal_player
+from database import find_internal_player, find_internal_player_by_auth_hash
 
 
 AUTH_TOKEN_BYTES = 32
@@ -67,6 +67,22 @@ def authenticated_player(
     player = find_internal_player(player_id)
     expected_hash = player.get("auth_token_hash") if player else None
     candidate_hash = hash_auth_token(credential["token"])
+    if not isinstance(expected_hash, str) or not hmac.compare_digest(
+        expected_hash,
+        candidate_hash,
+    ):
+        raise _unauthorized()
+    return player
+
+
+def authenticated_bearer_player(
+    authorization: Optional[str] = Header(default=None),
+) -> dict:
+    """Resolve a guest from its bearer credential without a client target ID."""
+    credential = authenticate_bearer(authorization)
+    candidate_hash = hash_auth_token(credential["token"])
+    player = find_internal_player_by_auth_hash(candidate_hash)
+    expected_hash = player.get("auth_token_hash") if player else None
     if not isinstance(expected_hash, str) or not hmac.compare_digest(
         expected_hash,
         candidate_hash,

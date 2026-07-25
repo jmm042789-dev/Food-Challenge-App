@@ -28,6 +28,17 @@ export default function Index() {
         const player = await api.getPlayer() as BootstrapPlayer;
         if (!active) return;
 
+        const matchRecovery = await api.activeMatch();
+        if (!active) return;
+        if (
+          matchRecovery.status === "resumable"
+          && typeof matchRecovery.contest_id === "string"
+          && matchRecovery.contest_id
+        ) {
+          router.replace(`/play/${encodeURIComponent(matchRecovery.contest_id)}`);
+          return;
+        }
+
         if (player.tutorial_done === false) {
           router.replace("/tutorial");
           return;

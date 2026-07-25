@@ -5,6 +5,7 @@ import {
   Pressable,
   View,
 } from "react-native";
+import FireProgressBar from "./FireProgressBar";
 
 type Props = {
   icon: string;
@@ -27,8 +28,6 @@ export default function DailyMissionCard({
   claimed = false,
   onClaim,
 }: Props) {
-  const percent = Math.min(progress / Math.max(maxProgress, 1), 1);
-
   return (
     <View style={styles.card}>
 
@@ -50,18 +49,7 @@ export default function DailyMissionCard({
 
       </View>
 
-      <View style={styles.track}>
-
-        <View
-          style={[
-            styles.fill,
-            {
-              width: `${percent * 100}%`,
-            },
-          ]}
-        />
-
-      </View>
+      <FireProgressBar compact max={Math.max(maxProgress, 1)} value={progress} variant="xp" style={styles.progressBar} />
 
       <View style={styles.footer}>
         <Text style={styles.progress}>{progress} / {maxProgress}</Text>
@@ -79,14 +67,14 @@ export default function DailyMissionCard({
 const styles = StyleSheet.create({
 
   card: {
-    backgroundColor: "#1A1E27",
+    backgroundColor: "rgba(22,13,13,0.94)",
 
     borderRadius: 12,
     padding: 10,
     marginBottom: 7,
     borderWidth: 1,
 
-    borderColor: "#343C48",
+    borderColor: "rgba(218,130,42,0.42)",
   },
 
   header: {
@@ -118,24 +106,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  track: {
-    marginTop: 8,
-    height: 6,
-
-    backgroundColor: "#2A2F3A",
-
-    borderRadius: 999,
-
-    overflow: "hidden",
-  },
-
-  fill: {
-    height: "100%",
-
-    backgroundColor: "#FF8A00",
-
-    borderRadius: 999,
-  },
+  progressBar: { marginTop: 8 },
 
   progress: {
     fontSize: 8,

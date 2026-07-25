@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Alert, Animated, AppState, Easing, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -117,12 +117,16 @@ export default function ContestScreen() {
   const matchStartedAt = useRef<number | null>(null);
   const scoreFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const serverOpponentId = useRef<string | null>(null);
+  const serverMatchId = useRef<string | null>(null);
   const resultRequestInFlight = useRef(false);
+  const abandonRequestInFlight = useRef(false);
+  const resultNavigationInFlight = useRef(false);
   const submittedResultKey = useRef<string | null>(null);
   const resultRetryCount = useRef(0);
   const resultRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousStatus = useRef(state.status);
   const lastCameraCombo = useRef(state.combo);
+  const lastBiteHapticAt = useRef(0);
   const missionRecordedMatch = useRef<string | null>(null);
   const achievementMatchEventId = useRef(`${matchRouteKey}:${Date.now()}:${Math.random().toString(36).slice(2)}`);
   const arenaTheme = useMemo(
@@ -182,16 +186,23 @@ export default function ContestScreen() {
         cameraRef.current?.comboPunch();
         cameraRef.current?.shake(4);
         void playAudioEvent("COMBO_MILESTONE");
+        if (!reducedMotion) {
+          Haptics.impactAsync(state.combo >= 20 ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        }
       } else if (state.combo > 1) {
         void playAudioEvent("COMBO");
       }
     }
-  }, [playAudioEvent, state.combo]);
+  }, [playAudioEvent, reducedMotion, state.combo]);
 
   useEffect(() => {
     if (state.status !== "COUNTDOWN") return;
     void playAudioEvent(countdownValue === "GO" ? "GO" : "COUNTDOWN_TICK");
-  }, [countdownValue, playAudioEvent, state.status]);
+    if (countdownValue === "GO") {
+      cameraRef.current?.countdownSettle();
+      if (!reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
+  }, [countdownValue, playAudioEvent, reducedMotion, state.status]);
 
   useEffect(() => {
     const priorStatus = previousStatus.current;
@@ -200,9 +211,14 @@ export default function ContestScreen() {
     if (state.status === "PLAYING" && priorStatus !== "PLAYING") {
       cameraRef.current?.reset();
     } else if (state.status === "FINISHED" && priorStatus !== "FINISHED") {
-      cameraRef.current?.victoryZoom();
+      const won = state.score > opponentScore;
+      if (won) cameraRef.current?.victoryZoom();
+      else cameraRef.current?.defeatSettle();
+      if (!reducedMotion) {
+        Haptics.notificationAsync(won ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      }
     }
-  }, [state.status]);
+  }, [opponentScore, reducedMotion, state.score, state.status]);
 
   useEffect(() => {
     cameraRef.current?.reset();
@@ -220,6 +236,7 @@ export default function ContestScreen() {
     highScoreCommented.current = false;
     activeResultKey.current = matchRouteKey;
     serverOpponentId.current = null;
+    serverMatchId.current = null;
     resultRequestInFlight.current = false;
     submittedResultKey.current = null;
     resultRetryCount.current = 0;
@@ -230,13 +247,15 @@ export default function ContestScreen() {
   useEffect(() => {
     if (state.status !== "FINISHED" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
     const opponentId = serverOpponentId.current;
-    if (!opponentId) return;
+    const matchId = serverMatchId.current;
+    if (!opponentId || !matchId) return;
 
     resultRequestInFlight.current = true;
     const duration = matchStartedAt.current === null
       ? matchDurationSeconds
       : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
     void api.submitResult({
+      match_id: matchId,
       contest_id: selectedContestId,
       score: state.score,
       duration_sec: duration,
@@ -259,6 +278,23 @@ export default function ContestScreen() {
       resultRequestInFlight.current = false;
     });
   }, [antacidCount, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultSubmitAttempt, selectedContestId, state.score, state.status, tournamentOccurrenceId]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active" || (state.status !== "COUNTDOWN" && state.status !== "PLAYING")) return;
+      void api.activeMatch().then((recovery) => {
+        if (
+          recovery.status !== "resumable"
+          || recovery.match_id !== serverMatchId.current
+        ) {
+          setMatchStartError(true);
+        }
+      }).catch(() => {
+        // A transient resume check must not interrupt an otherwise active round.
+      });
+    });
+    return () => subscription.remove();
+  }, [state.status]);
 
   useEffect(() => {
     const priorStatus = previousArenaStatus.current;
@@ -452,6 +488,9 @@ export default function ContestScreen() {
 
     async function loadContestDetails() {
       try {
+        if (!selectedContestId || !/^[A-Za-z0-9._:-]{1,128}$/.test(selectedContestId)) {
+          throw new Error("Invalid contest route");
+        }
         const [contestResult, playerResult, titleResult, matchResult] = await Promise.allSettled([api.listContests(), api.getPlayer(), loadTitleProgress(), api.startMatch(selectedContestId)]);
         const contests = contestResult.status === "fulfilled" ? parseContests(contestResult.value) : [];
         const contestIndex = contests.findIndex((item) => item.id === selectedContestId);
@@ -477,8 +516,10 @@ export default function ContestScreen() {
         }
         if (active && matchResult.status === "fulfilled") {
           const opponentId = String(matchResult.value?.opponent?.id ?? "");
-          if (!opponentId) throw new Error("Match start did not return an opponent");
+          const matchId = String(matchResult.value?.match_id ?? "");
+          if (!opponentId || !matchId) throw new Error("Match start response was incomplete");
           serverOpponentId.current = opponentId;
+          serverMatchId.current = matchId;
           setContestLoaded(true);
         } else if (active) {
           setMatchStartError(true);
@@ -506,6 +547,11 @@ export default function ContestScreen() {
     tapLatest();
     cameraRef.current?.bitePunch();
     void playAudioEventLatest("CORRECT_BITE");
+    const now = Date.now();
+    if (!reducedMotion && now - lastBiteHapticAt.current >= 80) {
+      lastBiteHapticAt.current = now;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     if (!firstBiteCommented.current) {
       firstBiteCommented.current = true;
       commentateLatest({ type: "FIRST_BITE" });
@@ -535,33 +581,49 @@ export default function ContestScreen() {
     setShowScore(true);
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
-  }, []);
+  }, [reducedMotion]);
 
-  const handleUseAntacid = (): boolean => {
-  const used = applyAntacid();
+  const handleUseAntacid = useCallback((): boolean => {
+    const used = applyAntacid();
+    if (!used) return false;
 
-  if (!used) {
-    return false;
-  }
-
-  setCoolingTrigger((value) => value + 1);
-
-  Haptics.notificationAsync(
-    Haptics.NotificationFeedbackType.Success
-  ).catch(() => {});
-
-  return true;
-};
+    setCoolingTrigger((value) => value + 1);
+    cameraRef.current?.comboPunch(0.85);
+    cameraRef.current?.shake(2.5);
+    void playAudioEvent("PERFECT_MECHANIC");
+    Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Success
+    ).catch(() => {});
+    return true;
+  }, [applyAntacid, playAudioEvent]);
   const result = state.status === "FINISHED"
     ? state.score > opponentScore ? "victory" : "defeat"
     : null;
 
   const replay = () => {
+    if (resultNavigationInFlight.current) return;
+    resultNavigationInFlight.current = true;
     const tournamentQuery = tournamentOccurrenceId ? `&tournament=${encodeURIComponent(tournamentOccurrenceId)}` : "";
     router.replace(`/play/${selectedContestId}?replay=${Date.now()}${tournamentQuery}`);
   };
 
+  const abandonAndReturn = () => {
+    if (abandonRequestInFlight.current) return;
+    abandonRequestInFlight.current = true;
+    void api.abandonMatch()
+      .then(() => {
+        abandonRequestInFlight.current = false;
+        router.replace("/(tabs)/contests");
+      })
+      .catch(() => {
+        abandonRequestInFlight.current = false;
+        Alert.alert("Unable to leave match", "Check your connection and try again.");
+      });
+  };
+
   const continueToNextContest = () => {
+    if (resultNavigationInFlight.current) return;
+    resultNavigationInFlight.current = true;
     router.replace(nextContestId ? `/play/${nextContestId}` : "/(tabs)/contests");
   };
 
@@ -597,6 +659,12 @@ export default function ContestScreen() {
           message="Check your connection or coin balance, then try again."
           buttonLabel="RETRY"
           onPress={() => setMatchStartAttempt((current) => current + 1)}
+        />
+        <FireButton
+          title="RETURN TO ARENA"
+          onPress={abandonAndReturn}
+          variant="secondary"
+          style={styles.recoveryButton}
         />
       </View>
     );
@@ -660,6 +728,7 @@ export default function ContestScreen() {
           antacidCount={antacidCount}
           canUseAntacid={canUseAntacid}
           onUseAntacid={handleUseAntacid}
+          coolingTrigger={coolingTrigger}
         />
         </FireScreenEntrance>
 
@@ -667,7 +736,7 @@ export default function ContestScreen() {
           <FoodArena contestId={selectedContestId} combo={state.combo} timeRemaining={timeRemaining} resetKey={matchRouteKey} active={state.status === "PLAYING"} foodProfile={foodProfile} onTap={handleTap} onMechanicCompleted={handleMechanicCompleted} />
         </View>
         <Animated.View style={[styles.antacidControl, { opacity: canUseAntacid ? 1 : 0.46, transform: [{ scale: antacidPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
-          <FireButton accessibilityLabel={`Use antacid, ${antacidCount} remaining${canUseAntacid ? ", cool down" : ", unavailable"}`} title="USE ANTACID" subtitle={canUseAntacid ? `COOL DOWN · ${antacidCount} LEFT` : `${antacidCount} LEFT`} size="compact" variant={heatTier === "CRITICAL" || heatTier === "OVERHEATED" ? "gold" : "secondary"} disabled={!canUseAntacid} onPress={handleUseAntacid} style={styles.antacidButton} />
+          <FireButton accessibilityLabel={`Use antacid, ${antacidCount} remaining${canUseAntacid ? ", cool down" : ", unavailable"}`} title="USE ANTACID" subtitle={canUseAntacid ? `COOL DOWN · ${antacidCount} LEFT` : `${antacidCount} LEFT`} size="compact" variant={heatTier === "CRITICAL" || heatTier === "OVERHEATED" ? "gold" : "secondary"} disabled={!canUseAntacid} haptic={false} onPress={handleUseAntacid} style={styles.antacidButton} />
         </Animated.View>
       </SceneMotion>
       </CameraController>
@@ -741,6 +810,11 @@ const styles = StyleSheet.create({
   },
   gameplayLayer: {
     flex: 1,
+  },
+  recoveryButton: {
+    alignSelf: "center",
+    bottom: 48,
+    position: "absolute",
   },
   overlay: {
     flex: 1,

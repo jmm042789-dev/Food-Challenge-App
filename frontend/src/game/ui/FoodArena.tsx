@@ -162,6 +162,7 @@ function FoodArena({
     height * 0.35,
     285,
   );
+  const foodHitSlop = Math.round(clamp(size * 0.1, 18, 28));
 
   const foodArtwork = getFoodArtwork(contestId);
 
@@ -653,8 +654,14 @@ function FoodArena({
       Animated.sequence([
         Animated.timing(impactScale, {
           toValue: compression,
-          duration: speedDuration(46),
+          duration: speedDuration(38),
           easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(impactScale, {
+          toValue: reducedMotion ? 1 : 1.025 + impactTier * 0.004,
+          duration: speedDuration(34),
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.spring(impactScale, {
@@ -954,8 +961,10 @@ function FoodArena({
         accessibilityElementsHidden
         accessible={false}
         disabled={!active}
+        hitSlop={foodHitSlop}
         importantForAccessibility="no-hide-descendants"
-        onPress={tap}
+        onPressIn={tap}
+        pressRetentionOffset={foodHitSlop}
         style={styles.foodPressable}
       >
         <Animated.View

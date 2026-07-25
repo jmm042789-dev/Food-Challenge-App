@@ -1,5 +1,6 @@
-import React from "react";
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle, type AccessibilityRole, type AccessibilityState } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle, type AccessibilityRole, type AccessibilityState } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 type Accent = "default" | "gold" | "danger" | "success" | "featured";
 type Props = {
@@ -25,14 +26,21 @@ const accentColor: Record<Accent, string> = { default: "rgba(255,141,41,0.45)", 
 
 export default function FirePanel({ children, title, subtitle, icon, headerRight, compact = false, elevated = false, accent = "default", highlighted = false, borderColor, onPress, style, accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState }: Props) {
   const trim = borderColor ?? accentColor[highlighted ? "featured" : accent];
+  const scale = useRef(new Animated.Value(1)).current;
+  const animateScale = (toValue: number) => {
+    scale.stopAnimation();
+    Animated.spring(scale, { toValue, friction: 8, tension: 240, useNativeDriver: true }).start();
+  };
+  useEffect(() => () => scale.stopAnimation(), [scale]);
   const body = (
-    <View style={[styles.panel, compact && styles.compact, elevated && styles.elevated, { borderColor: trim }, style]}>
+    <Animated.View style={[styles.panel, compact && styles.compact, elevated && styles.elevated, { borderColor: trim, transform: [{ scale }] }, style]}>
+      <LinearGradient colors={["rgba(255,255,255,0.055)", "rgba(255,143,47,0.018)", "rgba(0,0,0,0.12)"]} pointerEvents="none" style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={[styles.topHighlight, { backgroundColor: trim }]} />
       {(title || subtitle || icon || headerRight) ? <View style={styles.header}><View style={styles.headerText}>{title ? <View style={styles.titleRow}>{icon ? <View style={styles.icon}>{icon}</View> : null}<Text style={styles.title}>{title}</Text></View> : null}{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{headerRight}</View> : null}
       <View style={(title || subtitle || icon || headerRight) ? styles.content : undefined}>{children}</View>
-    </View>
+    </Animated.View>
   );
-  return onPress ? <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? "button"} accessibilityState={accessibilityState} onPress={onPress} style={({ pressed }) => pressed ? styles.pressed : undefined}>{body}</Pressable> : body;
+  return onPress ? <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? "button"} accessibilityState={accessibilityState} onPress={onPress} onPressIn={() => animateScale(0.975)} onPressOut={() => animateScale(1)}>{body}</Pressable> : body;
 }
 
 const styles = StyleSheet.create({
@@ -43,5 +51,5 @@ const styles = StyleSheet.create({
   header: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
   headerText: { flex: 1 }, titleRow: { alignItems: "center", flexDirection: "row" }, icon: { marginRight: 7 },
   title: { color: "#FFF7E8", fontSize: 17, fontWeight: "900", letterSpacing: 0.3 },
-  subtitle: { color: "#CDBEAD", fontSize: 12, marginTop: 3 }, content: { marginTop: 12 }, pressed: { opacity: 0.9 },
+  subtitle: { color: "#CDBEAD", fontSize: 12, marginTop: 3 }, content: { marginTop: 12 },
 });

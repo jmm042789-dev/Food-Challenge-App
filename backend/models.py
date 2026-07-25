@@ -1,5 +1,5 @@
 import unicodedata
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
@@ -57,6 +57,12 @@ class PlayerProfileUpdate(RequestModel):
         return _clean_display_text(value)
 
 
+class AccountDeletionRequest(RequestModel):
+    """Explicit confirmation for permanent guest-account deletion."""
+
+    confirmation: Literal["DELETE"]
+
+
 class Player(BaseModel):
     device_id: str
 
@@ -95,6 +101,7 @@ class QueuePlayer(BaseModel):
 
 class MatchResult(RequestModel):
     device_id: Identifier
+    match_id: Optional[Identifier] = None
     contest_id: Identifier
     opponent_id: Identifier
     score: int = Field(ge=0, le=10_000_000)

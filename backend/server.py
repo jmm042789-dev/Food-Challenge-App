@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,12 +7,15 @@ import time
 import uuid
 from database import (
     active_matches,
+    close_database,
     database_connected,
+    delete_guest_player,
     initialize_database,
     player_count,
     public_player_document,
     queue,
 )
+from config import ConfigurationError, load_config
 
 from services.player_service import (
     bootstrap_guest,
@@ -30,9 +32,14 @@ from services.match_service import (
     ContestNotFoundError,
     InsufficientCoinsError as MatchInsufficientCoinsError,
     MatchAlreadyActiveError,
+    MatchExpiredError,
     MatchNotFoundError,
     MatchValidationError,
     PlayerNotFoundError,
+    cancel_match,
+    cleanup_stale_matchmaking_state,
+    expire_stale_match,
+    recover_match,
     start_match,
     submit_result,
 )
@@ -46,6 +53,7 @@ from services.shop_service import (
 )
 from models import (
     EquipRequest,
+    AccountDeletionRequest,
     GuestBootstrapRequest,
     MatchResult,
     MatchStart,
@@ -53,7 +61,7 @@ from models import (
     PlayerProfileUpdate,
     PurchaseRequest,
 )
-from auth import authenticated_player
+from auth import authenticated_bearer_player, authenticated_player
 from rate_limit import rate_limit
 
 from services.contest_service import featured, categories
@@ -63,16 +71,13 @@ from data.contests import CONTESTS
 from data.shop import SHOP_ITEMS
 from data.gear import GEAR
 
-ENVIRONMENT = os.getenv("FIRE_FEAST_ENV", "development").strip().lower()
-IS_PRODUCTION = ENVIRONMENT == "production"
-configured_origins = [
-    origin.strip()
-    for origin in os.getenv("FIRE_FEAST_CORS_ORIGINS", "").split(",")
-    if origin.strip()
-]
-if IS_PRODUCTION and any(not origin.startswith("https://") for origin in configured_origins):
-    raise RuntimeError("Production CORS origins must use HTTPS")
-allowed_origins = configured_origins if IS_PRODUCTION else (configured_origins or ["*"])
+app_config = load_config(require_database=False)
+IS_PRODUCTION = app_config.is_production
+allowed_origins = (
+    list(app_config.cors_origins)
+    if app_config.cors_origins
+    else ([] if IS_PRODUCTION else ["*"])
+)
 
 app = FastAPI(
     docs_url=None if IS_PRODUCTION else "/docs",
@@ -94,9 +99,16 @@ bootstrap_limit = rate_limit("guest-bootstrap", requests=10, window_seconds=60)
 matchmaking_join_limit = rate_limit("matchmaking-join", requests=30, window_seconds=60)
 match_start_limit = rate_limit("match-start", requests=20, window_seconds=60)
 match_result_limit = rate_limit("match-result", requests=30, window_seconds=60)
+match_recovery_limit = rate_limit("match-recovery", requests=60, window_seconds=60)
+match_abandon_limit = rate_limit("match-abandon", requests=10, window_seconds=60)
 purchase_limit = rate_limit("purchase", requests=30, window_seconds=60)
 tutorial_limit = rate_limit("tutorial-reward", requests=10, window_seconds=60)
 welcome_limit = rate_limit("welcome-reward", requests=10, window_seconds=60)
+account_deletion_limit = rate_limit(
+    "account-deletion",
+    requests=3,
+    window_seconds=60 * 60,
+)
 
 
 @app.middleware("http")
@@ -130,7 +142,31 @@ def require_diagnostics():
 
 @app.on_event("startup")
 def startup_database():
-    initialize_database()
+    try:
+        validated_config = load_config()
+    except ConfigurationError as error:
+        logger.critical("Configuration validation failed: %s", error)
+        raise RuntimeError("backend configuration is invalid") from None
+
+    try:
+        initialize_database(validated_config)
+    except Exception as error:
+        logger.critical(
+            "Database startup validation failed (%s)",
+            type(error).__name__,
+        )
+        close_database()
+        raise RuntimeError("database startup validation failed") from None
+    logger.info(
+        "Backend startup complete (environment=%s)",
+        validated_config.environment,
+    )
+
+
+@app.on_event("shutdown")
+def shutdown_database():
+    close_database()
+    logger.info("Backend shutdown complete")
 
 
 @app.get("/api/health")
@@ -240,6 +276,20 @@ def update_player_endpoint(
         raise HTTPException(status_code=404, detail="player not found")
     return player
 
+
+@app.delete(
+    "/api/player/account",
+    dependencies=[Depends(account_deletion_limit)],
+)
+def delete_player_account_endpoint(
+    data: AccountDeletionRequest,
+    authorization: str | None = Header(default=None),
+):
+    """Permanently remove only the guest identified by the bearer credential."""
+    player = authenticated_bearer_player(authorization)
+    delete_guest_player(player["device_id"], player["auth_token_hash"])
+    return {"deleted": True}
+
 # =========================
 # MATCHMAKING
 # =========================
@@ -251,6 +301,10 @@ def join_queue(
 ):
     device_id = data.device_id
     player = authenticated_player(device_id, authorization)
+    cleanup_stale_matchmaking_state()
+    expire_stale_match(device_id)
+    if recover_match(device_id)["status"] == "resumable":
+        raise HTTPException(status_code=409, detail="an active match requires recovery")
 
     # prevent duplicates
     for p in queue:
@@ -269,7 +323,11 @@ def join_queue(
             continue
 
         if abs(p["elo"] - player["elo"]) <= 200:
-            queue.remove(p)
+            queue[:] = [
+                entry
+                for entry in queue
+                if entry["device_id"] not in {device_id, p["device_id"]}
+            ]
 
             match_id = str(uuid.uuid4())
 
@@ -293,6 +351,8 @@ def matchmaking_status(
     authorization: str | None = Header(default=None),
 ):
     authenticated_player(device_id, authorization)
+    cleanup_stale_matchmaking_state()
+    expire_stale_match(device_id)
     for match_id, match in active_matches.items():
         if device_id in match["players"]:
             return {
@@ -310,14 +370,33 @@ def leave_queue(
     authorization: str | None = Header(default=None),
 ):
     authenticated_player(data.device_id, authorization)
-    global queue
-    queue = [p for p in queue if p["device_id"] != data.device_id]
+    queue[:] = [p for p in queue if p["device_id"] != data.device_id]
 
     return {"status": "left"}
 
 # =========================
 # MATCH RESULT + ELO
 # =========================
+
+@app.get("/api/match/active", dependencies=[Depends(match_recovery_limit)])
+def active_match_endpoint(
+    authorization: str | None = Header(default=None),
+):
+    player = authenticated_bearer_player(authorization)
+    return recover_match(player["device_id"])
+
+
+@app.post("/api/match/abandon", dependencies=[Depends(match_abandon_limit)])
+def abandon_match_endpoint(
+    authorization: str | None = Header(default=None),
+):
+    player = authenticated_bearer_player(authorization)
+    try:
+        return cancel_match(player["device_id"])
+    except PlayerNotFoundError:
+        raise HTTPException(status_code=401, detail="invalid or missing authentication credentials")
+    except MatchValidationError:
+        raise HTTPException(status_code=409, detail="match cannot be cancelled")
 
 @app.post("/api/match/start", dependencies=[Depends(match_start_limit)])
 def match_start_endpoint(
@@ -349,6 +428,8 @@ def match_result(
         raise HTTPException(status_code=404, detail="player not found")
     except MatchNotFoundError:
         raise HTTPException(status_code=409, detail="no matching active match")
+    except MatchExpiredError:
+        raise HTTPException(status_code=409, detail="match has expired")
     except MatchValidationError:
         raise HTTPException(status_code=400, detail="match result does not match the active match")
 

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 
 import { api } from "../../src/api";
@@ -93,10 +93,12 @@ function StatTile({ label, value, accent = false }: { label: string; value: numb
 
 export default function ProfileScreen() {
   const isFocused = useIsFocused();
+  const router = useRouter();
   const [player, setPlayer] = useState<Player>(FALLBACK_PLAYER);
   const [gear, setGear] = useState<Gear[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const { state: achievementState, migrate: migrateAchievements, claim: claimAchievement } = useAchievements();
   const { state: restaurantState, notification: restaurantNotification, dismissNotification: dismissRestaurantNotification, sync: syncRestaurants } = useRestaurantProgress();
   const { state: titleState, notification: titleNotification, dismissNotification: dismissTitleNotification, sync: syncTitles, equip: equipTitle } = useTitleProgress();
@@ -156,6 +158,50 @@ export default function ProfileScreen() {
       unlockedRestaurantIds,
     });
   }, [achievementState, beltRank, completedAchievementIds, player.matches, player.wins, restaurantState, syncTitles, unlockedRestaurantIds]);
+
+  const deleteAccountPermanently = useCallback(async () => {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    try {
+      await api.deleteAccount();
+      router.replace("/");
+    } catch {
+      Alert.alert(
+        "Account deletion failed",
+        "Your local guest profile was not cleared. Check your connection and try again.",
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  }, [deletingAccount, router]);
+
+  const confirmAccountDeletion = useCallback(() => {
+    Alert.alert(
+      "Delete guest account?",
+      "This permanently removes your guest profile, progress, coins, inventory, rewards, and leaderboard entry. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Final confirmation",
+              "Delete this guest account and all of its progress permanently?",
+              [
+                { text: "Keep Account", style: "cancel" },
+                {
+                  text: "Delete Account Permanently",
+                  style: "destructive",
+                  onPress: () => { void deleteAccountPermanently(); },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  }, [deleteAccountPermanently]);
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -248,6 +294,23 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
+        <View style={styles.accountSection}>
+          <Text style={styles.accountTitle}>ACCOUNT &amp; DATA</Text>
+          <Text style={styles.accountWarning}>
+            Permanently delete this guest profile and all locally stored progress.
+          </Text>
+          <FireButton
+            title="DELETE ACCOUNT"
+            accessibilityLabel="Delete guest account"
+            onPress={confirmAccountDeletion}
+            disabled={deletingAccount}
+            loading={deletingAccount}
+            size="small"
+            variant="danger"
+            fullWidth
+          />
+        </View>
+
         {loading ? <Text style={styles.loading}>REFRESHING PROFILE…</Text> : null}
         {loadError && !loading ? <View style={styles.loadError}><Text style={styles.loading}>PROFILE COULD NOT BE REFRESHED</Text><FireButton title="RETRY" onPress={() => { void load(); }} size="small" variant="secondary" /></View> : null}
       </ScrollView>
@@ -258,7 +321,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   content: { paddingBottom: 18, paddingHorizontal: 12, paddingTop: 7 },
-  identityPanel: { backgroundColor: "rgba(13,9,10,0.95)", borderRadius: 15, borderWidth: 1.5, overflow: "hidden", padding: 11 },
+  identityPanel: { backgroundColor: "rgba(13,9,10,0.95)", borderRadius: 15, borderWidth: 1.5, elevation: 7, overflow: "hidden", padding: 11, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 10 },
   panelHighlight: { backgroundColor: "rgba(255,220,160,0.13)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
   hudRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minWidth: 0 },
   profileLabel: { color: "#C99A5A", flexShrink: 1, fontSize: 8, fontWeight: "900", letterSpacing: 1.4, paddingRight: 5 },
@@ -290,12 +353,12 @@ const styles = StyleSheet.create({
   headingRule: { backgroundColor: "rgba(218,129,42,0.3)", flex: 1, height: 1, marginLeft: 8 },
   ownedCount: { color: "#98785F", fontSize: 7, fontWeight: "900", letterSpacing: 0.7 },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  statTile: { alignItems: "center", backgroundColor: "rgba(14,10,11,0.94)", borderColor: "rgba(211,122,39,0.48)", borderRadius: 10, borderWidth: 1, justifyContent: "center", minHeight: 57, overflow: "hidden", width: "31.9%" },
+  statTile: { alignItems: "center", backgroundColor: "rgba(14,10,11,0.94)", borderColor: "rgba(211,122,39,0.48)", borderRadius: 10, borderWidth: 1, elevation: 2, justifyContent: "center", minHeight: 57, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, width: "31.9%" },
   tileHighlight: { backgroundColor: "rgba(255,215,145,0.1)", height: 1, left: 6, position: "absolute", right: 6, top: 1 },
   statValue: { color: "#FFF0D7", fontSize: 20, fontWeight: "900", lineHeight: 22 },
   statAccent: { color: "#FFC252" },
   statLabel: { color: "#9B8270", fontSize: 7, fontWeight: "900", letterSpacing: 0.7, marginTop: 2 },
-  loadoutPanel: { alignItems: "center", backgroundColor: "rgba(14,9,10,0.95)", borderColor: "rgba(231,143,48,0.68)", borderRadius: 12, borderWidth: 1, flexDirection: "row", minHeight: 82, padding: 8 },
+  loadoutPanel: { alignItems: "center", backgroundColor: "rgba(14,9,10,0.95)", borderColor: "rgba(231,143,48,0.68)", borderRadius: 12, borderWidth: 1, elevation: 3, flexDirection: "row", minHeight: 82, padding: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.24, shadowRadius: 5 },
   gearIconFrame: { alignItems: "center", backgroundColor: "rgba(43,20,15,0.84)", borderColor: "rgba(218,125,40,0.45)", borderRadius: 9, borderWidth: 1, height: 62, justifyContent: "center", marginRight: 9, width: 62 },
   gearIcon: { fontSize: 34 },
   gearInfo: { flex: 1, minWidth: 0, paddingRight: 6 },
@@ -307,4 +370,7 @@ const styles = StyleSheet.create({
   achievementSection: { marginTop: 12 },
   restaurantSection: { marginTop: 12 },
   titleSection: { marginTop: 12 },
+  accountSection: { backgroundColor: "rgba(35,10,11,0.88)", borderColor: "rgba(184,66,61,0.7)", borderRadius: 11, borderWidth: 1, marginTop: 14, padding: 11 },
+  accountTitle: { color: "#E9A09B", fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
+  accountWarning: { color: "#BDA09B", fontSize: 9, lineHeight: 13, marginTop: 5 },
 });

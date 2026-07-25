@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 type FireHUDFrameProps = {
   label?: string;
@@ -23,6 +24,7 @@ export default function FireHUDFrame({
 }: FireHUDFrameProps) {
   return (
     <View style={[styles.frame, compact ? styles.compact : styles.standard, style]}>
+      <LinearGradient colors={["rgba(255,255,255,0.07)", "rgba(255,150,52,0.025)", "rgba(0,0,0,0.13)"]} pointerEvents="none" style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.topHighlight} />
       {(label || value !== undefined || icon) ? (
         <View style={styles.header}>

@@ -21,6 +21,14 @@ const INSTALLATION_KEY = "firefeast_installation_id";
 const PLAYER_ID_KEY = "firefeast_player_id";
 const AUTH_TOKEN_KEY = "firefeast_auth_token";
 const LEGACY_PLAYER_ID_KEY = "chompchamps_device_id";
+const DELETION_PENDING_KEY = "firefeast_account_deletion_pending";
+const PLAYER_DATA_KEYS = [
+  "fire_feast_achievements_v1",
+  "fire_feast_daily_missions_v1",
+  "fire_feast_restaurant_progress_v1",
+  "fire_feast_title_progress_v1",
+  "fire_feast_tournament_progress_v1",
+];
 let bootstrapPlayerCache: unknown | undefined;
 let credentialsPromise: Promise<GuestCredentials> | null = null;
 
@@ -37,9 +45,15 @@ type GuestBootstrapResponse = {
 };
 
 export class AuthenticationError extends Error {
-  constructor(message = "Guest authentication failed.") {
+  localCredentialsCleared: boolean;
+
+  constructor(
+    message = "Guest authentication failed.",
+    localCredentialsCleared = false,
+  ) {
     super(message);
     this.name = "AuthenticationError";
+    this.localCredentialsCleared = localCredentialsCleared;
   }
 }
 
@@ -69,6 +83,26 @@ export function consumeBootstrapPlayer(): unknown | undefined {
 
 export function peekBootstrapPlayer(): unknown | undefined {
   return bootstrapPlayerCache;
+}
+
+async function clearLocalGuestData(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    INSTALLATION_KEY,
+    PLAYER_ID_KEY,
+    AUTH_TOKEN_KEY,
+    LEGACY_PLAYER_ID_KEY,
+    DELETION_PENDING_KEY,
+    ...PLAYER_DATA_KEYS,
+  ]);
+  bootstrapPlayerCache = undefined;
+  credentialsPromise = null;
+}
+
+async function recoverPendingDeletionAfterUnauthorized(): Promise<boolean> {
+  const pending = await AsyncStorage.getItem(DELETION_PENDING_KEY);
+  if (!pending) return false;
+  await clearLocalGuestData();
+  return true;
 }
 
 export type Contest = {
@@ -230,6 +264,14 @@ export async function getDeviceId(): Promise<string> {
 /**
  * Safe request wrapper
  */
+function diagnosticRequestPath(path: string): string {
+  if (/^\/player\/[^/]+$/.test(path)) return "/player/:playerId";
+  if (/^\/matchmaking\/status\/[^/]+$/.test(path)) {
+    return "/matchmaking/status/:playerId";
+  }
+  return path;
+}
+
 async function req(path: string, opts: RequestInit = {}, authenticated = true) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -265,8 +307,12 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
 
     if (!res.ok) {
       if (res.status === 401) {
+        const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();
         throw new AuthenticationError(
-          "This guest account could not be authenticated. Retry without clearing local app data.",
+          recoveredDeletion
+            ? "The deleted guest account was cleared from this device. Restart to create a new guest."
+            : "This guest account could not be authenticated. Retry without clearing local app data.",
+          recoveredDeletion,
         );
       }
       throw new ApiRequestError(
@@ -275,9 +321,13 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
       );
     }
 
+    if (authenticated && path !== "/player/account") {
+      await AsyncStorage.removeItem(DELETION_PENDING_KEY);
+    }
     return data;
   } catch (err: any) {
-    if (path === "/contests") {
+    const diagnosticPath = diagnosticRequestPath(path);
+    if (__DEV__ && path === "/contests") {
       console.error("Contest request failed", {
         url,
         status,
@@ -287,13 +337,17 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
 
     if (err?.name === "AbortError") {
       const timeoutError = new Error(
-        `Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${path}`
+        `Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${diagnosticPath}`
       );
-      console.error(`API timeout: ${path}`);
+      console.error(`API timeout: ${diagnosticPath}`);
       throw timeoutError;
     }
 
-    console.error(`API error: ${path}`, err?.message || err);
+    console.error("API request failed", {
+      path: diagnosticPath,
+      status,
+      error: err instanceof AuthenticationError ? err.name : "request error",
+    });
     throw err;
   } finally {
     clearTimeout(timeoutId);
@@ -337,6 +391,30 @@ export const api = {
     });
   },
 
+  deleteAccount: async (): Promise<{ deleted: true }> => {
+    await AsyncStorage.setItem(DELETION_PENDING_KEY, "true");
+    let response: { deleted?: unknown };
+    try {
+      response = await req("/player/account", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmation: "DELETE" }),
+      }) as { deleted?: unknown };
+    } catch (error) {
+      if (
+        error instanceof AuthenticationError
+        && error.localCredentialsCleared
+      ) {
+        return { deleted: true };
+      }
+      throw error;
+    }
+    if (response?.deleted !== true) {
+      throw new Error("The account deletion response was invalid.");
+    }
+    await clearLocalGuestData();
+    return { deleted: true };
+  },
+
   claimWelcomeReward: async () => {
     const id = await getDeviceId();
     return req(`/player/welcome_reward`, {
@@ -359,6 +437,7 @@ export const api = {
   },
 
   submitResult: async (payload: {
+    match_id: string;
     contest_id: string;
     score: number;
     duration_sec: number;
@@ -377,6 +456,17 @@ export const api = {
       }),
     });
   },
+
+  activeMatch: () => req(`/match/active`) as Promise<{
+    status: "resumable" | "expired" | "cancelled" | "settled" | "absent";
+    match_id?: string;
+    contest_id?: string;
+    started_at?: string;
+  }>,
+
+  abandonMatch: () => req(`/match/abandon`, { method: "POST" }) as Promise<{
+    status: "cancelled" | "expired" | "settled" | "absent";
+  }>,
 
   leaderboard: () => req(`/leaderboard`, {}, false),
 

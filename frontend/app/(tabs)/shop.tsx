@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Image, SectionList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
@@ -63,6 +63,7 @@ export default function ShopScreen() {
   const [player, setPlayer] = useState<Player>(EMPTY_PLAYER);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const actionInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -94,9 +95,12 @@ export default function ShopScreen() {
   }, [items]);
 
   const actOnItem = useCallback(async (item: ShopItem) => {
+    if (actionInFlight.current) return;
+
     const owned = player.owned_gear.includes(item.id);
     const equipped = player.equipped_gear === item.id;
     if (equipped) return;
+    actionInFlight.current = true;
     setPendingId(item.id);
     try {
       if (owned && item.type === "gear") {
@@ -111,6 +115,7 @@ export default function ShopScreen() {
     } catch (purchaseError: any) {
       Alert.alert("Shop action failed", purchaseError?.message || "Please try again.");
     } finally {
+      actionInFlight.current = false;
       setPendingId(null);
     }
   }, [load, player.equipped_gear, player.owned_gear]);
@@ -140,7 +145,7 @@ export default function ShopScreen() {
           <FireButton
             title={status === "equipped" ? "EQUIPPED" : status === "owned" && item.type === "gear" ? "EQUIP" : "BUY"}
             onPress={() => actOnItem(item)}
-            disabled={status === "equipped" || (unaffordable && status === "available")}
+            disabled={pendingId !== null || status === "equipped" || (unaffordable && status === "available")}
             loading={pendingId === item.id}
             size="compact"
             variant={status === "owned" ? "secondary" : "primary"}
@@ -183,7 +188,7 @@ export default function ShopScreen() {
             <FireButton
               title={statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && featured.type === "gear" ? "EQUIP ITEM" : "PURCHASE ITEM"}
               onPress={() => actOnItem(featured)}
-              disabled={statusFor(featured) === "equipped" || (featured.price > player.coins && statusFor(featured) === "available")}
+              disabled={pendingId !== null || statusFor(featured) === "equipped" || (featured.price > player.coins && statusFor(featured) === "available")}
               loading={pendingId === featured.id}
               variant="gold"
               size="small"
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
   counterIcon: { height: 23, marginRight: 5, width: 23 },
   counterLabel: { color: "#987B62", fontSize: 6, fontWeight: "900", letterSpacing: 0.7 },
   counterValue: { color: "#FFD06A", fontSize: 12, fontWeight: "900", lineHeight: 14 },
-  featured: { backgroundColor: "rgba(17,10,10,0.96)", borderColor: "#D88A2A", borderRadius: 15, borderWidth: 1.5, overflow: "hidden", padding: 10 },
+  featured: { backgroundColor: "rgba(17,10,10,0.96)", borderColor: "#D88A2A", borderRadius: 15, borderWidth: 1.5, elevation: 7, overflow: "hidden", padding: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 10 },
   featuredHighlight: { backgroundColor: "rgba(255,210,125,0.18)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
   featuredTop: { alignItems: "center", flexDirection: "row", minHeight: 132 },
   featuredArt: { alignItems: "center", backgroundColor: "rgba(65,23,12,0.54)", borderColor: "rgba(233,141,42,0.52)", borderRadius: 12, borderWidth: 1, height: 124, justifyContent: "center", marginRight: 11, width: "38%" },
@@ -255,7 +260,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: "#E8BD7A", fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
   sectionRule: { backgroundColor: "rgba(218,129,42,0.3)", flex: 1, height: 1, marginHorizontal: 8 },
   sectionCount: { color: "#98785F", fontSize: 8, fontWeight: "900" },
-  itemRow: { alignItems: "center", backgroundColor: "rgba(14,9,10,0.95)", borderColor: "rgba(216,128,38,0.56)", borderRadius: 11, borderWidth: 1, flexDirection: "row", marginBottom: 6, minHeight: 88, padding: 7 },
+  itemRow: { alignItems: "center", backgroundColor: "rgba(14,9,10,0.95)", borderColor: "rgba(216,128,38,0.56)", borderRadius: 11, borderWidth: 1, elevation: 3, flexDirection: "row", marginBottom: 6, minHeight: 88, padding: 7, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.24, shadowRadius: 5 },
   subdued: { opacity: 0.58 },
   itemArt: { alignItems: "center", backgroundColor: "rgba(46,20,14,0.76)", borderColor: "rgba(211,120,36,0.4)", borderRadius: 8, borderWidth: 1, height: 70, justifyContent: "center", marginRight: 8, width: 70 },
   itemEmoji: { fontSize: 38 },

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import CharacterPortrait, { type CharacterReaction } from "./CharacterPortrait";
 import TournamentBanner from "./TournamentBanner";
@@ -27,6 +28,13 @@ const BLAZE = require("../../assets/characters/blaze.png");
 function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reactionKey, reactionStrength = 0, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; score: number; mood?: OpponentMood; reaction: CharacterReaction; reactionKey: string | number; reactionStrength?: number; animatedStyle?: object }) {
   const zone = (
     <View style={[styles.scoreZone, side === "opponent" && styles.opponentZone]}>
+      <LinearGradient
+        colors={side === "player" ? ["rgba(255,175,77,0.11)", "transparent"] : ["rgba(205,79,47,0.09)", "transparent"]}
+        end={{ x: side === "player" ? 1 : 0, y: 0.5 }}
+        pointerEvents="none"
+        start={{ x: side === "player" ? 0 : 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+      />
       <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" mood={mood} reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
       <View style={[styles.scoreInfo, side === "opponent" && styles.opponentInfo]}>
         <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.score}>{Math.floor(score).toLocaleString()}</Text>
@@ -46,6 +54,9 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
   const scoreFlash = useRef(new Animated.Value(0)).current;
   const timerScale = useRef(new Animated.Value(1)).current;
   const timerGlow = useRef(new Animated.Value(0)).current;
+  const comboScale = useRef(new Animated.Value(1)).current;
+  const dashboardShimmer = useRef(new Animated.Value(0)).current;
+  const previousCombo = useRef(combo);
   const playerLeading = playerScore > opponentScore;
   const tied = playerScore === opponentScore;
   const playerScored = playerScore > previousScore.current;
@@ -83,6 +94,41 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
   useEffect(() => { previousOpponentScore.current = opponentScore; }, [opponentScore]);
 
   useEffect(() => {
+    const increased = combo > previousCombo.current;
+    previousCombo.current = combo;
+    if (!increased || reducedMotion) {
+      if (reducedMotion) comboScale.setValue(1);
+      return;
+    }
+    comboScale.stopAnimation();
+    comboScale.setValue(1.08 + Math.min(0.1, combo / 250));
+    const animation = Animated.spring(comboScale, {
+      toValue: 1,
+      friction: 6,
+      tension: 260,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [combo, comboScale, reducedMotion]);
+
+  useEffect(() => () => comboScale.stopAnimation(), [comboScale]);
+
+  useEffect(() => {
+    dashboardShimmer.stopAnimation();
+    dashboardShimmer.setValue(0);
+    if (reducedMotion) return;
+    const animation = Animated.loop(Animated.sequence([
+      Animated.delay(1200),
+      Animated.timing(dashboardShimmer, { toValue: 1, duration: 1150, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
+      Animated.delay(1200),
+      Animated.timing(dashboardShimmer, { toValue: 0, duration: 0, useNativeDriver: true }),
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [dashboardShimmer, reducedMotion]);
+
+  useEffect(() => {
     if (!lowTime || reducedMotion) {
       timerScale.stopAnimation();
       timerGlow.stopAnimation();
@@ -104,6 +150,8 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
 
   return (
     <View accessible accessibilityLabel={accessibilitySummary} style={styles.dashboard}>
+      <LinearGradient colors={["rgba(255,255,255,0.055)", "rgba(255,173,74,0.025)", "rgba(0,0,0,0.08)"]} pointerEvents="none" style={StyleSheet.absoluteFill} />
+      <Animated.View pointerEvents="none" style={[styles.dashboardShimmer, { opacity: dashboardShimmer.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.32, 0] }), transform: [{ translateX: dashboardShimmer.interpolate({ inputRange: [0, 1], outputRange: [-100, 410] }) }, { rotate: "-14deg" }] }]} />
       <View pointerEvents="none" style={styles.topHighlight} />
       <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName={contestName} roundLabel={roundLabel} variant="compact" embedded />
       <View style={styles.divider} />
@@ -121,7 +169,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
           </Animated.View>
           <View style={styles.centerMeta}>
             <View style={styles.vsBadge}><Text maxFontSizeMultiplier={1.5} style={styles.vs}>VS</Text></View>
-            <Text maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.comboReadout}>x{combo}</Text>
+            <Animated.View style={{ transform: [{ scale: comboScale }] }}><Text maxFontSizeMultiplier={1.5} numberOfLines={1} style={[styles.comboReadout, comboTier > 0 && styles.comboReadoutHot]}>x{combo}</Text></Animated.View>
           </View>
         </View>
 
@@ -132,7 +180,8 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
 }
 
 const styles = StyleSheet.create({
-  dashboard: { backgroundColor: "rgba(9,6,8,0.97)", borderColor: "rgba(235,145,49,0.78)", borderRadius: 13, borderWidth: 1, overflow: "hidden", width: "100%" },
+  dashboard: { backgroundColor: "rgba(9,6,8,0.97)", borderColor: "rgba(235,145,49,0.78)", borderRadius: 13, borderWidth: 1, elevation: 5, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.32, shadowRadius: 8, width: "100%" },
+  dashboardShimmer: { backgroundColor: "rgba(255,226,174,0.28)", bottom: -30, position: "absolute", top: -30, width: 42, zIndex: 2 },
   topHighlight: { backgroundColor: "rgba(255,221,158,0.18)", height: 1, left: 9, position: "absolute", right: 9, top: 1, zIndex: 2 },
   divider: { backgroundColor: "rgba(221,128,42,0.3)", height: 1, marginHorizontal: 7 },
   matchRow: { alignItems: "stretch", flexDirection: "row", minHeight: 76, minWidth: 0, paddingHorizontal: 4 },
@@ -156,4 +205,5 @@ const styles = StyleSheet.create({
   vsBadge: { alignItems: "center", backgroundColor: "#34120E", borderColor: "#E99437", borderRadius: 10, borderWidth: 1, height: 19, justifyContent: "center", width: 27 },
   vs: { color: "#FFD170", fontSize: 8, fontStyle: "italic", fontWeight: "900" },
   comboReadout: { color: "#D99A49", fontSize: 6, fontWeight: "900", maxWidth: 27 },
+  comboReadoutHot: { color: "#FFD269" },
 });

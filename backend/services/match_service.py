@@ -2,11 +2,22 @@
 
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from data.contests import get_contest
 from data.opponents import OPPONENTS
-from database import find_internal_player, settle_player_match, start_player_match
+from database import (
+    active_matches,
+    find_internal_player,
+    queue,
+    settle_player_match,
+    start_player_match,
+    transition_player_match,
+)
+
+
+MATCH_RECOVERY_WINDOW_SECONDS = 15 * 60
+MATCHMAKING_QUEUE_TTL_SECONDS = 2 * 60
 
 
 BELT_RANKS = [
@@ -40,6 +51,133 @@ class MatchNotFoundError(Exception):
 
 class MatchValidationError(Exception):
     pass
+
+
+class MatchExpiredError(Exception):
+    pass
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _parse_server_timestamp(value) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def _match_is_stale(active: dict, now: datetime | None = None) -> bool:
+    if active.get("status", "active") != "active":
+        return True
+    if not isinstance(active.get("id"), str) or not active.get("id"):
+        return True
+    started_at = _parse_server_timestamp(active.get("started_at"))
+    if started_at is None:
+        return True
+    current = now or _utc_now()
+    if started_at > current + timedelta(seconds=60):
+        return True
+    return current - started_at >= timedelta(seconds=MATCH_RECOVERY_WINDOW_SECONDS)
+
+
+def _remove_player_matchmaking_state(device_id: str) -> None:
+    queue[:] = [entry for entry in queue if entry.get("device_id") != device_id]
+    stale_ids = [
+        match_id
+        for match_id, match in active_matches.items()
+        if device_id in match.get("players", [])
+    ]
+    for match_id in stale_ids:
+        active_matches.pop(match_id, None)
+
+
+def cleanup_stale_matchmaking_state(now_epoch: float | None = None) -> None:
+    """Discard process-local searches and pairings that cannot be recovered."""
+    current = _utc_now().timestamp() if now_epoch is None else now_epoch
+    queue[:] = [
+        entry
+        for entry in queue
+        if isinstance(entry.get("time"), (int, float))
+        and current - float(entry["time"]) < MATCHMAKING_QUEUE_TTL_SECONDS
+    ]
+    stale_ids = [
+        match_id
+        for match_id, match in active_matches.items()
+        if not isinstance(match.get("created"), (int, float))
+        or current - float(match["created"]) >= MATCHMAKING_QUEUE_TTL_SECONDS
+    ]
+    for match_id in stale_ids:
+        active_matches.pop(match_id, None)
+
+
+def expire_stale_match(device_id: str, now: datetime | None = None) -> bool:
+    player = find_internal_player(device_id)
+    active = player.get("active_match") if player else None
+    if not active or not _match_is_stale(active, now):
+        return False
+    match_id = active.get("id")
+    ended_at = (now or _utc_now()).isoformat()
+    transitioned = transition_player_match(device_id, match_id, "expired", ended_at)
+    if transitioned:
+        _remove_player_matchmaking_state(device_id)
+        return True
+    return False
+
+
+def recover_match(device_id: str) -> dict:
+    player = find_internal_player(device_id)
+    if not player:
+        raise PlayerNotFoundError
+    if expire_stale_match(device_id):
+        return {"status": "expired"}
+    player = find_internal_player(device_id) or {}
+    active = player.get("active_match")
+    if active:
+        return {
+            "status": "resumable",
+            "match_id": active.get("id"),
+            "contest_id": active.get("contest_id"),
+            "started_at": active.get("started_at"),
+        }
+    previous = player.get("last_match_lifecycle") or {}
+    status = previous.get("status")
+    if status in {"expired", "cancelled", "settled"}:
+        return {"status": status}
+    return {"status": "absent"}
+
+
+def cancel_match(device_id: str) -> dict:
+    player = find_internal_player(device_id)
+    if not player:
+        raise PlayerNotFoundError
+    if expire_stale_match(device_id):
+        return {"status": "expired"}
+    player = find_internal_player(device_id) or {}
+    active = player.get("active_match")
+    if not active:
+        previous = player.get("last_match_lifecycle") or {}
+        status = previous.get("status")
+        return {"status": status if status in {"cancelled", "expired", "settled"} else "absent"}
+    match_id = active.get("id")
+    if not isinstance(match_id, str) or not match_id:
+        raise MatchValidationError
+    transitioned = transition_player_match(
+        device_id,
+        match_id,
+        "cancelled",
+        _utc_now().isoformat(),
+    )
+    if transitioned:
+        _remove_player_matchmaking_state(device_id)
+        return {"status": "cancelled"}
+    return recover_match(device_id)
 
 
 def belt_for_xp(xp: int) -> dict:
@@ -82,6 +220,10 @@ def start_match(device_id: str, contest_id: str) -> dict:
     if not contest:
         raise ContestNotFoundError
 
+    expire_stale_match(device_id)
+    player = find_internal_player(device_id)
+    if not player:
+        raise PlayerNotFoundError
     active = player.get("active_match")
     if active:
         if active.get("contest_id") == contest_id:
@@ -91,7 +233,9 @@ def start_match(device_id: str, contest_id: str) -> dict:
     opponent = _opponent_for(contest)
     entry_fee = int(contest.get("entry_fee", 0))
     new_coins = int(player.get("coins", 0)) - entry_fee
+    match_id = str(uuid.uuid4())
     response = {
+        "match_id": match_id,
         "contest": contest,
         "opponent": opponent,
         "opp_pace_per_sec": _opponent_pace(opponent, contest),
@@ -101,11 +245,12 @@ def start_match(device_id: str, contest_id: str) -> dict:
         "equipped_perk": _equipped_perk(player),
     }
     match = {
-        "id": str(uuid.uuid4()),
+        "id": match_id,
         "device_id": device_id,
         "contest_id": contest_id,
         "opponent_id": opponent["id"],
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active",
+        "started_at": _utc_now().isoformat(),
         "start_response": response,
     }
     updated = start_player_match(device_id, entry_fee, match)
@@ -141,12 +286,31 @@ def submit_result(result) -> dict:
         raise PlayerNotFoundError
 
     fingerprint = _fingerprint(result)
+    requested_match_id = result.match_id
+    if not requested_match_id:
+        raise MatchValidationError
+    if expire_stale_match(result.device_id):
+        raise MatchExpiredError
+    player = find_internal_player(result.device_id)
+    if not player:
+        raise PlayerNotFoundError
     active = player.get("active_match")
     if not active:
         previous = player.get("last_match_result") or {}
-        if previous.get("fingerprint") == fingerprint:
+        if (
+            previous.get("match_id") == requested_match_id
+            and previous.get("fingerprint") == fingerprint
+        ):
             return dict(previous["response"])
+        lifecycle = player.get("last_match_lifecycle") or {}
+        if (
+            lifecycle.get("match_id") == requested_match_id
+            and lifecycle.get("status") == "expired"
+        ):
+            raise MatchExpiredError
         raise MatchNotFoundError
+    if active.get("id") != requested_match_id:
+        raise MatchValidationError
 
     contest = get_contest(result.contest_id)
     if not contest or active.get("contest_id") != result.contest_id:
@@ -193,6 +357,11 @@ def submit_result(result) -> dict:
                     "response": response,
                     "completed_at": datetime.now(timezone.utc).isoformat(),
                 },
+                "last_match_lifecycle": {
+                    "match_id": active["id"],
+                    "status": "settled",
+                    "ended_at": _utc_now().isoformat(),
+                },
                 "active_match": "$$REMOVE",
             }
         }
@@ -203,6 +372,9 @@ def submit_result(result) -> dict:
 
     latest = find_internal_player(result.device_id) or {}
     previous = latest.get("last_match_result") or {}
-    if previous.get("fingerprint") == fingerprint:
+    if (
+        previous.get("match_id") == requested_match_id
+        and previous.get("fingerprint") == fingerprint
+    ):
         return dict(previous["response"])
     raise MatchNotFoundError

@@ -204,6 +204,8 @@ export default function CountdownOverlay({
       ) : null}
 
       <Animated.View style={[styles.countStage, { opacity: countOpacity, transform: [{ scale: countScale }] }]}>
+        <View style={[styles.countHalo, go && styles.goHalo]} />
+        <View style={[styles.countRing, go && styles.goRing]} />
         <Text style={[styles.countText, go && styles.goText]}>{value}</Text>
       </Animated.View>
     </View>
@@ -235,6 +237,10 @@ const styles = StyleSheet.create({
   fighter: { alignItems: "center", width: 105 },
   vs: { color: "#FF8B32", fontSize: 38, fontStyle: "italic", fontWeight: "900", textShadowColor: "#FF3D0A", textShadowRadius: 15 },
   countStage: { alignItems: "center", justifyContent: "center", position: "absolute" },
+  countHalo: { backgroundColor: "rgba(255,97,16,0.14)", borderRadius: 110, height: 220, position: "absolute", width: 220 },
+  goHalo: { backgroundColor: "rgba(255,184,49,0.2)", height: 260, width: 260 },
+  countRing: { borderColor: "rgba(255,201,93,0.42)", borderRadius: 92, borderWidth: 2, height: 184, position: "absolute", width: 184 },
+  goRing: { borderColor: "rgba(255,235,164,0.66)", height: 210, width: 210 },
   countText: { color: "#FFD54A", fontSize: 130, fontWeight: "900", textShadowColor: "#FF5A00", textShadowOffset: { width: 0, height: 6 }, textShadowRadius: 28 },
   goText: { color: "#FF4D00", fontSize: 110, textShadowColor: "#FFD54A", textShadowRadius: 35 },
 });

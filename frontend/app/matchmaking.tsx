@@ -23,6 +23,7 @@ export default function MatchmakingScreen() {
     let interval: ReturnType<typeof setInterval> | undefined;
     let statusRequestInFlight = false;
     let matchHandled = false;
+    let consecutiveStatusFailures = 0;
 
     const run = async () => {
       setStatus("searching");
@@ -37,6 +38,7 @@ export default function MatchmakingScreen() {
           try {
             const res = await api.matchmakingStatus();
             if (!alive || matchHandled) return;
+            consecutiveStatusFailures = 0;
 
             if (res.status === "matched") {
               matchHandled = true;
@@ -47,7 +49,11 @@ export default function MatchmakingScreen() {
               }, 1800);
             }
           } catch {
-            // The API helper logs request failures; keep polling on the next tick.
+            consecutiveStatusFailures += 1;
+            if (consecutiveStatusFailures >= 3 && alive) {
+              if (interval) clearInterval(interval);
+              setStatus("error");
+            }
           } finally {
             statusRequestInFlight = false;
           }
