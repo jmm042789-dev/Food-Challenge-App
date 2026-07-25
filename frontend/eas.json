@@ -7,6 +7,9 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://firefeast-backend.onrender.com"
+      },
       "android": {
         "buildType": "apk"
       }
@@ -14,12 +17,18 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://firefeast-backend.onrender.com"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
       "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://firefeast-backend.onrender.com"
+      },
       "android": {
         "buildType": "app-bundle"
       }
