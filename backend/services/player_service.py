@@ -7,6 +7,8 @@ Eventually server.py should only call these functions.
 """
 
 import uuid
+import logging
+import os
 from datetime import datetime, timezone
 
 from database import (
@@ -22,6 +24,11 @@ from auth import (
     hash_auth_token,
     hash_installation_id,
 )
+from config import DEFAULT_STARTING_COINS
+
+
+logger = logging.getLogger(__name__)
+COIN_DEBUG_LOGGING = os.environ.get("FIRE_FEAST_ENV", "development").lower() == "development"
 
 
 WELCOME_REWARD = {
@@ -61,6 +68,12 @@ def bootstrap_guest(installation_id: str) -> dict:
     player = create_guest_player(document)
     if player is None:
         raise BootstrapAlreadyCompletedError
+    if COIN_DEBUG_LOGGING:
+        logger.info(
+            "Coin bootstrap player=%s starting_balance=%s",
+            player_id,
+            player.get("coins"),
+        )
     return {
         "player": player,
         "player_id": player_id,
@@ -86,7 +99,7 @@ def _new_player(device_id: str):
     player = {
         "device_id": device_id,
 
-        "coins": 0,
+        "coins": DEFAULT_STARTING_COINS,
 
         "antacid": 0,
 
@@ -172,6 +185,7 @@ def claim_welcome_reward(device_id: str):
     Grants the one-time welcome reward to an eligible existing player.
     """
 
+    before = find_player(device_id)
     player = update_player_document(
         device_id,
         {
@@ -184,6 +198,14 @@ def claim_welcome_reward(device_id: str):
         },
     )
     if player:
+        if COIN_DEBUG_LOGGING:
+            logger.info(
+                "Coin reward player=%s reward=%s before=%s after=%s",
+                device_id,
+                WELCOME_REWARD["coins"],
+                (before or {}).get("coins"),
+                player.get("coins"),
+            )
         return {
             "player": player,
             "granted": True,

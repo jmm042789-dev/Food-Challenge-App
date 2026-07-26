@@ -2,6 +2,7 @@ import unicodedata
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from config import DEFAULT_STARTING_COINS
 
 
 Identifier = Annotated[
@@ -66,7 +67,7 @@ class AccountDeletionRequest(RequestModel):
 class Player(BaseModel):
     device_id: str
 
-    coins: int = 0
+    coins: int = DEFAULT_STARTING_COINS
     antacid: int = 0          # Formerly "tums"
     xp: int = 0
 

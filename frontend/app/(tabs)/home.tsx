@@ -18,6 +18,7 @@ import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
 import SponsorStrip from "../../src/game/ui/SponsorStrip";
 import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import { useDailyMissions } from "../../src/missions/useDailyMissions";
+import { usePlayerBalance } from "../../src/playerBalance";
 
 type Player = { coins?: number; xp?: number };
 
@@ -115,7 +116,8 @@ export default function HomeScreen() {
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [contests, setContests] = useState<Contest[]>([]);
-  const [player, setPlayer] = useState<Player>({ coins: 200, xp: 0 });
+  const [player, setPlayer] = useState<Player>({ coins: 0, xp: 0 });
+  const coins = usePlayerBalance(Number(player.coins ?? 0));
   const [showWelcome, setShowWelcome] = useState(welcome === "1");
   const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
 
@@ -126,6 +128,9 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => {
     void refreshMissions();
+    void api.getPlayer().then((nextPlayer) => setPlayer(nextPlayer as Player)).catch(() => {
+      // Preserve the last confirmed server value when refresh fails.
+    });
   }, [refreshMissions]));
 
   useEffect(() => {
@@ -155,7 +160,6 @@ export default function HomeScreen() {
   if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
 
   const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
-  const coins = Number(player.coins ?? 0) + (dailyMissionState?.claimedRewards.coins ?? 0);
   const belt = beltForXp(xp);
   const next = nextBelt(xp);
   const level = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);

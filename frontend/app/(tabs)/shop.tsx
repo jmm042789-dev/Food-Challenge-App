@@ -10,6 +10,7 @@ import FireButton from "../../src/components/fire/FireButton";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import { trackAchievementEvent } from "../../src/achievements/AchievementTracker";
+import { usePlayerBalance } from "../../src/playerBalance";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ANTACID = require("../../src/assets/icons/antacid.png");
@@ -65,6 +66,7 @@ export default function ShopScreen() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const actionInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const coins = usePlayerBalance(player.coins);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,7 +108,13 @@ export default function ShopScreen() {
       if (owned && item.type === "gear") {
         await api.equipGear(item.id);
       } else {
-        await api.purchase(item.id);
+        const purchase = await api.purchase(item.id) as Partial<Player> & { new_coins?: number; new_tums?: number };
+        setPlayer((current) => ({
+          ...current,
+          coins: purchase.new_coins ?? current.coins,
+          antacid: purchase.new_tums ?? current.antacid,
+          owned_gear: purchase.owned_gear ?? current.owned_gear,
+        }));
         if (item.type === "gear") {
           await trackAchievementEvent({ type: "ITEM_ACQUIRED", ownedItemCount: player.owned_gear.length + 1 });
         }
@@ -128,7 +136,7 @@ export default function ShopScreen() {
 
   const renderItem = ({ item }: { item: ShopItem }) => {
     const status = statusFor(item);
-    const unaffordable = item.price > player.coins;
+    const unaffordable = item.price > coins;
     return (
       <View style={[styles.itemRow, unaffordable && status === "available" && styles.subdued]}>
         <View style={styles.itemArt}><Text style={styles.itemEmoji}>{item.icon || "🔥"}</Text></View>
@@ -164,7 +172,7 @@ export default function ShopScreen() {
           <Text style={styles.headerTitle}>SHOP</Text>
         </View>
         <View style={styles.balanceRow}>
-          <CurrencyCounter icon={COIN} label="COINS" value={player.coins} />
+          <CurrencyCounter icon={COIN} label="COINS" value={coins} />
           <CurrencyCounter icon={ANTACID} label="ANTACID" value={player.antacid} />
         </View>
       </View>
@@ -188,7 +196,7 @@ export default function ShopScreen() {
             <FireButton
               title={statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && featured.type === "gear" ? "EQUIP ITEM" : "PURCHASE ITEM"}
               onPress={() => actOnItem(featured)}
-              disabled={pendingId !== null || statusFor(featured) === "equipped" || (featured.price > player.coins && statusFor(featured) === "available")}
+              disabled={pendingId !== null || statusFor(featured) === "equipped" || (featured.price > coins && statusFor(featured) === "available")}
               loading={pendingId === featured.id}
               variant="gold"
               size="small"

@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 VALID_ENVIRONMENTS = {"development", "preview", "production", "test"}
 DB_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+DEFAULT_STARTING_COINS = 500
 
 
 class ConfigurationError(RuntimeError):

@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance";
 
 const configuredBase = process.env.EXPO_PUBLIC_BACKEND_URL?.trim().replace(/\/$/, "") || "";
 
@@ -31,6 +32,8 @@ const PLAYER_DATA_KEYS = [
 ];
 let bootstrapPlayerCache: unknown | undefined;
 let credentialsPromise: Promise<GuestCredentials> | null = null;
+let requestSequence = 0;
+let coinMutationGeneration = 0;
 
 type GuestCredentials = {
   playerId: string;
@@ -95,6 +98,7 @@ async function clearLocalGuestData(): Promise<void> {
     ...PLAYER_DATA_KEYS,
   ]);
   bootstrapPlayerCache = undefined;
+  clearPlayerBalance();
   credentialsPromise = null;
 }
 
@@ -273,6 +277,11 @@ function diagnosticRequestPath(path: string): string {
 }
 
 async function req(path: string, opts: RequestInit = {}, authenticated = true) {
+  const sequence = ++requestSequence;
+  const method = (opts.method ?? "GET").toUpperCase();
+  const isMutation = authenticated && method !== "GET";
+  if (isMutation) coinMutationGeneration += 1;
+  const mutationGenerationAtStart = coinMutationGeneration;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const url = `${API}${path}`;
@@ -323,6 +332,33 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
 
     if (authenticated && path !== "/player/account") {
       await AsyncStorage.removeItem(DELETION_PENDING_KEY);
+    }
+    if (isMutation) {
+      coinMutationGeneration += 1;
+      applyPlayerBalanceResponse(data, sequence, true);
+    } else if (mutationGenerationAtStart === coinMutationGeneration) {
+      applyPlayerBalanceResponse(data, sequence);
+    }
+    if (__DEV__) {
+      const response = data && typeof data === "object" ? data as Record<string, unknown> : {};
+      const nestedPlayer = response.player && typeof response.player === "object"
+        ? response.player as Record<string, unknown>
+        : {};
+      const responseCoins = response.new_coins
+        ?? response.player_coins
+        ?? response.coins
+        ?? nestedPlayer.coins;
+      if (responseCoins !== undefined) {
+        console.log("Fire Feast coin response", {
+          playerId: credentials?.playerId,
+          path: diagnosticRequestPath(path),
+          coins: responseCoins,
+          reward: response.coin_reward
+            ?? (response.reward && typeof response.reward === "object"
+              ? (response.reward as Record<string, unknown>).coins
+              : undefined),
+        });
+      }
     }
     return data;
   } catch (err: any) {

@@ -15,11 +15,10 @@ import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
 import TournamentPanel from "../../src/tournaments/components/TournamentPanel";
 import { getTournamentPlayerProgress } from "../../src/tournaments/TournamentProgress";
 import { useTournamentProgress } from "../../src/tournaments/useTournamentProgress";
+import { usePlayerBalance } from "../../src/playerBalance";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ALL = "All";
-
-type Player = { coins?: number };
 
 function difficultyTone(difficulty: string) {
   const value = difficulty.toLowerCase();
@@ -73,7 +72,7 @@ export default function ContestsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [contests, setContests] = useState<Contest[]>([]);
-  const [coins, setCoins] = useState(0);
+  const coins = usePlayerBalance();
   const [selectedCategory, setSelectedCategory] = useState(ALL);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -82,12 +81,17 @@ export default function ContestsScreen() {
 
   useFocusEffect(useCallback(() => {
     void refreshTournament();
+    void api.getPlayer().catch(() => {
+      // Preserve the last confirmed server value when refresh fails.
+    });
   }, [refreshTournament]));
 
   useEffect(() => {
     let active = true;
     async function loadContests() {
-      const [contestResult, playerResult] = await Promise.allSettled([api.listContests(), api.getPlayer()]);
+      const contestResult = await api.listContests()
+        .then((value) => ({ status: "fulfilled" as const, value }))
+        .catch((reason) => ({ status: "rejected" as const, reason }));
       if (!active) return;
 
       if (contestResult.status === "fulfilled") {
@@ -96,9 +100,6 @@ export default function ContestsScreen() {
       } else {
         setContests([]);
         setHasError(true);
-      }
-      if (playerResult.status === "fulfilled" && playerResult.value) {
-        setCoins(Number((playerResult.value as Player).coins ?? 0));
       }
       setLoading(false);
     }

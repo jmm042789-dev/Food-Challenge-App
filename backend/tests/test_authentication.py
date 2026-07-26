@@ -15,6 +15,7 @@ if str(BACKEND_ROOT) not in sys.path:
 import auth
 import database
 import server
+from config import DEFAULT_STARTING_COINS
 from models import MatchResult, MatchStart, PurchaseRequest
 from services import leaderboard_service, player_service
 
@@ -35,6 +36,8 @@ class GuestAuthenticationTests(unittest.TestCase):
 
         self.assertTrue(response["auth_token"])
         self.assertEqual(response["player_id"], response["player"]["player_id"])
+        self.assertEqual(response["player"]["coins"], DEFAULT_STARTING_COINS)
+        self.assertEqual(captured["coins"], DEFAULT_STARTING_COINS)
         self.assertNotIn("auth_token", response["player"])
         self.assertNotIn("auth_token_hash", response["player"])
         self.assertNotIn("auth_token", captured)

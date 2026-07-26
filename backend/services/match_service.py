@@ -2,6 +2,8 @@
 
 import random
 import uuid
+import logging
+import os
 from datetime import datetime, timedelta, timezone
 
 from data.contests import get_contest
@@ -18,6 +20,8 @@ from database import (
 
 MATCH_RECOVERY_WINDOW_SECONDS = 15 * 60
 MATCHMAKING_QUEUE_TTL_SECONDS = 2 * 60
+logger = logging.getLogger(__name__)
+COIN_DEBUG_LOGGING = os.environ.get("FIRE_FEAST_ENV", "development").lower() == "development"
 
 
 BELT_RANKS = [
@@ -255,6 +259,14 @@ def start_match(device_id: str, contest_id: str) -> dict:
     }
     updated = start_player_match(device_id, entry_fee, match)
     if updated:
+        response["player_coins"] = int(updated.get("coins", 0))
+        if COIN_DEBUG_LOGGING:
+            logger.info(
+                "Coin match entry player=%s purchase_amount=%s balance_after=%s",
+                device_id,
+                entry_fee,
+                response["player_coins"],
+            )
         return response
 
     latest = find_internal_player(device_id)
@@ -368,7 +380,16 @@ def submit_result(result) -> dict:
     ]
     settled = settle_player_match(result.device_id, active["id"], update_pipeline)
     if settled:
-        return dict(settled["last_match_result"]["response"])
+        settled_response = dict(settled["last_match_result"]["response"])
+        if COIN_DEBUG_LOGGING:
+            logger.info(
+                "Coin match reward player=%s reward=%s before=%s after=%s",
+                result.device_id,
+                coin_reward,
+                player.get("coins"),
+                settled_response.get("new_coins"),
+            )
+        return settled_response
 
     latest = find_internal_player(result.device_id) or {}
     previous = latest.get("last_match_result") or {}

@@ -20,6 +20,7 @@ import TitleBrowserPanel from "../../src/titles/components/TitleBrowserPanel";
 import TitleUnlockBanner from "../../src/titles/components/TitleUnlockBanner";
 import { TITLE_BY_ID } from "../../src/titles/TitleCatalog";
 import { useTitleProgress } from "../../src/titles/useTitleProgress";
+import { usePlayerBalance } from "../../src/playerBalance";
 
 const BLAZE = require("../../src/assets/characters/blaze.png");
 const COIN = require("../../src/assets/icons/coin.png");
@@ -57,7 +58,7 @@ const FALLBACK_PLAYER: Player = {
   avatar_emoji: "🍔",
   country: "🌎",
   xp: 0,
-  coins: 200,
+  coins: 0,
   antacid: 0,
   wins: 0,
   losses: 0,
@@ -133,6 +134,7 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const xp = Number(player.xp || 0) + (achievementState?.claimedRewards.xp ?? 0);
+  const coins = usePlayerBalance(player.coins);
   const belt = beltForXp(xp);
   const next = nextBelt(xp);
   const progressValue = next ? xp - belt.min_xp : 1;
@@ -214,7 +216,7 @@ export default function ProfileScreen() {
             <View style={styles.hudRow}>
               <Text numberOfLines={2} style={styles.profileLabel}>ARENA PROFILE</Text>
               <View style={styles.counters}>
-                <Counter source={COIN} label="COINS" value={player.coins + (achievementState?.claimedRewards.coins ?? 0)} />
+                <Counter source={COIN} label="COINS" value={coins} />
                 <Counter source={ANTACID} label="ANTACID" value={player.antacid} />
               </View>
             </View>

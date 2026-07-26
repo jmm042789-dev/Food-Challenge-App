@@ -40,6 +40,7 @@ import CommentaryOverlay from "../../src/game/commentary/CommentaryOverlay";
 import { useCommentaryEngine } from "../../src/game/commentary/CommentaryEngine";
 import { useAdaptiveAudio } from "../../src/audio/useAdaptiveAudio";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { usePlayerBalance } from "../../src/playerBalance";
 
 export default function ContestScreen() {
   const insets = useSafeAreaInsets();
@@ -109,6 +110,8 @@ export default function ContestScreen() {
   const [coolingTrigger, setCoolingTrigger] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [playerXp, setPlayerXp] = useState(0);
+  const [resultReward, setResultReward] = useState({ coins: 0, xp: 0 });
+  const coins = usePlayerBalance();
   const [resultAchievements, setResultAchievements] = useState<AchievementCompletionNotification[]>([]);
   const [resultTournament, setResultTournament] = useState<VictoryTournamentPresentation | null>(null);
   const antacidPulse = useRef(new Animated.Value(0)).current;
@@ -242,6 +245,7 @@ export default function ContestScreen() {
     resultRetryCount.current = 0;
     setResultAchievements([]);
     setResultTournament(null);
+    setResultReward({ coins: 0, xp: 0 });
   }, [matchRouteKey]);
 
   useEffect(() => {
@@ -263,7 +267,12 @@ export default function ContestScreen() {
       opponent_id: opponentId,
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
       is_tournament: Boolean(tournamentOccurrenceId),
-    }).then(() => {
+    }).then((response) => {
+      const reward = response as { coin_reward?: number; xp_reward?: number };
+      setResultReward({
+        coins: Math.max(0, Number(reward.coin_reward) || 0),
+        xp: Math.max(0, Number(reward.xp_reward) || 0),
+      });
       submittedResultKey.current = matchRouteKey;
     }).catch(() => {
       // The persisted match remains open, so bounded retries are safe.
@@ -724,7 +733,7 @@ export default function ContestScreen() {
           level={1}
           xp={25}
           nextLevelXp={100}
-          coins={250}
+          coins={coins}
           timeRemaining={timeRemaining}
           playerScore={state.score}
           opponentScore={opponentScore}
@@ -807,8 +816,8 @@ export default function ContestScreen() {
           foodName={contest?.food ?? "Featured feast"}
           matchTime={matchTime}
           currentXp={playerXp}
-          xpEarned={result === "victory" ? 120 : 0}
-          coinsEarned={result === "victory" ? 50 : 0}
+          xpEarned={resultReward.xp}
+          coinsEarned={resultReward.coins}
           achievements={resultAchievements}
           tournament={resultTournament}
           onReplay={replay}

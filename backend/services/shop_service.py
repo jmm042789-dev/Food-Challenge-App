@@ -1,11 +1,16 @@
 """Atomic Fire Feast purchase and equipment operations."""
 
+import logging
+import os
+
 from data.shop import get_shop_item
 from database import update_player_document
 from services.player_service import find_player, get_or_create_player
 
 
 ANTACID_GRANTS = {"antacid_pack": 5}
+logger = logging.getLogger(__name__)
+COIN_DEBUG_LOGGING = os.environ.get("FIRE_FEAST_ENV", "development").lower() == "development"
 
 
 class ItemNotFoundError(Exception):
@@ -34,7 +39,7 @@ def _purchase_response(player: dict) -> dict:
 
 
 def purchase_item(device_id: str, item_id: str) -> dict:
-    get_or_create_player(device_id)
+    before = get_or_create_player(device_id)
     item = get_shop_item(item_id)
     if not item:
         raise ItemNotFoundError
@@ -69,6 +74,15 @@ def purchase_item(device_id: str, item_id: str) -> dict:
         raise ItemNotFoundError
 
     if player:
+        if COIN_DEBUG_LOGGING:
+            logger.info(
+                "Coin purchase player=%s item=%s purchase_amount=%s before=%s after=%s",
+                device_id,
+                item_id,
+                price if item_type != "currency" else 0,
+                before.get("coins"),
+                player.get("coins"),
+            )
         return _purchase_response(player)
 
     current = find_player(device_id) or {}
