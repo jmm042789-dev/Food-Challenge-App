@@ -491,12 +491,31 @@ export default function ContestScreen() {
         if (!selectedContestId || !/^[A-Za-z0-9._:-]{1,128}$/.test(selectedContestId)) {
           throw new Error("Invalid contest route");
         }
-        const [contestResult, playerResult, titleResult, matchResult] = await Promise.allSettled([api.listContests(), api.getPlayer(), loadTitleProgress(), api.startMatch(selectedContestId)]);
+        const [contestResult, playerResult, titleResult] = await Promise.allSettled([
+          api.listContests(),
+          api.getPlayer(),
+          loadTitleProgress(),
+        ]);
         const contests = contestResult.status === "fulfilled" ? parseContests(contestResult.value) : [];
         const contestIndex = contests.findIndex((item) => item.id === selectedContestId);
+        const selectedContest = contests[contestIndex];
+        if (!selectedContest) throw new Error("Contest was not found");
+        if (playerResult.status !== "fulfilled" || !playerResult.value) {
+          throw new Error("Player balance was unavailable");
+        }
+        const player = playerResult.value as {
+          antacid?: number;
+          username?: string;
+          xp?: number;
+          best_score?: number;
+          coins?: number;
+        };
+        if (Number(player.coins ?? 0) < selectedContest.entry_fee) {
+          throw new Error("Not enough coins for this contest");
+        }
+        const match = await api.startMatch(selectedContestId);
 
-        if (active && playerResult.status === "fulfilled") {
-          const player = playerResult.value as { antacid?: number; username?: string; xp?: number; best_score?: number };
+        if (active) {
           const inventory = Number(player?.antacid);
           if (Number.isFinite(inventory)) setPlayerAntacidCount(Math.max(0, Math.floor(inventory)));
           playerBestScore.current = Math.max(0, Number(player.best_score) || 0);
@@ -514,15 +533,13 @@ export default function ContestScreen() {
           setNextContestId(contests[contestIndex + 1]?.id ?? null);
           setRoundLabel(`ROUND ${contestIndex + 1}`);
         }
-        if (active && matchResult.status === "fulfilled") {
-          const opponentId = String(matchResult.value?.opponent?.id ?? "");
-          const matchId = String(matchResult.value?.match_id ?? "");
+        if (active) {
+          const opponentId = String(match?.opponent?.id ?? "");
+          const matchId = String(match?.match_id ?? "");
           if (!opponentId || !matchId) throw new Error("Match start response was incomplete");
           serverOpponentId.current = opponentId;
           serverMatchId.current = matchId;
           setContestLoaded(true);
-        } else if (active) {
-          setMatchStartError(true);
         }
       } catch {
         if (active) {

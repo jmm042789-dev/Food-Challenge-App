@@ -344,8 +344,10 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
     }
 
     console.error("API request failed", {
+      url,
       path: diagnosticPath,
       status,
+      responseBody,
       error: err instanceof AuthenticationError ? err.name : "request error",
     });
     throw err;
