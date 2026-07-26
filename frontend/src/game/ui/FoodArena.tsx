@@ -40,6 +40,8 @@ type Props = {
   onMechanicCompleted?: (mechanicType: FoodMechanicType) => void;
 };
 
+export const FOOD_ARENA_ACTION_HEIGHT = 124;
+
 const HOT_FOOD_CONTESTS = new Set([
   "nathans-hotdogs",
   "wing-bowl",
@@ -156,10 +158,12 @@ function FoodArena({
   onMechanicCompleted,
 }: Props) {
   const { width, height } = useWindowDimensions();
+  const [foodRegionHeight, setFoodRegionHeight] = useState(0);
 
   const size = Math.min(
     width * 0.66,
-    height * 0.35,
+    height * 0.3,
+    Math.max(150, (foodRegionHeight || height * 0.44) - 96),
     285,
   );
   const foodHitSlop = Math.round(clamp(size * 0.1, 18, 28));
@@ -878,9 +882,13 @@ function FoodArena({
       ) : null}
 
       <View
-        pointerEvents="none"
-        style={styles.emberLayer}
+        onLayout={(event) => setFoodRegionHeight(event.nativeEvent.layout.height)}
+        style={styles.foodRegion}
       >
+        <View
+          pointerEvents="none"
+          style={styles.emberLayer}
+        >
         {emberValues.map((value, index) => {
           const ember = EMBERS[index];
 
@@ -922,7 +930,7 @@ function FoodArena({
             />
           );
         })}
-      </View>
+        </View>
 
       <Animated.View
         pointerEvents="none"
@@ -957,7 +965,7 @@ function FoodArena({
         ]}
       />
 
-      <Pressable
+        <Pressable
         accessibilityElementsHidden
         accessible={false}
         disabled={!active}
@@ -1223,7 +1231,7 @@ function FoodArena({
             ) : null}
           </Animated.View>
         </Animated.View>
-      </Pressable>
+        </Pressable>
 
       <Animated.View
         pointerEvents="none"
@@ -1243,26 +1251,29 @@ function FoodArena({
         ]}
       />
 
-      <View
+        <View
         pointerEvents="none"
         style={styles.pedestal}
       >
         <View style={styles.pedestalRim} />
         <View style={styles.pedestalCore} />
+        </View>
+
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Bite"
-        disabled={!active}
-        onPress={tap}
-        onPressIn={() => pressButton(true)}
-        onPressOut={() => pressButton(false)}
-        style={[
-          styles.biteTouchTarget,
-          !active && styles.biteDisabled,
-        ]}
-      >
+      <View style={styles.actionRegion}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Bite"
+          disabled={!active}
+          onPress={tap}
+          onPressIn={() => pressButton(true)}
+          onPressOut={() => pressButton(false)}
+          style={[
+            styles.biteTouchTarget,
+            !active && styles.biteDisabled,
+          ]}
+        >
         <Animated.View
           pointerEvents="none"
           style={[
@@ -1299,7 +1310,8 @@ function FoodArena({
             </View>
           </View>
         </Animated.View>
-      </Pressable>
+        </Pressable>
+      </View>
     </Animated.View>
   );
 }
@@ -1308,10 +1320,27 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     flex: 1,
-    justifyContent: "center",
     overflow: "visible",
-    paddingBottom: 2,
-    paddingTop: 8,
+    minHeight: 0,
+    width: "100%",
+  },
+
+  foodRegion: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 0,
+    overflow: "visible",
+    paddingHorizontal: 46,
+    paddingTop: 6,
+    width: "100%",
+  },
+
+  actionRegion: {
+    alignItems: "center",
+    flexShrink: 0,
+    height: FOOD_ARENA_ACTION_HEIGHT,
+    justifyContent: "center",
     width: "100%",
   },
 

@@ -7,7 +7,7 @@ import { api, type Contest, parseContests } from "../../src/api";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import CountdownOverlay from "../../src/game/ui/CountdownOverlay";
 import EffectsLayer from "../../src/game/ui/EffectsLayer";
-import FoodArena from "../../src/game/ui/FoodArena";
+import FoodArena, { FOOD_ARENA_ACTION_HEIGHT } from "../../src/game/ui/FoodArena";
 import GameplayHUD from "../../src/game/ui/GameplayHUD";
 import VictoryOverlay, { type VictoryTournamentPresentation } from "../../src/game/ui/VictoryOverlay";
 import SceneMotion, { type SceneMotionPhase } from "../../src/game/ui/SceneMotion";
@@ -758,7 +758,7 @@ export default function ContestScreen() {
         />
         </FireScreenEntrance>
 
-        <View style={styles.arena}>
+        <View style={styles.gameplayContent}>
           <FoodArena contestId={selectedContestId} combo={state.combo} timeRemaining={timeRemaining} resetKey={matchRouteKey} active={state.status === "PLAYING"} foodProfile={foodProfile} onTap={handleTap} onMechanicCompleted={handleMechanicCompleted} />
         </View>
         <Animated.View style={[styles.antacidControl, { opacity: canUseAntacid ? 1 : 0.46, transform: [{ scale: antacidPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
@@ -845,12 +845,11 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
   },
-  arena: {
+  gameplayContent: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 52,
+    minHeight: 0,
   },
-  antacidControl: { bottom: 3, left: 7, position: "absolute", zIndex: 40 },
+  antacidControl: { bottom: FOOD_ARENA_ACTION_HEIGHT, left: 7, position: "absolute", zIndex: 40 },
   antacidButton: { marginBottom: 0, marginTop: 0 },
 });
