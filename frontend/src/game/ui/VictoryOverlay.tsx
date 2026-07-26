@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import FireButton from "../../components/fire/FireButton";
@@ -8,7 +8,8 @@ import FireScreenEntrance from "../../components/fire/FireScreenEntrance";
 import type { AchievementCompletionNotification } from "../../achievements/AchievementTypes";
 import type { RestaurantUnlockNotification } from "../../restaurants/RestaurantTypes";
 import type { TitleUnlockNotification } from "../../titles/TitleTypes";
-import { BELTS, beltForXp } from "../../ranks";
+import { BELTS, beltForXp, nextBelt } from "../../ranks";
+import { usePlayerBalance } from "../../playerBalance";
 import ResultBanner from "./ResultBanner";
 import RewardSummaryCard from "./RewardSummaryCard";
 import TournamentBanner from "./TournamentBanner";
@@ -16,10 +17,10 @@ import TournamentBanner from "./TournamentBanner";
 export type VictoryTournamentPresentation = { name: string; bestScore: number; progress: number; rewardPreview?: string; rank?: number | null };
 
 type VictoryOverlayProps = {
-  result: "victory" | "defeat"; playerScore: number; opponentScore: number; opponentName?: string; opponentAvatar?: string; opponentPersonality?: string;
+  result: "victory" | "defeat" | "draw"; playerScore: number; opponentScore: number; opponentName?: string; opponentAvatar?: string; opponentPersonality?: string;
   contestName?: string; location?: string; difficulty?: string; roundLabel?: string; restaurantName?: string; restaurantLogoUrl?: string; city?: string; state?: string;
   verified?: boolean; sponsored?: boolean; sponsorName?: string; sponsorLogoUrl?: string; sponsorMessage?: string; highestCombo: number; foodName: string; matchTime: number;
-  xpEarned?: number; coinsEarned?: number; currentXp?: number; achievements?: readonly AchievementCompletionNotification[]; restaurantUnlocks?: readonly RestaurantUnlockNotification[];
+  xpEarned?: number; coinsEarned?: number; totalXp?: number; rewardReady: boolean; currentXp?: number; achievements?: readonly AchievementCompletionNotification[]; restaurantUnlocks?: readonly RestaurantUnlockNotification[];
   titleUnlocks?: readonly TitleUnlockNotification[]; tournament?: VictoryTournamentPresentation | null;
   onReplay: () => void; onContinue: () => void; onBackToArena: () => void;
 };
@@ -34,6 +35,9 @@ const VICTORY_CONFETTI = [
   { left: "74%", delay: 120, drift: 12, color: "#FF6A2A" },
   { left: "88%", delay: 20, drift: -12, color: "#FFF0B8" },
 ] as const;
+const CONFETTI = require("../../assets/ui/effects/confetti.png");
+const SCREEN_FLASH = require("../../assets/ui/effects/screen-flash.png");
+const RANK_BADGE = require("../../assets/icons/rank-badge.png");
 let lastVictoryBanner = "";
 
 const chooseBanner = () => {
@@ -44,14 +48,15 @@ const chooseBanner = () => {
 };
 
 export default function VictoryOverlay(props: VictoryOverlayProps) {
-  const { result, playerScore, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality, contestName, location, difficulty, roundLabel, restaurantName, restaurantLogoUrl, city, state, verified, sponsored, sponsorName, sponsorLogoUrl, sponsorMessage, highestCombo, foodName, matchTime, xpEarned = result === "victory" ? 120 : 0, coinsEarned = result === "victory" ? 50 : 0, currentXp = 0, achievements = [], restaurantUnlocks = [], titleUnlocks = [], tournament, onReplay, onContinue, onBackToArena } = props;
+  const { result, playerScore, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality, contestName, location, difficulty, roundLabel, restaurantName, restaurantLogoUrl, city, state, verified, sponsored, sponsorName, sponsorLogoUrl, sponsorMessage, highestCombo, foodName, matchTime, xpEarned, coinsEarned, totalXp, rewardReady, currentXp = 0, achievements = [], restaurantUnlocks = [], titleUnlocks = [], tournament, onReplay, onContinue, onBackToArena } = props;
   const insets = useSafeAreaInsets();
+  const totalCoins = usePlayerBalance();
   const [reducedMotion, setReducedMotion] = useState(false);
   const [stage, setStage] = useState(0);
   const [noticeIndex, setNoticeIndex] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mounted = useRef(true);
-  const banner = useMemo(() => result === "victory" ? chooseBanner() : "DEFEAT", [result]);
+  const banner = useMemo(() => result === "victory" ? chooseBanner() : result === "draw" ? "DRAW" : "DEFEAT", [result]);
   const noticeOpacity = useRef(new Animated.Value(0)).current;
   const noticeY = useRef(new Animated.Value(0)).current;
   const celebration = useRef(new Animated.Value(0)).current;
@@ -62,7 +67,15 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
     ...titleUnlocks.map((item) => ({ key: `title:${item.titleId}`, eyebrow: "NEW TITLE UNLOCKED", title: item.titleName, detail: `${item.rarity} · EQUIP LATER`, color: item.colorTheme })),
   ], [achievements, restaurantUnlocks, titleUnlocks]);
   const activeNotice = notices[noticeIndex] ?? null;
-  const gainedBelts = useMemo(() => BELTS.filter((belt) => belt.min_xp > currentXp && belt.min_xp <= currentXp + xpEarned), [currentXp, xpEarned]);
+  const gainedBelts = useMemo(
+    () => totalXp === undefined ? [] : BELTS.filter((belt) => belt.min_xp > currentXp && belt.min_xp <= totalXp),
+    [currentXp, totalXp],
+  );
+  const currentBelt = totalXp === undefined ? null : beltForXp(totalXp);
+  const upcomingBelt = totalXp === undefined ? null : nextBelt(totalXp);
+  const priorRankXp = currentBelt ? Math.max(0, currentXp - currentBelt.min_xp) : 0;
+  const rankXp = currentBelt && totalXp !== undefined ? Math.max(0, totalXp - currentBelt.min_xp) : 0;
+  const rankXpMax = currentBelt && upcomingBelt ? upcomingBelt.min_xp - currentBelt.min_xp : Math.max(1, rankXp);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
   const complete = () => { clearTimers(); noticeOpacity.stopAnimation(); noticeY.stopAnimation(); setStage(5); setNoticeIndex(Math.max(0, notices.length - 1)); };
@@ -70,7 +83,7 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   useEffect(() => {
     mounted.current = true;
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => { if (mounted.current) setReducedMotion(enabled); });
-    AccessibilityInfo.announceForAccessibility(result === "victory" ? "Victory. Match rewards are being revealed." : "Match complete. Defeat.");
+    AccessibilityInfo.announceForAccessibility(result === "victory" ? "Victory. Match rewards are being revealed." : result === "draw" ? "Draw. Match rewards are being revealed." : "Match complete. Defeat.");
     return () => { mounted.current = false; clearTimers(); noticeOpacity.stopAnimation(); noticeY.stopAnimation(); };
   }, [noticeOpacity, noticeY, result]);
 
@@ -90,11 +103,20 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   useEffect(() => {
     clearTimers();
     if (reducedMotion) { setStage(5); return; }
-    [[350, 1], [1050, 2], [1550, 3], [2100, 4], [4700, 5]].forEach(([delay, nextStage]) => {
+    [[350, 1], [4700, 5]].forEach(([delay, nextStage]) => {
       timers.current.push(setTimeout(() => { if (mounted.current) setStage(nextStage); }, delay));
     });
     return clearTimers;
   }, [reducedMotion, result]);
+
+  useEffect(() => {
+    if (!rewardReady || reducedMotion) return;
+    const rewardTimers = [[220, 2], [900, 3], [1550, 4], [2450, 5]].map(([delay, nextStage]) => (
+      setTimeout(() => { if (mounted.current) setStage((current) => Math.max(current, nextStage)); }, delay)
+    ));
+    timers.current.push(...rewardTimers);
+    return () => rewardTimers.forEach(clearTimeout);
+  }, [reducedMotion, rewardReady]);
 
   useEffect(() => {
     if (stage < 4 || !notices.length || isComplete) return;
@@ -121,12 +143,12 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   }, [activeNotice, isComplete, noticeOpacity, noticeY, reducedMotion, stage]);
 
   useEffect(() => {
-    if (stage === 2 && xpEarned > 0) AccessibilityInfo.announceForAccessibility(`${xpEarned} XP earned.`);
-    if (stage === 3 && coinsEarned > 0) AccessibilityInfo.announceForAccessibility(`${coinsEarned} coins earned.`);
+    if (stage === 2 && coinsEarned !== undefined) AccessibilityInfo.announceForAccessibility(`${coinsEarned} coins earned.`);
+    if (stage === 3 && xpEarned !== undefined) AccessibilityInfo.announceForAccessibility(`${xpEarned} XP earned.`);
   }, [coinsEarned, stage, xpEarned]);
 
   return (
-    <View accessibilityViewIsModal importantForAccessibility="yes" style={[styles.overlay, result === "victory" ? styles.victoryOverlay : styles.defeatOverlay]}>
+    <View accessibilityViewIsModal importantForAccessibility="yes" style={[styles.overlay, result === "victory" ? styles.victoryOverlay : result === "draw" ? styles.drawOverlay : styles.defeatOverlay]}>
       <Animated.View
         pointerEvents="none"
         style={[
@@ -141,14 +163,16 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
           },
         ]}
       />
+      {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><Animated.Image source={SCREEN_FLASH} resizeMode="cover" style={[styles.screenFlash, { opacity: celebration.interpolate({ inputRange: [0, 0.08, 0.3, 1], outputRange: [0.65, 0.22, 0, 0] }) }]} /></View> : null}
+      {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><Animated.Image source={CONFETTI} resizeMode="cover" style={[styles.confettiTexture, { opacity: celebration.interpolate({ inputRange: [0, 0.12, 0.82, 1], outputRange: [0, 0.82, 0.52, 0] }), transform: [{ scale: celebration.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.08] }) }] }]} /></View> : null}
       {!isComplete ? <Pressable accessibilityRole="button" accessibilityLabel="Skip victory presentation" onPress={complete} style={[styles.skip, { top: Math.max(insets.top, 10) }]}><Text style={styles.skipText}>SKIP</Text></Pressable> : null}
       {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={styles.confetti}>{VICTORY_CONFETTI.map((item, index) => <Animated.View key={item.left} style={[styles.spark, { backgroundColor: item.color, left: item.left, opacity: celebration.interpolate({ inputRange: [0, 0.1 + item.delay / 2400, 0.82, 1], outputRange: [0, 0.9, 0.7, 0] }), transform: [{ translateX: celebration.interpolate({ inputRange: [0, 1], outputRange: [0, item.drift] }) }, { translateY: celebration.interpolate({ inputRange: [0, 1], outputRange: [-30 - index * 5, 580 + index * 18] }) }, { rotate: `${18 + index * 31}deg` }] }]} />)}</View> : null}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10), paddingBottom: Math.max(insets.bottom, 10) }]}>
         <View style={styles.content}>
           <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName={contestName} location={location} food={foodName} difficulty={difficulty} roundLabel={roundLabel} variant="compact" restaurantName={restaurantName} restaurantLogoUrl={restaurantLogoUrl} city={city} state={state} verified={verified} sponsored={sponsored} sponsorName={sponsorName} sponsorLogoUrl={sponsorLogoUrl} sponsorMessage={sponsorMessage} showPartnerDetails />
-          <ResultBanner result={result} bannerText={banner} playerScore={playerScore} opponentScore={opponentScore} opponentName={opponentName} opponentAvatar={opponentAvatar} opponentPersonality={opponentPersonality} scoresRevealed={stage >= 1} reducedMotion={reducedMotion} />
-          <RewardSummaryCard result={result} coins={coinsEarned} xp={xpEarned} highestCombo={highestCombo} foodName={foodName} matchTime={matchTime} showCombo={stage >= 1} showXp={stage >= 2} showCoins={stage >= 3} immediate={reducedMotion || isComplete} />
-          {stage >= 2 && gainedBelts.length ? <FireScreenEntrance disabled={reducedMotion} distance={6} scaleFrom={0.96} style={styles.rankUp}><View accessible accessibilityLabel={`Belt rank up. ${gainedBelts.map((belt) => belt.name).join(", ")}.`}><Text style={styles.noticeEyebrow}>BELT RANK UP!</Text><Text style={[styles.rankName, { color: gainedBelts[gainedBelts.length - 1].color }]}>{beltForXp(currentXp + xpEarned).name.toUpperCase()}</Text>{gainedBelts.length > 1 ? <Text style={styles.noticeDetail}>+{gainedBelts.length} RANKS</Text> : null}</View></FireScreenEntrance> : null}
+          <FireScreenEntrance disabled={reducedMotion} distance={result === "victory" ? 10 : 5} scaleFrom={result === "victory" ? 0.9 : 0.97} style={styles.resultEntrance}><ResultBanner result={result} bannerText={banner} playerScore={playerScore} opponentScore={opponentScore} opponentName={opponentName} opponentAvatar={opponentAvatar} opponentPersonality={opponentPersonality} scoresRevealed={stage >= 1} reducedMotion={reducedMotion} /></FireScreenEntrance>
+          <RewardSummaryCard result={result} coins={coinsEarned} xp={xpEarned} totalCoins={totalCoins} rewardReady={rewardReady} highestCombo={highestCombo} foodName={foodName} matchTime={matchTime} showCombo={stage >= 1} showCoins={stage >= 2} showXp={stage >= 3} showTotal={stage >= 4} immediate={reducedMotion || isComplete} />
+          {stage >= 4 && currentBelt && totalXp !== undefined ? <FireScreenEntrance disabled={reducedMotion} distance={6} scaleFrom={0.96} style={styles.rankProgress}><View accessible accessibilityLabel={`${currentBelt.name}. ${totalXp} total XP.`} style={styles.rankProgressInner}><Image source={RANK_BADGE} resizeMode="contain" style={[styles.rankBadge, { tintColor: currentBelt.color }]} /><View style={styles.rankProgressBody}><Text style={styles.noticeEyebrow}>{gainedBelts.length ? "BELT RANK UP!" : "RANK PROGRESS"}</Text><Text style={[styles.rankName, { color: currentBelt.color }]}>{currentBelt.name.toUpperCase()}</Text><FireProgressBar value={rankXp} animateFromValue={priorRankXp} max={rankXpMax} label="XP PROGRESS" variant="xp" compact showValue /></View></View></FireScreenEntrance> : null}
           {stage >= 4 && activeNotice ? <Animated.View style={[styles.notice, { borderColor: activeNotice.color, opacity: reducedMotion || isComplete ? 1 : noticeOpacity, transform: [{ translateY: reducedMotion ? 0 : noticeY }] }]}><Text style={styles.noticeEyebrow}>{activeNotice.eyebrow}</Text><Text style={[styles.noticeTitle, { color: activeNotice.color }]}>{activeNotice.title.toUpperCase()}</Text><Text style={styles.noticeDetail}>{activeNotice.detail.toUpperCase()}</Text></Animated.View> : null}
           {stage >= 4 && tournament ? <View style={styles.tournamentProgress}><Text style={styles.noticeEyebrow}>{tournament.name.toUpperCase()}</Text><Text style={styles.tournamentScore}>BEST SCORE  {tournament.bestScore.toLocaleString()}{tournament.rank ? ` · RANK ${tournament.rank}` : ""}</Text><FireProgressBar value={tournament.progress * 100} label="TOURNAMENT PROGRESS" variant="xp" compact showValue />{tournament.rewardPreview ? <Text style={styles.noticeDetail}>{tournament.rewardPreview}</Text> : null}</View> : null}
           {isComplete ? <View style={styles.actions}><FireButton accessibilityLabel="Continue from match results" title="CONTINUE" size="medium" variant={result === "victory" ? "gold" : "primary"} fullWidth style={styles.continueButton} onPress={onContinue} /><View style={styles.secondaryActions}><FireButton title="REPLAY" size="compact" variant="secondary" style={styles.secondaryButton} onPress={onReplay} /><FireButton title="BACK TO ARENA" size="compact" variant="ghost" style={styles.secondaryButton} onPress={onBackToArena} /></View></View> : null}
@@ -159,13 +183,16 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 2000 }, victoryOverlay: { backgroundColor: "rgba(7,5,6,0.96)" }, defeatOverlay: { backgroundColor: "rgba(36,7,9,0.96)" },
+  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 2000 }, victoryOverlay: { backgroundColor: "rgba(7,5,6,0.96)" }, drawOverlay: { backgroundColor: "rgba(20,16,13,0.97)" }, defeatOverlay: { backgroundColor: "rgba(36,7,9,0.96)" },
   resultLighting: { alignSelf: "center", backgroundColor: "rgba(255,133,24,0.5)", borderRadius: 260, height: 420, position: "absolute", top: "5%", width: 420 },
+  screenFlash: { ...StyleSheet.absoluteFillObject, height: "100%", width: "100%" },
+  confettiTexture: { ...StyleSheet.absoluteFillObject, height: "100%", width: "100%" },
   defeatLighting: { backgroundColor: "rgba(128,31,32,0.32)" },
   scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 15 }, content: { alignItems: "center", alignSelf: "center", maxWidth: 420, width: "100%" },
+  resultEntrance: { width: "100%" },
   skip: { backgroundColor: "rgba(17,9,9,0.9)", borderColor: "#B98550", borderRadius: 15, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 7, position: "absolute", right: 14, zIndex: 30 }, skipText: { color: "#F2D0A2", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
   confetti: { ...StyleSheet.absoluteFillObject, overflow: "hidden" }, spark: { borderRadius: 2, height: 9, position: "absolute", top: 0, width: 4 },
-  rankUp: { alignItems: "center", backgroundColor: "rgba(27,18,15,0.98)", borderColor: "#FFD06A", borderRadius: 10, borderWidth: 1, marginTop: 6, padding: 7, width: "100%" }, rankName: { fontSize: 15, fontWeight: "900", marginTop: 2 },
+  rankProgress: { backgroundColor: "rgba(27,18,15,0.98)", borderColor: "#FFD06A", borderRadius: 10, borderWidth: 1, marginTop: 6, padding: 7, width: "100%" }, rankProgressInner: { alignItems: "center", flexDirection: "row" }, rankProgressBody: { flex: 1, minWidth: 0 }, rankBadge: { height: 42, marginRight: 8, width: 42 }, rankName: { fontSize: 15, fontWeight: "900", marginBottom: 4, marginTop: 2 },
   notice: { alignItems: "center", backgroundColor: "rgba(31,14,11,0.98)", borderRadius: 11, borderWidth: 1.5, marginTop: 6, paddingHorizontal: 12, paddingVertical: 8, width: "100%" }, noticeEyebrow: { color: "#E7B565", fontSize: 8, fontWeight: "900", letterSpacing: 1.1, textAlign: "center" }, noticeTitle: { fontSize: 16, fontWeight: "900", marginTop: 2, textAlign: "center" }, noticeDetail: { color: "#BFA080", fontSize: 7, fontWeight: "800", marginTop: 2, textAlign: "center" },
   tournamentProgress: { backgroundColor: "rgba(16,11,12,0.98)", borderColor: "rgba(226,147,55,0.55)", borderRadius: 10, borderWidth: 1, marginTop: 6, padding: 8, width: "100%" }, tournamentScore: { color: "#FFF0D7", fontSize: 11, fontWeight: "900", marginBottom: 4, marginTop: 3, textAlign: "center" },
   actions: { marginTop: 3, width: "100%" }, continueButton: { marginBottom: 2, marginTop: 7 }, secondaryActions: { flexDirection: "row", gap: 8, justifyContent: "center", minWidth: 0 }, secondaryButton: { flex: 1, marginBottom: 0, marginTop: 0, minWidth: 0 },

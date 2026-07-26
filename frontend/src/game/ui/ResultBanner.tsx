@@ -5,7 +5,7 @@ import CharacterPortrait from "./CharacterPortrait";
 import CinematicCount from "./CinematicCount";
 
 type ResultBannerProps = {
-  result: "victory" | "defeat";
+  result: "victory" | "defeat" | "draw";
   playerScore: number;
   opponentScore: number;
   opponentName?: string;
@@ -21,7 +21,8 @@ const BLAZE = require("../../assets/characters/blaze.png");
 
 export default function ResultBanner({ result, playerScore, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality, bannerText, scoresRevealed = true, reducedMotion = false }: ResultBannerProps) {
   const isVictory = result === "victory";
-  const trim = isVictory ? "#F2A43C" : "#B84A3D";
+  const isDraw = result === "draw";
+  const trim = isVictory ? "#F2A43C" : isDraw ? "#B49B75" : "#B84A3D";
   const trophyScale = useRef(new Animated.Value(isVictory ? 0.6 : 0.92)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
 
@@ -39,21 +40,21 @@ export default function ResultBanner({ result, playerScore, opponentScore, oppon
     <View style={styles.wrap}>
       <Text style={styles.worldTour}>FIRE FEAST WORLD TOUR</Text>
       <Text style={styles.complete}>MATCH COMPLETE</Text>
-      <Text style={[styles.result, isVictory ? styles.victory : styles.defeat]}>{isVictory ? bannerText ?? "VICTORY!" : "DEFEAT"}</Text>
-      <Text style={styles.subtitle}>{isVictory ? "THE FEAST IS YOURS" : "THE ARENA DEMANDS A REMATCH"}</Text>
+      <Text style={[styles.result, isVictory ? styles.victory : isDraw ? styles.draw : styles.defeat]}>{isVictory ? bannerText ?? "VICTORY!" : isDraw ? "DRAW" : "DEFEAT"}</Text>
+      <Text style={styles.subtitle}>{isVictory ? "THE FEAST IS YOURS" : isDraw ? "EVENLY MATCHED" : "THE ARENA DEMANDS A REMATCH"}</Text>
 
       <Animated.View style={[styles.emblem, { borderColor: trim, transform: [{ scale: trophyScale }] }]} pointerEvents="none">
-        <Animated.View style={[styles.emblemGlow, { backgroundColor: isVictory ? "rgba(238,151,42,0.55)" : "rgba(154,45,38,0.2)", opacity: glowOpacity }]} />
+        <Animated.View style={[styles.emblemGlow, { backgroundColor: isVictory ? "rgba(238,151,42,0.55)" : isDraw ? "rgba(178,157,116,0.2)" : "rgba(154,45,38,0.2)", opacity: glowOpacity }]} />
         {isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="completion" size={104} /> : null}
         {isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="combo" size={126} /> : null}
-        <Image source={TROPHY} resizeMode="contain" style={[styles.trophy, !isVictory && styles.defeatTrophy]} />
+        <Image source={TROPHY} resizeMode="contain" style={[styles.trophy, isDraw ? styles.drawTrophy : !isVictory && styles.defeatTrophy]} />
       </Animated.View>
 
       <View style={[styles.comparison, { borderColor: trim }]}>
         <View style={styles.topHighlight} pointerEvents="none" />
         <View style={styles.competitor}>
           {isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
-          <CharacterPortrait image={BLAZE} name="Blaze" subtitle="You" side="player" size="compact" reaction={isVictory ? "victory" : "defeat"} reactionKey={result} />
+          <CharacterPortrait image={BLAZE} name="Blaze" subtitle="You" side="player" size="compact" reaction={isDraw ? "idle" : isVictory ? "victory" : "defeat"} reactionKey={result} />
           {scoresRevealed ? <CinematicCount value={Math.floor(playerScore)} active immediate={reducedMotion} style={styles.score} /> : <Text style={styles.score}>—</Text>}
           <Text style={styles.scoreLabel}>FINAL SCORE</Text>
         </View>
@@ -64,7 +65,7 @@ export default function ResultBanner({ result, playerScore, opponentScore, oppon
         </View>
         <View style={styles.competitor}>
           {!isVictory && !reducedMotion ? <ImpactEffect trigger={1} variant="completion" size={76} /> : null}
-          <CharacterPortrait fallback={opponentAvatar} name={opponentName} subtitle={opponentPersonality} side="opponent" size="compact" reaction={isVictory ? "defeat" : "victory"} reactionKey={result} />
+          <CharacterPortrait fallback={opponentAvatar} name={opponentName} subtitle={opponentPersonality} side="opponent" size="compact" reaction={isDraw ? "idle" : isVictory ? "defeat" : "victory"} reactionKey={result} />
           {scoresRevealed ? <CinematicCount value={Math.floor(opponentScore)} active immediate={reducedMotion} style={styles.score} /> : <Text style={styles.score}>—</Text>}
           <Text style={styles.scoreLabel}>FINAL SCORE</Text>
         </View>
@@ -80,11 +81,13 @@ const styles = StyleSheet.create({
   result: { fontSize: 39, fontWeight: "900", letterSpacing: 2.2, lineHeight: 43, textAlign: "center" },
   victory: { color: "#FFD06A", textShadowColor: "rgba(255,105,20,0.8)", textShadowRadius: 12 },
   defeat: { color: "#E06E5E", textShadowColor: "rgba(85,10,10,0.8)", textShadowRadius: 9 },
+  draw: { color: "#D8C7A3", textShadowColor: "rgba(69,55,37,0.8)", textShadowRadius: 8 },
   subtitle: { color: "#E1C29A", fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
   emblem: { alignItems: "center", backgroundColor: "rgba(10,7,8,0.92)", borderRadius: 38, borderWidth: 2, height: 76, justifyContent: "center", marginBottom: 7, marginTop: 6, overflow: "hidden", width: 76 },
   emblemGlow: { borderRadius: 34, height: 66, position: "absolute", width: 66 },
   trophy: { height: 58, width: 58 },
   defeatTrophy: { opacity: 0.66, tintColor: "#C05B4E" },
+  drawTrophy: { opacity: 0.78, tintColor: "#C7B58C" },
   comparison: { alignItems: "stretch", backgroundColor: "rgba(12,8,9,0.96)", borderRadius: 13, borderWidth: 1, flexDirection: "row", minHeight: 112, overflow: "hidden", width: "100%" },
   topHighlight: { backgroundColor: "rgba(255,218,150,0.12)", height: 1, left: 10, position: "absolute", right: 10, top: 1 },
   competitor: { alignItems: "center", flex: 1, justifyContent: "center", paddingVertical: 7 },

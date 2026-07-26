@@ -10,6 +10,7 @@ type FireProgressBarProps = {
   variant?: Variant;
   showValue?: boolean;
   compact?: boolean;
+  animateFromValue?: number;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -52,10 +53,12 @@ export default function FireProgressBar({
   variant = "default",
   showValue = false,
   compact = false,
+  animateFromValue,
   style,
 }: FireProgressBarProps) {
   const percent = useMemo(() => Math.max(0, Math.min(100, max > 0 ? (value / max) * 100 : 0)), [max, value]);
-  const width = useRef(new Animated.Value(percent)).current;
+  const initialPercent = Math.max(0, Math.min(100, max > 0 && animateFromValue !== undefined ? (animateFromValue / max) * 100 : percent));
+  const width = useRef(new Animated.Value(initialPercent)).current;
   const reducedMotion = useReducedMotionPreference();
 
   useEffect(() => {

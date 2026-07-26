@@ -110,7 +110,7 @@ export default function ContestScreen() {
   const [coolingTrigger, setCoolingTrigger] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [playerXp, setPlayerXp] = useState(0);
-  const [resultReward, setResultReward] = useState({ coins: 0, xp: 0 });
+  const [resultReward, setResultReward] = useState<{ coins: number; xp: number; totalXp: number } | null>(null);
   const coins = usePlayerBalance();
   const [resultAchievements, setResultAchievements] = useState<AchievementCompletionNotification[]>([]);
   const [resultTournament, setResultTournament] = useState<VictoryTournamentPresentation | null>(null);
@@ -245,7 +245,7 @@ export default function ContestScreen() {
     resultRetryCount.current = 0;
     setResultAchievements([]);
     setResultTournament(null);
-    setResultReward({ coins: 0, xp: 0 });
+    setResultReward(null);
   }, [matchRouteKey]);
 
   useEffect(() => {
@@ -268,10 +268,21 @@ export default function ContestScreen() {
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
       is_tournament: Boolean(tournamentOccurrenceId),
     }).then((response) => {
-      const reward = response as { coin_reward?: number; xp_reward?: number };
+      const reward = response as { coin_reward?: unknown; xp_reward?: unknown; new_xp?: unknown };
+      if (
+        typeof reward.coin_reward !== "number"
+        || !Number.isFinite(reward.coin_reward)
+        || typeof reward.xp_reward !== "number"
+        || !Number.isFinite(reward.xp_reward)
+        || typeof reward.new_xp !== "number"
+        || !Number.isFinite(reward.new_xp)
+      ) {
+        throw new Error("Match reward response was invalid.");
+      }
       setResultReward({
-        coins: Math.max(0, Number(reward.coin_reward) || 0),
-        xp: Math.max(0, Number(reward.xp_reward) || 0),
+        coins: Math.max(0, reward.coin_reward),
+        xp: Math.max(0, reward.xp_reward),
+        totalXp: Math.max(0, reward.new_xp),
       });
       submittedResultKey.current = matchRouteKey;
     }).catch(() => {
@@ -623,7 +634,7 @@ export default function ContestScreen() {
     return true;
   }, [applyAntacid, playAudioEvent]);
   const result = state.status === "FINISHED"
-    ? state.score > opponentScore ? "victory" : "defeat"
+    ? state.score === opponentScore ? "draw" : state.score > opponentScore ? "victory" : "defeat"
     : null;
 
   const replay = () => {
@@ -816,8 +827,10 @@ export default function ContestScreen() {
           foodName={contest?.food ?? "Featured feast"}
           matchTime={matchTime}
           currentXp={playerXp}
-          xpEarned={resultReward.xp}
-          coinsEarned={resultReward.coins}
+          xpEarned={resultReward?.xp}
+          coinsEarned={resultReward?.coins}
+          totalXp={resultReward?.totalXp}
+          rewardReady={resultReward !== null}
           achievements={resultAchievements}
           tournament={resultTournament}
           onReplay={replay}
