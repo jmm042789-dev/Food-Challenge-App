@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Alert, Animated, AppState, Easing, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Alert, Animated, AppState, Easing, Image, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 
 import { api, type Contest, parseContests } from "../../src/api";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import CountdownOverlay from "../../src/game/ui/CountdownOverlay";
 import EffectsLayer from "../../src/game/ui/EffectsLayer";
-import FoodArena, { FOOD_ARENA_ACTION_HEIGHT } from "../../src/game/ui/FoodArena";
+import FoodArena from "../../src/game/ui/FoodArena";
 import GameplayHUD from "../../src/game/ui/GameplayHUD";
+import HeartburnMeter from "../../src/game/ui/HeartburnMeter";
 import VictoryOverlay, { type VictoryTournamentPresentation } from "../../src/game/ui/VictoryOverlay";
 import SceneMotion, { type SceneMotionPhase } from "../../src/game/ui/SceneMotion";
 import { useGameLoop } from "../../src/game/useGameLoop";
@@ -19,16 +21,15 @@ import FireEmptyState from "../../src/components/fire/FireEmptyState";
 import HeatScreenOverlay from "../../src/game/ui/HeatScreenOverlay";
 import HeatTierBanner from "../../src/game/ui/HeatTierBanner";
 import AntacidCoolingFeedback from "../../src/game/ui/AntacidCoolingFeedback";
+import HeatPresentationOverlay from "../../src/game/ui/HeatPresentationOverlay";
 import CameraController, { type CameraControllerHandle } from "../../src/game/CameraController";
 import { getFoodProfile } from "../../src/game/food/FoodProfiles";
 import { getOpponentMood } from "../../src/game/ai/OpponentMood";
 import { trackMissionEvent } from "../../src/missions/MissionTracker";
 import { trackAchievementEvent } from "../../src/achievements/AchievementTracker";
-import type { FoodMechanicType } from "../../src/achievements/AchievementTypes";
-import { recordTournamentMatch } from "../../src/tournaments/TournamentProgress";
-import { getTournamentPlayerProgress } from "../../src/tournaments/TournamentProgress";
+import type { AchievementCompletionNotification, FoodMechanicType } from "../../src/achievements/AchievementTypes";
+import { getTournamentPlayerProgress, recordTournamentMatch } from "../../src/tournaments/TournamentProgress";
 import { TOURNAMENT_BY_ID } from "../../src/tournaments/TournamentCatalog";
-import type { AchievementCompletionNotification } from "../../src/achievements/AchievementTypes";
 import MatchIntroOverlay from "../../src/game/ui/MatchIntroOverlay";
 import { resolveMatchIntroData } from "../../src/game/MatchIntro";
 import { loadTitleProgress } from "../../src/titles/TitleProgress";
@@ -41,9 +42,14 @@ import { useCommentaryEngine } from "../../src/game/commentary/CommentaryEngine"
 import { useAdaptiveAudio } from "../../src/audio/useAdaptiveAudio";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayerBalance } from "../../src/playerBalance";
+import { stopGameplayMusic } from "../../src/audio";
+import { ANTACID_HEAT_REDUCTION } from "../../src/game/heartburn";
+
+const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
 
 export default function ContestScreen() {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const router = useRouter();
   const { contestId, replay: replayParam, tournament: tournamentParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[]; tournament?: string | string[] }>();
   const selectedContestId = Array.isArray(contestId) ? contestId[0] : contestId ?? "";
@@ -77,11 +83,13 @@ export default function ContestScreen() {
   heatTier,
   heatMultiplier,
   isOverheated,
+  overheatWarningActive,
+  overheatPenaltyActive,
   overheatRemainingMs,
   antacidCount,
   canUseAntacid,
   applyAntacid,
-  resolvedBiteHeat,
+  presentationEvents,
 } = useGameLoop({
   duration: matchDurationSeconds,
   matchKey: matchRouteKey,
@@ -99,6 +107,9 @@ export default function ContestScreen() {
     (contest as any)?.extraHeat ??
     (contest as any)?.extra_heat,
 });
+  const result = state.status === "FINISHED"
+    ? state.score === opponentScore ? "draw" : state.score > opponentScore ? "victory" : "defeat"
+    : null;
 
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
   const [showScore, setShowScore] = useState(false);
@@ -108,6 +119,7 @@ export default function ContestScreen() {
   const [nextContestId, setNextContestId] = useState<string | null>(null);
   const [roundLabel, setRoundLabel] = useState("WORLD TOUR EVENT");
   const [coolingTrigger, setCoolingTrigger] = useState(0);
+  const [antacidAcknowledging, setAntacidAcknowledging] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [playerXp, setPlayerXp] = useState(0);
   const [resultReward, setResultReward] = useState<{ coins: number; xp: number; totalXp: number } | null>(null);
@@ -115,6 +127,7 @@ export default function ContestScreen() {
   const [resultAchievements, setResultAchievements] = useState<AchievementCompletionNotification[]>([]);
   const [resultTournament, setResultTournament] = useState<VictoryTournamentPresentation | null>(null);
   const antacidPulse = useRef(new Animated.Value(0)).current;
+  const antacidAcknowledgementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraRef = useRef<CameraControllerHandle>(null);
   const started = useRef(false);
   const matchStartedAt = useRef<number | null>(null);
@@ -146,13 +159,18 @@ export default function ContestScreen() {
     recentLeadChange: atmosphere.lastReaction === "PLAYER_TAKES_LEAD" || atmosphere.lastReaction === "OPPONENT_TAKES_LEAD",
     playerWon: state.status === "FINISHED" ? state.score > opponentScore : undefined,
   }), [atmosphere.excitement, atmosphere.lastReaction, opponentScore, state.combo, state.score, state.status, timeRemaining]);
-  const { playSound: playAudioEvent } = useAdaptiveAudio(adaptiveAudioContext, matchRouteKey);
+  const { playSound: playAudioEvent } = useAdaptiveAudio(adaptiveAudioContext, matchRouteKey, isFocused);
   const { commentary, commentate } = useCommentaryEngine(matchRouteKey);
   const previousArenaStatus = useRef(state.status);
   const previousArenaLead = useRef<"PLAYER" | "OPPONENT" | "TIED">("TIED");
   const arenaCloseMatch = useRef(false);
   const arenaFinalTenSent = useRef(false);
+  const previousAudioTimeRemaining = useRef(timeRemaining);
   const lastAccessibilityCountdown = useRef<number | null>(null);
+  const countdownAudioPlayed = useRef(false);
+  const lastUrgencyAudioSecond = useRef<number | null>(null);
+  const resultAudioKey = useRef<string | null>(null);
+  const lastHeatPresentationId = useRef(0);
   const lastArenaPlayerCombo = useRef(0);
   const lastArenaOpponentCombo = useRef(0);
   const firstBiteCommented = useRef(false);
@@ -173,9 +191,27 @@ export default function ContestScreen() {
     return () => clearTimeout(timer);
   }, [feedbackText]);
 
+  useEffect(() => {
+    const newEvents = presentationEvents.filter((event) => event.id > lastHeatPresentationId.current);
+    if (!newEvents.length) return;
+    lastHeatPresentationId.current = newEvents[newEvents.length - 1].id;
+    if (newEvents.some((event) => event.type === "OVERHEAT_WARNING_STARTED") && !reducedMotion) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+    if (newEvents.some((event) => event.type === "OVERHEATED")) {
+      cameraRef.current?.shake(5);
+      if (!reducedMotion) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    }
+    if (newEvents.some((event) => event.type === "PERFECT_COOLDOWN")) {
+      void playAudioEvent("PERFECT_MECHANIC");
+      if (!reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+  }, [playAudioEvent, presentationEvents, reducedMotion]);
+
   useEffect(() => () => {
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     if (resultRetryTimer.current) clearTimeout(resultRetryTimer.current);
+    if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
   }, []);
 
   useEffect(() => {
@@ -192,15 +228,16 @@ export default function ContestScreen() {
         if (!reducedMotion) {
           Haptics.impactAsync(state.combo >= 20 ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         }
-      } else if (state.combo > 1) {
-        void playAudioEvent("COMBO");
       }
     }
   }, [playAudioEvent, reducedMotion, state.combo]);
 
   useEffect(() => {
     if (state.status !== "COUNTDOWN") return;
-    void playAudioEvent(countdownValue === "GO" ? "GO" : "COUNTDOWN_TICK");
+    if (!countdownAudioPlayed.current) {
+      countdownAudioPlayed.current = true;
+      void playAudioEvent("COUNTDOWN_TICK");
+    }
     if (countdownValue === "GO") {
       cameraRef.current?.countdownSettle();
       if (!reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -221,7 +258,7 @@ export default function ContestScreen() {
         Haptics.notificationAsync(won ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning).catch(() => {});
       }
     }
-  }, [opponentScore, reducedMotion, state.score, state.status]);
+  }, [opponentScore, playAudioEvent, reducedMotion, state.score, state.status]);
 
   useEffect(() => {
     cameraRef.current?.reset();
@@ -231,7 +268,12 @@ export default function ContestScreen() {
     previousArenaLead.current = "TIED";
     arenaCloseMatch.current = false;
     arenaFinalTenSent.current = false;
+    previousAudioTimeRemaining.current = matchDurationSeconds;
     lastAccessibilityCountdown.current = null;
+    countdownAudioPlayed.current = false;
+    lastUrgencyAudioSecond.current = null;
+    resultAudioKey.current = null;
+    lastHeatPresentationId.current = 0;
     lastArenaPlayerCombo.current = 0;
     lastArenaOpponentCombo.current = 0;
     firstBiteCommented.current = false;
@@ -243,10 +285,13 @@ export default function ContestScreen() {
     resultRequestInFlight.current = false;
     submittedResultKey.current = null;
     resultRetryCount.current = 0;
+    if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
+    antacidAcknowledgementTimer.current = null;
+    setAntacidAcknowledging(false);
     setResultAchievements([]);
     setResultTournament(null);
     setResultReward(null);
-  }, [matchRouteKey]);
+  }, [matchDurationSeconds, matchRouteKey]);
 
   useEffect(() => {
     if (state.status !== "FINISHED" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
@@ -326,7 +371,6 @@ export default function ContestScreen() {
     if (state.status === "FINISHED" && priorStatus !== "FINISHED") {
       reactArena({ type: "MATCH_FINISHED", playerWon: state.score > opponentScore });
       commentate({ type: "MATCH_FINISHED" });
-      void playAudioEvent(state.score > opponentScore ? "VICTORY" : "DEFEAT");
       if (!highScoreCommented.current && state.score > playerBestScore.current) {
         highScoreCommented.current = true;
         playerBestScore.current = state.score;
@@ -334,6 +378,13 @@ export default function ContestScreen() {
       }
     }
   }, [commentate, opponentScore, playAudioEvent, reactArena, state.score, state.status]);
+
+  useEffect(() => {
+    if (!result || resultAudioKey.current === matchRouteKey) return;
+    resultAudioKey.current = matchRouteKey;
+    if (result === "victory") void playAudioEvent("VICTORY");
+    else if (result === "defeat") void playAudioEvent("DEFEAT");
+  }, [matchRouteKey, playAudioEvent, result]);
 
   useEffect(() => {
     if (state.status !== "PLAYING" || state.combo < 5) return;
@@ -380,7 +431,9 @@ export default function ContestScreen() {
   }, [commentate, opponentScore, playAudioEvent, reactArena, state.score, state.status]);
 
   useEffect(() => {
-    if (state.status !== "PLAYING" || timeRemaining > 10 || timeRemaining <= 0 || arenaFinalTenSent.current) return;
+    const priorTimeRemaining = previousAudioTimeRemaining.current;
+    previousAudioTimeRemaining.current = timeRemaining;
+    if (state.status !== "PLAYING" || priorTimeRemaining <= 10 || timeRemaining > 10 || timeRemaining <= 0 || arenaFinalTenSent.current) return;
     arenaFinalTenSent.current = true;
     reactArena({ type: "FINAL_10_SECONDS" });
     commentate({ type: "FINAL_10_SECONDS" });
@@ -394,6 +447,17 @@ export default function ContestScreen() {
       timeRemaining === 5 ? "5 seconds remaining" : String(timeRemaining),
     );
   }, [state.status, timeRemaining]);
+
+  useEffect(() => {
+    if (
+      state.status !== "PLAYING"
+      || timeRemaining < 1
+      || timeRemaining > 5
+      || lastUrgencyAudioSecond.current === timeRemaining
+    ) return;
+    lastUrgencyAudioSecond.current = timeRemaining;
+    void playAudioEvent("URGENCY_TICK");
+  }, [playAudioEvent, state.status, timeRemaining]);
 
   useEffect(() => {
     if (state.status !== "FINISHED" || missionRecordedMatch.current === matchRouteKey) return;
@@ -478,14 +542,15 @@ export default function ContestScreen() {
   useEffect(() => {
     antacidPulse.stopAnimation();
     antacidPulse.setValue(0);
-    if (reducedMotion || !canUseAntacid || (heatTier !== "CRITICAL" && heatTier !== "OVERHEATED")) return;
+    if (reducedMotion || !canUseAntacid || heartburn < 85) return;
+    const pulseDuration = overheatWarningActive ? 330 : heartburn >= 90 ? 430 : 650;
     const animation = Animated.loop(Animated.sequence([
-      Animated.timing(antacidPulse, { toValue: 1, duration: 520, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(antacidPulse, { toValue: 0, duration: 520, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(antacidPulse, { toValue: 1, duration: pulseDuration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(antacidPulse, { toValue: 0, duration: pulseDuration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
     ]));
     animation.start();
     return () => animation.stop();
-  }, [antacidPulse, canUseAntacid, heatTier, reducedMotion]);
+  }, [antacidPulse, canUseAntacid, heartburn, overheatWarningActive, reducedMotion]);
 
   useEffect(() => () => antacidPulse.stopAnimation(), [antacidPulse]);
 
@@ -580,8 +645,9 @@ export default function ContestScreen() {
 
   const handleTap = useCallback(() => {
     const { commentate: commentateLatest, combo, playAudioEvent: playAudioEventLatest, status, tap: tapLatest } = arenaCallbacksRef.current;
-    if (status !== "PLAYING") return;
-    tapLatest();
+    if (status !== "PLAYING") return null;
+    const acceptedActionSequence = tapLatest();
+    if (acceptedActionSequence === null) return null;
     cameraRef.current?.bitePunch();
     void playAudioEventLatest("CORRECT_BITE");
     const now = Date.now();
@@ -618,6 +684,7 @@ export default function ContestScreen() {
     setShowScore(true);
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
+    return acceptedActionSequence;
   }, [reducedMotion]);
 
   const handleUseAntacid = useCallback((): boolean => {
@@ -625,6 +692,12 @@ export default function ContestScreen() {
     if (!used) return false;
 
     setCoolingTrigger((value) => value + 1);
+    setAntacidAcknowledging(true);
+    if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
+    antacidAcknowledgementTimer.current = setTimeout(() => {
+      setAntacidAcknowledging(false);
+      antacidAcknowledgementTimer.current = null;
+    }, 420);
     cameraRef.current?.comboPunch(0.85);
     cameraRef.current?.shake(2.5);
     void playAudioEvent("PERFECT_MECHANIC");
@@ -633,10 +706,6 @@ export default function ContestScreen() {
     ).catch(() => {});
     return true;
   }, [applyAntacid, playAudioEvent]);
-  const result = state.status === "FINISHED"
-    ? state.score === opponentScore ? "draw" : state.score > opponentScore ? "victory" : "defeat"
-    : null;
-
   const replay = () => {
     if (resultNavigationInFlight.current) return;
     resultNavigationInFlight.current = true;
@@ -647,6 +716,7 @@ export default function ContestScreen() {
   const abandonAndReturn = () => {
     if (abandonRequestInFlight.current) return;
     abandonRequestInFlight.current = true;
+    void stopGameplayMusic();
     void api.abandonMatch()
       .then(() => {
         abandonRequestInFlight.current = false;
@@ -720,6 +790,7 @@ export default function ContestScreen() {
       <HeatScreenOverlay heartburn={heartburn} heatTier={heatTier} isOverheated={isOverheated} />
       <HeatTierBanner heatTier={heatTier} />
       <AntacidCoolingFeedback trigger={coolingTrigger} />
+      <HeatPresentationOverlay events={presentationEvents} overheatWarningActive={overheatWarningActive} overheatRemainingMs={overheatRemainingMs} />
 
       <MatchIntroOverlay
         visible={state.status === "MATCH_INTRO"}
@@ -757,24 +828,53 @@ export default function ContestScreen() {
           location={contest?.location}
           difficulty={contest?.difficulty}
           roundLabel={roundLabel}
-          heartburn={heartburn}
-          heatTier={heatTier}
-          heatMultiplier={heatMultiplier}
-          isOverheated={isOverheated}
-          overheatRemainingMs={overheatRemainingMs}
-          antacidCount={antacidCount}
-          canUseAntacid={canUseAntacid}
-          onUseAntacid={handleUseAntacid}
-          coolingTrigger={coolingTrigger}
         />
         </FireScreenEntrance>
 
         <View style={styles.gameplayContent}>
-          <FoodArena contestId={selectedContestId} combo={state.combo} timeRemaining={timeRemaining} resetKey={matchRouteKey} active={state.status === "PLAYING"} foodProfile={foodProfile} onTap={handleTap} onMechanicCompleted={handleMechanicCompleted} />
+          <FoodArena
+            active={state.status === "PLAYING"}
+            biteMechanic={contest?.bite_mechanic}
+            combo={state.combo}
+            contestId={selectedContestId}
+            foodName={contest?.food}
+            foodProfile={foodProfile}
+            heatTier={heatTier}
+            overheatWarningActive={overheatWarningActive}
+            resetKey={matchRouteKey}
+            timeRemaining={timeRemaining}
+            onAcceptedAction={handleTap}
+            onMechanicCompleted={handleMechanicCompleted}
+          />
         </View>
-        <Animated.View style={[styles.antacidControl, { opacity: canUseAntacid ? 1 : 0.46, transform: [{ scale: antacidPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
-          <FireButton accessibilityLabel={`Use antacid, ${antacidCount} remaining${canUseAntacid ? ", cool down" : ", unavailable"}`} title="USE ANTACID" subtitle={canUseAntacid ? `COOL DOWN · ${antacidCount} LEFT` : `${antacidCount} LEFT`} size="compact" variant={heatTier === "CRITICAL" || heatTier === "OVERHEATED" ? "gold" : "secondary"} disabled={!canUseAntacid} haptic={false} onPress={handleUseAntacid} style={styles.antacidButton} />
-        </Animated.View>
+        <View style={styles.utilityHud}>
+          <HeartburnMeter
+            coolingTrigger={coolingTrigger}
+            heartburn={heartburn}
+            heatMultiplier={heatMultiplier}
+            heatTier={heatTier}
+            isOverheated={isOverheated}
+            overheatPenaltyActive={overheatPenaltyActive}
+            overheatRemainingMs={overheatRemainingMs}
+          />
+        {state.status === "PLAYING" ? (
+          <Animated.View style={[styles.antacidControl, canUseAntacid && heartburn >= 85 && styles.antacidControlCritical, canUseAntacid && overheatWarningActive && styles.antacidControlWarning, antacidAcknowledging && styles.antacidControlAcknowledged, { opacity: canUseAntacid || antacidAcknowledging ? 1 : 0.46, transform: [{ scale: antacidPulse.interpolate({ inputRange: [0, 1], outputRange: [1, overheatWarningActive ? 1.11 : heartburn >= 90 ? 1.075 : 1.045] }) }] }]}>
+            <FireButton
+              accessibilityHint={`Reduces heat by ${ANTACID_HEAT_REDUCTION} and protects from new heat for two seconds.`}
+              accessibilityLabel={antacidCount <= 0 ? "Antacid unavailable, none remaining" : `Use antacid, ${antacidCount} remaining, reduce heat by ${ANTACID_HEAT_REDUCTION}`}
+              title={antacidAcknowledging ? "ANTACID!" : overheatWarningActive ? "SAVE COMBO" : "ANTACID"}
+              subtitle={antacidAcknowledging ? `-${ANTACID_HEAT_REDUCTION} HEAT` : overheatWarningActive ? `USE NOW · ${antacidCount} LEFT` : heartburn >= 90 && canUseAntacid ? `READY · -${ANTACID_HEAT_REDUCTION} HEAT · ${antacidCount}` : `-${ANTACID_HEAT_REDUCTION} HEAT · ${antacidCount} LEFT`}
+              leftIcon={<Image accessibilityIgnoresInvertColors source={ANTACID_ICON} resizeMode="contain" style={styles.antacidIcon} />}
+              size="compact"
+              variant={canUseAntacid && heartburn >= 85 ? "gold" : "secondary"}
+              disabled={!canUseAntacid || antacidAcknowledging}
+              haptic={false}
+              onPress={handleUseAntacid}
+              style={styles.antacidButton}
+            />
+          </Animated.View>
+        ) : null}
+        </View>
       </SceneMotion>
       </CameraController>
       </View>
@@ -863,6 +963,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 0,
   },
-  antacidControl: { bottom: FOOD_ARENA_ACTION_HEIGHT, left: 7, position: "absolute", zIndex: 40 },
+  utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 82, paddingHorizontal: 10, width: "100%", zIndex: 40 },
+  antacidControl: { maxWidth: "60%", zIndex: 40 },
+  antacidControlCritical: { backgroundColor: "rgba(116,42,8,0.34)", borderRadius: 16 },
+  antacidControlWarning: { backgroundColor: "rgba(180,22,12,0.42)", elevation: 12, zIndex: 90 },
+  antacidControlAcknowledged: { backgroundColor: "rgba(35,130,148,0.38)", borderRadius: 16 },
   antacidButton: { marginBottom: 0, marginTop: 0 },
+  antacidIcon: { height: 26, width: 26 },
 });

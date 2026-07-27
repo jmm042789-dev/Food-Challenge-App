@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text } from "react-native";
-import * as Haptics from "expo-haptics";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, Text } from "react-native";
 
 import type { HeatTier } from "../heartburn";
 
 const rank: Record<HeatTier, number> = { COOL: 0, WARM: 1, HOT: 2, CRITICAL: 3, OVERHEATED: 4 };
-const labels: Record<HeatTier, string> = { COOL: "", WARM: "WARMING UP", HOT: "HEAT RISING", CRITICAL: "CRITICAL HEAT", OVERHEATED: "OVERHEATED" };
+const labels: Record<HeatTier, string> = { COOL: "", WARM: "WARMING UP", HOT: "HEAT RISING", CRITICAL: "CRITICAL HEAT", OVERHEATED: "OVERHEATING" };
 
 export default function HeatTierBanner({ heatTier }: { heatTier: HeatTier }) {
   const previous = useRef<HeatTier>(heatTier);
@@ -14,6 +13,13 @@ export default function HeatTierBanner({ heatTier }: { heatTier: HeatTier }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animation = useRef<Animated.CompositeAnimation | null>(null);
   const [visibleTier, setVisibleTier] = useState<HeatTier | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => { if (mounted) setReducedMotion(enabled); });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     const oldTier = previous.current;
@@ -22,14 +28,11 @@ export default function HeatTierBanner({ heatTier }: { heatTier: HeatTier }) {
     if (timer.current) clearTimeout(timer.current);
     animation.current?.stop();
     setVisibleTier(heatTier);
-    opacity.setValue(0); translateY.setValue(-12);
-    animation.current = Animated.parallel([Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true }), Animated.timing(translateY, { toValue: 0, duration: 190, easing: Easing.out(Easing.cubic), useNativeDriver: true })]);
+    opacity.setValue(0); translateY.setValue(reducedMotion ? 0 : -12);
+    animation.current = Animated.parallel([Animated.timing(opacity, { toValue: 1, duration: reducedMotion ? 0 : 150, useNativeDriver: true }), Animated.timing(translateY, { toValue: 0, duration: reducedMotion ? 0 : 190, easing: Easing.out(Easing.cubic), useNativeDriver: true })]);
     animation.current.start();
-    const haptic = heatTier === "OVERHEATED" ? Haptics.NotificationFeedbackType.Error : heatTier === "CRITICAL" ? Haptics.ImpactFeedbackStyle.Heavy : heatTier === "HOT" ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light;
-    const feedback = heatTier === "OVERHEATED" ? Haptics.notificationAsync(haptic as Haptics.NotificationFeedbackType) : Haptics.impactAsync(haptic as Haptics.ImpactFeedbackStyle);
-    feedback.catch(() => {});
-    timer.current = setTimeout(() => Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => setVisibleTier(null)), heatTier === "OVERHEATED" ? 1000 : 820);
-  }, [heatTier, opacity, translateY]);
+    timer.current = setTimeout(() => Animated.timing(opacity, { toValue: 0, duration: reducedMotion ? 0 : 180, useNativeDriver: true }).start(() => setVisibleTier(null)), heatTier === "OVERHEATED" ? 1000 : 820);
+  }, [heatTier, opacity, reducedMotion, translateY]);
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); animation.current?.stop(); opacity.stopAnimation(); translateY.stopAnimation(); }, [opacity, translateY]);
   if (!visibleTier) return null;

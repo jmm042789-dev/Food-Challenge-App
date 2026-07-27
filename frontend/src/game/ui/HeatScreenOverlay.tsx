@@ -1,11 +1,12 @@
 import React, { memo, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { HeatTier } from "../heartburn";
 
 type Props = { heartburn: number; heatTier: HeatTier; isOverheated: boolean };
 const opacityByTier: Record<HeatTier, number> = { COOL: 0.01, WARM: 0.07, HOT: 0.12, CRITICAL: 0.18, OVERHEATED: 0.24 };
+const EMBERS = require("../../assets/ui/effects/embers-particle.png");
 
 function HeatScreenOverlay({ heartburn, heatTier, isOverheated }: Props) {
   const opacity = useRef(new Animated.Value(opacityByTier[heatTier])).current;
@@ -35,8 +36,13 @@ function HeatScreenOverlay({ heartburn, heatTier, isOverheated }: Props) {
     <LinearGradient colors={["transparent", color]} style={styles.bottom} />
     <LinearGradient colors={[color, "transparent"]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.left} />
     <LinearGradient colors={["transparent", color]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.right} />
+    {heatTier === "HOT" || heatTier === "CRITICAL" || heatTier === "OVERHEATED" ? (
+      <Animated.View style={[styles.embers, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [heatTier === "HOT" ? 0.025 : 0.045, heatTier === "OVERHEATED" ? 0.12 : 0.08] }) }]}>
+        <Image source={EMBERS} resizeMode="cover" style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    ) : null}
     <View style={[styles.edge, { borderColor: color, borderWidth: heartburn >= 75 ? 3 : 2 }]} />
   </Animated.View>;
 }
 export default memo(HeatScreenOverlay);
-const styles = StyleSheet.create({ overlay: { ...StyleSheet.absoluteFillObject, zIndex: 2 }, top: { height: 78, left: 0, position: "absolute", right: 0, top: 0 }, bottom: { bottom: 0, height: 88, left: 0, position: "absolute", right: 0 }, left: { bottom: 0, left: 0, position: "absolute", top: 0, width: 54 }, right: { bottom: 0, position: "absolute", right: 0, top: 0, width: 54 }, edge: { ...StyleSheet.absoluteFillObject } });
+const styles = StyleSheet.create({ overlay: { ...StyleSheet.absoluteFillObject, zIndex: 2 }, top: { height: 78, left: 0, position: "absolute", right: 0, top: 0 }, bottom: { bottom: 0, height: 88, left: 0, position: "absolute", right: 0 }, left: { bottom: 0, left: 0, position: "absolute", top: 0, width: 54 }, right: { bottom: 0, position: "absolute", right: 0, top: 0, width: 54 }, embers: { bottom: 0, left: 0, position: "absolute", right: 0, top: "18%" }, edge: { ...StyleSheet.absoluteFillObject } });

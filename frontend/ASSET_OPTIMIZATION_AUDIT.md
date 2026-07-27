@@ -97,9 +97,7 @@ Pixel dimensions and transparency do not apply to these formats.
 | Path | Type | Bytes | Usage | Unused | Recommendation |
 |---|---:|---:|---|:---:|---|
 | `assets/fonts/SpaceMono-Regular.ttf` | TTF | 93,252 | Loaded by app layout / Expo font | No | Preserve |
-| `assets/sounds/tap.mp3` | MP3 | 4,272 | AudioRegistry tap sound | No | Preserve |
-| `assets/sounds/combo.mp3` | MP3 | 33,196 | AudioRegistry combo sound | No | Preserve |
-| `assets/sounds/start.mp3` | MP3 | 33,481 | AudioRegistry start sound | No | Preserve |
+| `assets/sounds/` | MP3 | Varies | Centralized music and sound-effect registry | No | Preserve the final registered audio set |
 | `src/assets/foodArtwork.ts` | TypeScript registry | 912 | Maps contest IDs to food images | No | Preserve |
 | `src/assets/ui.zip` (removed) | ZIP | 62,691,751 | No runtime/config reference; exact copies of 37 extracted UI images | Yes | Removed as redundant source archive |
 

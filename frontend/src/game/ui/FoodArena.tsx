@@ -19,7 +19,9 @@ import {
 } from "react-native";
 
 import { getFoodArtwork } from "../../assets/foodArtwork";
+import type { BiteMechanic } from "../../api";
 import type { FoodProfile } from "../food/FoodProfiles";
+import type { HeatTier } from "../heartburn";
 import type { FoodMechanicType } from "../../achievements/AchievementTypes";
 import BurgerHeavyBiteOverlay from "./BurgerHeavyBiteOverlay";
 import CheesePullOverlay from "./CheesePullOverlay";
@@ -28,6 +30,7 @@ import HotDogSpeedSprintOverlay, { type HotDogSpeedSprintHandle } from "./HotDog
 import ImpactEffect from "./ImpactEffect";
 import NoodleSlurpOverlay from "./NoodleSlurpOverlay";
 import TacoStabilityOverlay, { type TacoStabilityHandle } from "./TacoStabilityOverlay";
+import GameplayActionZone, { GAMEPLAY_ACTION_ZONE_HEIGHT } from "./GameplayActionZone";
 
 type Props = {
   contestId: string;
@@ -36,19 +39,15 @@ type Props = {
   resetKey?: string;
   active?: boolean;
   foodProfile: FoodProfile;
-  onTap: () => void;
+  foodName?: string;
+  biteMechanic?: BiteMechanic;
+  heatTier: HeatTier;
+  overheatWarningActive: boolean;
+  onAcceptedAction: () => number | null;
   onMechanicCompleted?: (mechanicType: FoodMechanicType) => void;
 };
 
-export const FOOD_ARENA_ACTION_HEIGHT = 124;
-
-const HOT_FOOD_CONTESTS = new Set([
-  "nathans-hotdogs",
-  "wing-bowl",
-  "pizza-hut-stuffed",
-  "katz-pastrami",
-  "in-n-out-burgers",
-]);
+export const FOOD_ARENA_ACTION_HEIGHT = GAMEPLAY_ACTION_ZONE_HEIGHT;
 
 type ImpactTier = 0 | 1 | 2 | 3;
 
@@ -90,6 +89,14 @@ const CRUMBS = [
   { x: -54, y: 7, size: 3 },
   { x: 55, y: 10, size: 4 },
 ] as const;
+const PRESENTATION_BITES_PER_ITEM = 10;
+const COMPLETION_BURST = require("../../assets/ui/effects/combo-explosion.png");
+const DESSERT_SPARKLE = require("../../assets/ui/effects/sparkle.png");
+
+type FoodPresentationEvent = {
+  id: number;
+  type: "ITEM_COMPLETED";
+};
 
 const EMBERS = [
   { left: "12%", delay: 0, duration: 2100, size: 4 },
@@ -154,23 +161,30 @@ function FoodArena({
   resetKey = contestId,
   active = true,
   foodProfile,
-  onTap,
+  foodName,
+  biteMechanic,
+  heatTier,
+  overheatWarningActive,
+  onAcceptedAction,
   onMechanicCompleted,
 }: Props) {
   const { width, height } = useWindowDimensions();
   const [foodRegionHeight, setFoodRegionHeight] = useState(0);
 
   const size = Math.min(
-    width * 0.66,
-    height * 0.3,
-    Math.max(150, (foodRegionHeight || height * 0.44) - 96),
-    285,
+    Math.max(135, width * 0.52),
+    Math.max(135, height * 0.27),
+    Math.max(135, (foodRegionHeight || height * 0.4) - 50),
+    250,
   );
   const foodHitSlop = Math.round(clamp(size * 0.1, 18, 28));
 
   const foodArtwork = getFoodArtwork(contestId);
 
   const impactScale = useRef(new Animated.Value(1)).current;
+  const holdPresentationScale = useRef(new Animated.Value(1)).current;
+  const consumptionScale = useRef(new Animated.Value(1)).current;
+  const completionBurst = useRef(new Animated.Value(0)).current;
   const impactRotation = useRef(new Animated.Value(0)).current;
 
   const idleY = useRef(new Animated.Value(0)).current;
@@ -178,9 +192,6 @@ function FoodArena({
   const idleRotation = useRef(new Animated.Value(0)).current;
 
   const shakeX = useRef(new Animated.Value(0)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
-  const buttonPulse = useRef(new Animated.Value(0)).current;
-
   const haloIntensity = useRef(new Animated.Value(0)).current;
   const haloPulse = useRef(new Animated.Value(0)).current;
   const urgency = useRef(new Animated.Value(0)).current;
@@ -203,9 +214,10 @@ function FoodArena({
 
   const biteAnimation =
     useRef<Animated.CompositeAnimation | null>(null);
+  const completionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const biteCounter = useRef(0);
-  const performBiteRef = useRef<() => void>(() => {});
+  const performBiteRef = useRef<() => number | null>(() => null);
   const heavyBiteActiveRef = useRef(false);
   const cheesePullActiveRef = useRef(false);
   const noodleSlurpActiveRef = useRef(false);
@@ -215,12 +227,15 @@ function FoodArena({
 
   const [reducedMotion, setReducedMotion] = useState(false);
   const [biteEvent, setBiteEvent] = useState(0);
+  const [foodPresentationEvent, setFoodPresentationEvent] = useState<FoodPresentationEvent | null>(null);
   const [heavyBiteActive, setHeavyBiteActive] = useState(false);
   const [cheesePullActive, setCheesePullActive] = useState(false);
   const [noodleSlurpActive, setNoodleSlurpActive] = useState(false);
   const [tacoStability, setTacoStability] = useState(1);
 
-  const hotFood = HOT_FOOD_CONTESTS.has(contestId);
+  const normalizedFoodName = (foodName ?? foodProfile.displayName).toLowerCase();
+  const dessertFood = /dessert|ice cream|cake|cookie/.test(normalizedFoodName);
+  const hotFood = foodProfile.biteStyle === "spicy" || /hot dog|pizza|pastrami|wing|spicy/.test(normalizedFoodName);
   const heavyBiteMechanic =
     foodProfile.specialMechanic?.type === "heavy_bite"
       ? foodProfile.specialMechanic
@@ -268,7 +283,9 @@ function FoodArena({
               ? 1
               : 0;
   const impactTier = getImpactTier(combo);
-  const stylePresentation = BITE_STYLE_PRESENTATION[foodProfile.biteStyle];
+  const stylePresentation = dessertFood
+    ? { compression: 0.78, recovery: 0.82, rotation: 0.35, shake: 0.55, flash: 0.82, effect: 0.9 }
+    : BITE_STYLE_PRESENTATION[foodProfile.biteStyle];
   const animationSpeed = clamp(foodProfile.biteAnimationSpeed, 0.75, 1.4);
   const cameraPunch = clamp(foodProfile.cameraPunch, 0.7, 1.3);
   const foodWobble = clamp(foodProfile.foodWobble, 0, 1);
@@ -369,11 +386,6 @@ function FoodArena({
           duration: 220,
           useNativeDriver: true,
         }),
-        Animated.timing(buttonPulse, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }),
       ]).start();
 
       return;
@@ -385,7 +397,6 @@ function FoodArena({
       createLoop(idleRotation, 3400, 240),
       createLoop(shine, 3300, 450),
       createLoop(haloPulse, 1800),
-      createLoop(buttonPulse, 1250),
       createLoop(floorPulse, 2100),
 
       ...emberValues.map((value, index) =>
@@ -412,7 +423,6 @@ function FoodArena({
     };
   }, [
     active,
-    buttonPulse,
     emberValues,
     floorPulse,
     haloPulse,
@@ -437,18 +447,26 @@ function FoodArena({
     noodleSlurpActiveRef.current = false;
 
     impactScale.stopAnimation();
+    holdPresentationScale.stopAnimation();
+    consumptionScale.stopAnimation();
+    completionBurst.stopAnimation();
     impactRotation.stopAnimation();
     shakeX.stopAnimation();
     crumbProgress.stopAnimation();
     hitFlash.stopAnimation();
 
     impactScale.setValue(0.86);
+    holdPresentationScale.setValue(1);
+    consumptionScale.setValue(1);
+    completionBurst.setValue(0);
     impactRotation.setValue(0);
     shakeX.setValue(0);
     crumbProgress.setValue(0);
     hitFlash.setValue(0);
 
     setBiteEvent(0);
+    setFoodPresentationEvent(null);
+    if (completionTimer.current) clearTimeout(completionTimer.current);
     setHeavyBiteActive(false);
     setCheesePullActive(false);
     setNoodleSlurpActive(false);
@@ -464,8 +482,11 @@ function FoodArena({
     }).start();
   }, [
     contestId,
+    completionBurst,
+    consumptionScale,
     crumbProgress,
     hitFlash,
+    holdPresentationScale,
     impactRotation,
     impactScale,
     resetKey,
@@ -525,20 +546,31 @@ function FoodArena({
     }).start();
   }, [combo, haloPulse]);
 
+  useEffect(() => {
+    if (active) return;
+    if (completionTimer.current) clearTimeout(completionTimer.current);
+    completionTimer.current = null;
+    setFoodPresentationEvent(null);
+    completionBurst.stopAnimation();
+    completionBurst.setValue(0);
+  }, [active, completionBurst]);
+
   useEffect(
     () => () => {
       biteAnimation.current?.stop();
       biteAnimation.current = null;
+      if (completionTimer.current) clearTimeout(completionTimer.current);
 
       [
         impactScale,
+        consumptionScale,
+        completionBurst,
+        holdPresentationScale,
         impactRotation,
         idleY,
         idleBreath,
         idleRotation,
         shakeX,
-        buttonScale,
-        buttonPulse,
         haloIntensity,
         haloPulse,
         urgency,
@@ -551,14 +583,15 @@ function FoodArena({
       ].forEach((value) => value.stopAnimation());
     },
     [
-      buttonPulse,
-      buttonScale,
+      completionBurst,
+      consumptionScale,
       crumbProgress,
       emberValues,
       floorPulse,
       haloIntensity,
       haloPulse,
       hitFlash,
+      holdPresentationScale,
       idleBreath,
       idleRotation,
       idleY,
@@ -599,12 +632,47 @@ function FoodArena({
     setTacoStability(stability);
   }, []);
 
-  const performBite = () => {
-    onTap();
+  const handleHoldStateChange = useCallback((holding: boolean) => {
+    holdPresentationScale.stopAnimation();
+    Animated.timing(holdPresentationScale, {
+      toValue: holding && !reducedMotion ? 0.975 : 1,
+      duration: reducedMotion ? 80 : 150,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [holdPresentationScale, reducedMotion]);
 
-    const nextBiteCount = biteCounter.current + 1;
+  const performBite = () => {
+    const acceptedSequence = onAcceptedAction();
+    if (acceptedSequence === null) return null;
+    const nextBiteCount = acceptedSequence;
     biteCounter.current = nextBiteCount;
     setBiteEvent(nextBiteCount);
+    const biteWithinItem = ((nextBiteCount - 1) % PRESENTATION_BITES_PER_ITEM) + 1;
+    const itemCompleted = biteWithinItem === PRESENTATION_BITES_PER_ITEM;
+    consumptionScale.stopAnimation();
+    Animated.timing(consumptionScale, {
+      toValue: 1 - (biteWithinItem / PRESENTATION_BITES_PER_ITEM) * 0.24,
+      duration: reducedMotion ? 80 : 150,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+    if (itemCompleted) {
+      if (completionTimer.current) clearTimeout(completionTimer.current);
+      setFoodPresentationEvent({ id: nextBiteCount, type: "ITEM_COMPLETED" });
+      completionBurst.stopAnimation();
+      completionBurst.setValue(0);
+      Animated.timing(completionBurst, {
+        toValue: 1,
+        duration: reducedMotion ? 180 : 520,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      completionTimer.current = setTimeout(() => {
+        setFoodPresentationEvent(null);
+        completionTimer.current = null;
+      }, 620);
+    }
 
     if (cheesePullInterval && nextBiteCount % cheesePullInterval === 0) {
       cheesePullActiveRef.current = true;
@@ -731,6 +799,7 @@ function FoodArena({
         biteAnimation.current = null;
       }
     });
+    return acceptedSequence;
   };
 
   performBiteRef.current = performBite;
@@ -742,28 +811,17 @@ function FoodArena({
       cheesePullActiveRef.current ||
       noodleSlurpActiveRef.current
     ) {
-      return;
+      return null;
     }
 
     const nextBiteCount = biteCounter.current + 1;
     if (heavyBiteInterval && nextBiteCount % heavyBiteInterval === 0) {
       heavyBiteActiveRef.current = true;
       setHeavyBiteActive(true);
-      return;
+      return null;
     }
 
-    performBite();
-  };
-
-  const pressButton = (pressed: boolean) => {
-    buttonScale.stopAnimation();
-
-    Animated.spring(buttonScale, {
-      toValue: pressed ? 0.9 : 1,
-      friction: pressed ? 8 : 4,
-      tension: pressed ? 320 : 250,
-      useNativeDriver: true,
-    }).start();
+    return performBite();
   };
 
   const haloOpacity = useMemo(
@@ -1074,7 +1132,7 @@ function FoodArena({
                 height: size,
                 width: size,
                 transform: [
-                  { scale: impactScale },
+                  { scale: Animated.multiply(Animated.multiply(impactScale, consumptionScale), holdPresentationScale) },
                   { rotate: foodRotation },
                 ],
               },
@@ -1229,6 +1287,14 @@ function FoodArena({
                 size={size * impactEffectSize}
               />
             ) : null}
+            <Animated.Image
+              resizeMode="contain"
+              source={dessertFood ? DESSERT_SPARKLE : COMPLETION_BURST}
+              style={[styles.completionBurst, {
+                opacity: completionBurst.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.86, 0] }),
+                transform: [{ scale: completionBurst.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1.45] }) }],
+              }]}
+            />
           </Animated.View>
         </Animated.View>
         </Pressable>
@@ -1258,60 +1324,28 @@ function FoodArena({
         <View style={styles.pedestalRim} />
         <View style={styles.pedestalCore} />
         </View>
-
-      </View>
-
-      <View style={styles.actionRegion}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Bite"
-          disabled={!active}
-          onPress={tap}
-          onPressIn={() => pressButton(true)}
-          onPressOut={() => pressButton(false)}
-          style={[
-            styles.biteTouchTarget,
-            !active && styles.biteDisabled,
-          ]}
-        >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.buttonAura,
-            {
-              opacity: buttonPulse.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.2, 0.62],
-              }),
-              transform: [
-                {
-                  scale: buttonPulse.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.9, 1.18],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-
-        <Animated.View
-          style={[
-            styles.biteOuter,
-            {
-              transform: [{ scale: buttonScale }],
-            },
-          ]}
-        >
-          <View style={styles.biteMiddle}>
-            <View style={styles.biteInner}>
-              <Text style={styles.biteText}>BITE</Text>
-              <Text style={styles.biteSub}>TAP!</Text>
-            </View>
+        <View pointerEvents="none" style={styles.foodProgress}>
+          <View style={styles.foodProgressTrack}>
+            <View style={[styles.foodProgressFill, { width: `${foodPresentationEvent ? 100 : ((biteEvent % PRESENTATION_BITES_PER_ITEM) / PRESENTATION_BITES_PER_ITEM) * 100}%` }]} />
           </View>
-        </Animated.View>
-        </Pressable>
+          <Text maxFontSizeMultiplier={1.3} style={styles.foodProgressText}>
+            {foodPresentationEvent ? "DEVOUR!" : `${biteEvent % PRESENTATION_BITES_PER_ITEM}/${PRESENTATION_BITES_PER_ITEM} BITES`}
+          </Text>
+        </View>
+
       </View>
+
+      <GameplayActionZone
+        active={active}
+        combo={combo}
+        heatTier={heatTier}
+        mechanic={biteMechanic}
+        overheatWarningActive={overheatWarningActive}
+        reducedMotion={reducedMotion}
+        resetKey={resetKey}
+        onAction={tap}
+        onHoldStateChange={handleHoldStateChange}
+      />
     </Animated.View>
   );
 }
@@ -1333,14 +1367,6 @@ const styles = StyleSheet.create({
     overflow: "visible",
     paddingHorizontal: 46,
     paddingTop: 6,
-    width: "100%",
-  },
-
-  actionRegion: {
-    alignItems: "center",
-    flexShrink: 0,
-    height: FOOD_ARENA_ACTION_HEIGHT,
-    justifyContent: "center",
     width: "100%",
   },
 
@@ -1401,6 +1427,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "visible",
   },
+  completionBurst: { height: "130%", position: "absolute", width: "130%" },
+  foodProgress: { alignItems: "center", bottom: 3, position: "absolute", width: 132, zIndex: 6 },
+  foodProgressTrack: { backgroundColor: "rgba(25,10,7,0.92)", borderColor: "rgba(255,177,76,0.42)", borderRadius: 4, borderWidth: 1, height: 6, overflow: "hidden", width: "100%" },
+  foodProgressFill: { backgroundColor: "#F29A32", height: "100%" },
+  foodProgressText: { color: "#FFD28A", fontSize: 7, fontWeight: "900", letterSpacing: 0.7, marginTop: 2 },
 
   foodBackGlow: {
     backgroundColor: "rgba(255,92,23,0.35)",
@@ -1493,82 +1524,6 @@ const styles = StyleSheet.create({
     top: 12,
   },
 
-  biteTouchTarget: {
-    alignItems: "center",
-    height: 122,
-    justifyContent: "center",
-    marginTop: -1,
-    width: 122,
-    zIndex: 5,
-  },
-
-  buttonAura: {
-    backgroundColor: "rgba(255,93,24,0.34)",
-    borderRadius: 999,
-    height: 112,
-    position: "absolute",
-    width: 112,
-  },
-
-  biteOuter: {
-    alignItems: "center",
-    backgroundColor: "#0A0708",
-    borderColor: "#F2A13A",
-    borderRadius: 54,
-    borderWidth: 3,
-    elevation: 10,
-    height: 106,
-    justifyContent: "center",
-    shadowColor: "#FF641E",
-    shadowOffset: {
-      height: 0,
-      width: 0,
-    },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    width: 106,
-  },
-
-  biteMiddle: {
-    alignItems: "center",
-    backgroundColor: "#5E1D0B",
-    borderColor: "#FFB34E",
-    borderRadius: 47,
-    borderWidth: 2,
-    height: 92,
-    justifyContent: "center",
-    width: 92,
-  },
-
-  biteInner: {
-    alignItems: "center",
-    backgroundColor: "#C84514",
-    borderColor: "#FF7D29",
-    borderRadius: 40,
-    borderWidth: 2,
-    height: 78,
-    justifyContent: "center",
-    width: 78,
-  },
-
-  biteText: {
-    color: "#FFF4DA",
-    fontSize: 23,
-    fontWeight: "900",
-    letterSpacing: 1.3,
-    lineHeight: 25,
-  },
-
-  biteSub: {
-    color: "#FFD486",
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1.7,
-  },
-
-  biteDisabled: {
-    opacity: 0.48,
-  },
 });
 
 export default React.memo(FoodArena);

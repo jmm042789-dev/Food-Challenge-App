@@ -3,6 +3,7 @@ import { ActivityIndicator, Animated, Image, Pressable, StyleProp, StyleSheet, T
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useReducedMotionPreference } from "./FireProgressBar";
+import { playSound } from "../../audio/AdaptiveAudioManager";
 
 type Variant = "primary" | "secondary" | "danger" | "success" | "ghost" | "gold";
 type Size = "compact" | "small" | "medium" | "large";
@@ -11,6 +12,7 @@ type Props = {
   variant?: Variant; leftIcon?: React.ReactNode; rightIcon?: React.ReactNode; subtitle?: string;
   fullWidth?: boolean; style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   haptic?: boolean;
 };
 
@@ -21,7 +23,7 @@ const tones: Record<Variant, { base: string; trim: string }> = {
 };
 const sizing: Record<Size, { minHeight: number; font: number; px: number }> = { compact: { minHeight: 44, font: 12, px: 13 }, small: { minHeight: 50, font: 14, px: 18 }, medium: { minHeight: 60, font: 16, px: 22 }, large: { minHeight: 72, font: 19, px: 28 } };
 
-export default function FireButton({ title = "START CHALLENGE", onPress, disabled = false, loading = false, size = "medium", variant = "primary", leftIcon, rightIcon, subtitle, fullWidth = false, style, accessibilityLabel, haptic = true }: Props) {
+export default function FireButton({ title = "START CHALLENGE", onPress, disabled = false, loading = false, size = "medium", variant = "primary", leftIcon, rightIcon, subtitle, fullWidth = false, style, accessibilityLabel, accessibilityHint, haptic = true }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
   const ringOpacity = useRef(new Animated.Value(0)).current;
   const ringScale = useRef(new Animated.Value(0.55)).current;
@@ -29,6 +31,10 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
   const [pressed, setPressed] = useState(false);
   const reducedMotion = useReducedMotionPreference();
   const tone = tones[variant]; const measure = sizing[size]; const inactive = disabled || loading;
+  const handlePress = () => {
+    void playSound("BUTTON_PRESS");
+    onPress();
+  };
   const animate = (toValue: number) => {
     if (reducedMotion) return;
     Animated.spring(scale, { toValue, friction: 7, tension: 220, useNativeDriver: true }).start();
@@ -70,7 +76,7 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
     return () => animation.stop();
   }, [inactive, reducedMotion, shimmer]);
   return <View style={[styles.wrapper, fullWidth && styles.fullWidth, style]}>
-    <Pressable accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive }} disabled={inactive} onPress={onPress} onPressIn={() => { setPressed(true); animate(0.93); if (haptic && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }} onPressOut={release}>
+    <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={handlePress} onPressIn={() => { setPressed(true); animate(0.93); if (haptic && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }} onPressOut={release}>
       <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
         <LinearGradient colors={["rgba(255,255,255,0.12)", "transparent", "rgba(0,0,0,0.12)"]} pointerEvents="none" style={StyleSheet.absoluteFill} />
         <Animated.View pointerEvents="none" style={[styles.shimmer, { opacity: shimmer.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.42, 0] }), transform: [{ translateX: shimmer.interpolate({ inputRange: [0, 1], outputRange: [-90, 220] }) }, { rotate: "-18deg" }] }]} />

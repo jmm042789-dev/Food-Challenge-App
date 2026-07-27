@@ -13,6 +13,7 @@ import { usePlayerBalance } from "../../playerBalance";
 import ResultBanner from "./ResultBanner";
 import RewardSummaryCard from "./RewardSummaryCard";
 import TournamentBanner from "./TournamentBanner";
+import { playSound } from "../../audio/AdaptiveAudioManager";
 
 export type VictoryTournamentPresentation = { name: string; bestScore: number; progress: number; rewardPreview?: string; rank?: number | null };
 
@@ -56,6 +57,8 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   const [noticeIndex, setNoticeIndex] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mounted = useRef(true);
+  const coinsAudioPlayed = useRef(false);
+  const xpAudioPlayed = useRef(false);
   const banner = useMemo(() => result === "victory" ? chooseBanner() : result === "draw" ? "DRAW" : "DEFEAT", [result]);
   const noticeOpacity = useRef(new Animated.Value(0)).current;
   const noticeY = useRef(new Animated.Value(0)).current;
@@ -143,8 +146,16 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
   }, [activeNotice, isComplete, noticeOpacity, noticeY, reducedMotion, stage]);
 
   useEffect(() => {
-    if (stage === 2 && coinsEarned !== undefined) AccessibilityInfo.announceForAccessibility(`${coinsEarned} coins earned.`);
-    if (stage === 3 && xpEarned !== undefined) AccessibilityInfo.announceForAccessibility(`${xpEarned} XP earned.`);
+    if (stage >= 2 && coinsEarned !== undefined && !coinsAudioPlayed.current) {
+      coinsAudioPlayed.current = true;
+      void playSound("COINS");
+      AccessibilityInfo.announceForAccessibility(`${coinsEarned} coins earned.`);
+    }
+    if (stage >= 3 && xpEarned !== undefined && !xpAudioPlayed.current) {
+      xpAudioPlayed.current = true;
+      void playSound("XP");
+      AccessibilityInfo.announceForAccessibility(`${xpEarned} XP earned.`);
+    }
   }, [coinsEarned, stage, xpEarned]);
 
   return (

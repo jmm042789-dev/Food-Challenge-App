@@ -1,7 +1,7 @@
-import { Stack, useRouter, type ErrorBoundaryProps } from "expo-router";
+import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { AppState, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +11,7 @@ import { AnimationProvider } from "@/src/animations";
 import FireButton from "@/src/components/fire/FireButton";
 import FirePanel from "@/src/components/fire/FirePanel";
 import ArcadeBackground from "@/src/game/ui/ArcadeBackground";
+import { disposeAudio, initializeAudio, pauseAllAudio, resumeAudio, stopMusic, transitionMusic } from "@/src/audio/AdaptiveAudioManager";
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   const router = useRouter();
@@ -40,12 +41,30 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useIconFonts();
+  const segments = useSegments();
 
   useEffect(() => {
     if (loaded || error) {
       SplashScreen.hideAsync();
     }
   }, [loaded, error]);
+
+  useEffect(() => {
+    void initializeAudio();
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") void resumeAudio();
+      else pauseAllAudio();
+    });
+    return () => {
+      subscription.remove();
+      disposeAudio();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (segments[0] === "play") void stopMusic(500);
+    else void transitionMusic("MENU");
+  }, [segments]);
 
   // If the CDN is unreachable we fall through on error rather than wedging
   // the app — icons will tofu, but the app still boots.

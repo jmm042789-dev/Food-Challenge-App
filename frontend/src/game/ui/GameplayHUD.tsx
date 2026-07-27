@@ -2,8 +2,6 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 import MatchHUD from "./MatchHUD";
-import type { HeatTier } from "../heartburn";
-import HeartburnMeter from "./HeartburnMeter";
 import type { OpponentMood } from "../ai/OpponentMood";
 import { useReducedMotionPreference } from "../../components/fire/FireProgressBar";
 
@@ -24,15 +22,6 @@ type Props = {
   location?: string;
   difficulty?: string;
   roundLabel?: string;
-  heartburn: number;
-  heatTier: HeatTier;
-  heatMultiplier: number;
-  isOverheated: boolean;
-  overheatRemainingMs: number;
-  antacidCount: number;
-  canUseAntacid: boolean;
-  onUseAntacid: () => boolean;
-  coolingTrigger?: number;
 };
 
 function VerticalMeter({ label, detail, value, tone, reducedMotion }: { label: string; detail?: string; value: number; tone: "combo" | "heat"; reducedMotion: boolean }) {
@@ -112,7 +101,6 @@ export default function GameplayHUD(props: Props) {
         reducedMotion={reducedMotion}
       />
       <View accessibilityLabel="Combo progress" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 25, now: Math.min(25, Math.max(0, props.combo)) }} style={styles.leftMeter}><VerticalMeter label="COMBO" value={comboMeter} tone="combo" reducedMotion={reducedMotion} /></View>
-      <View style={styles.rightMeter}><HeartburnMeter heartburn={props.heartburn} heatTier={props.heatTier} heatMultiplier={props.heatMultiplier} isOverheated={props.isOverheated} overheatRemainingMs={props.overheatRemainingMs} coolingTrigger={props.coolingTrigger} /></View>
     </View>
   );
 }
@@ -120,7 +108,6 @@ export default function GameplayHUD(props: Props) {
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 7, paddingTop: 5, width: "100%", zIndex: 20 },
   leftMeter: { left: 9, position: "absolute", top: 110 },
-  rightMeter: { position: "absolute", right: 9, top: 110 },
   meterGroup: { alignItems: "center", width: 42 },
   meterConnector: { backgroundColor: "rgba(232,141,47,0.62)", height: 9, position: "absolute", top: -9, width: 1 },
   meterValue: { color: "#FFD06A", fontSize: 10, fontWeight: "900", marginBottom: 3 },

@@ -109,6 +109,8 @@ async function recoverPendingDeletionAfterUnauthorized(): Promise<boolean> {
   return true;
 }
 
+export type BiteMechanic = "tap" | "rapid" | "swipe" | "hold_release";
+
 export type Contest = {
   id: string;
   name: string;
@@ -121,7 +123,7 @@ export type Contest = {
   duration_sec: number;
   image?: string;
   image_url?: string;
-  bite_mechanic?: string;
+  bite_mechanic?: BiteMechanic;
   heartburn_per_bite?: number;
   color?: string;
   difficulty_color?: string;
