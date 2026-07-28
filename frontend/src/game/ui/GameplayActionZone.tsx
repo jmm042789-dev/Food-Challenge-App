@@ -50,5 +50,5 @@ function GameplayActionZone({ mechanic, active, combo, heatTier, overheatWarning
 export default memo(GameplayActionZone);
 
 const styles = StyleSheet.create({
-  zone: { alignItems: "center", flexShrink: 0, height: GAMEPLAY_ACTION_ZONE_HEIGHT, justifyContent: "center", paddingHorizontal: 12, width: "100%" },
+  zone: { alignItems: "center", alignSelf: "stretch", flexShrink: 0, height: GAMEPLAY_ACTION_ZONE_HEIGHT, justifyContent: "center", paddingHorizontal: 12, width: "100%" },
 });

@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { Animated, Easing } from "react-native";
+import { Animated, Easing, StyleSheet } from "react-native";
 
 export type CameraControllerHandle = {
   bitePunch: (strength?: number) => void;
@@ -116,11 +116,19 @@ const CameraController = forwardRef<CameraControllerHandle, CameraControllerProp
     }, [scale, translateX]);
 
     return (
-      <Animated.View style={{ transform: [{ translateX }, { scale }] }}>
+      <Animated.View style={[styles.viewport, { transform: [{ translateX }, { scale }] }]}>
         {children}
       </Animated.View>
     );
   },
 );
+
+const styles = StyleSheet.create({
+  viewport: {
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
+  },
+});
 
 export default CameraController;

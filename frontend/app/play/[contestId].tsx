@@ -957,6 +957,8 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
+    minHeight: 0,
+    width: "100%",
   },
   gameplayContent: {
     flex: 1,
