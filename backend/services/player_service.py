@@ -68,12 +68,16 @@ def bootstrap_guest(installation_id: str) -> dict:
     player = create_guest_player(document)
     if player is None:
         raise BootstrapAlreadyCompletedError
+    logger.info(
+        "Guest account created player_id=%s installation_fingerprint=%s "
+        "token_version=%s token_created_at=%s",
+        player_id,
+        installation_hash[:12],
+        AUTH_TOKEN_VERSION,
+        now,
+    )
     if COIN_DEBUG_LOGGING:
-        logger.info(
-            "Coin bootstrap player=%s starting_balance=%s",
-            player_id,
-            player.get("coins"),
-        )
+        logger.info("Coin bootstrap player=%s starting_balance=%s", player_id, player.get("coins"))
     return {
         "player": player,
         "player_id": player_id,

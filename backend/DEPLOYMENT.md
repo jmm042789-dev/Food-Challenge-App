@@ -1,7 +1,9 @@
 # Fire Feast Backend Deployment
 
 The backend validates configuration and MongoDB connectivity before it accepts
-traffic. It does not load `.env` files automatically.
+traffic. For local development, it loads `backend/.env` before configuration is
+validated. Existing OS environment variables take precedence over `.env`
+values, so deployed configuration continues to come from the hosting provider.
 
 ## Required environment variables
 

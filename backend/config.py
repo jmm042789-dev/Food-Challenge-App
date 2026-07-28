@@ -2,9 +2,15 @@
 
 from dataclasses import dataclass
 import os
+from pathlib import Path
 import re
 from typing import Mapping, Optional
 from urllib.parse import urlparse
+
+from dotenv import load_dotenv
+
+
+load_dotenv(dotenv_path=Path(__file__).with_name(".env"), override=False)
 
 
 VALID_ENVIRONMENTS = {"development", "preview", "production", "test"}

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance";
+import { storage } from "./utils/storage";
 
 const configuredBase = process.env.EXPO_PUBLIC_BACKEND_URL?.trim().replace(/\/$/, "") || "";
 
@@ -19,6 +20,7 @@ if (__DEV__) {
 }
 
 const INSTALLATION_KEY = "firefeast_installation_id";
+const CREDENTIALS_KEY = "firefeast_guest_credentials_v1";
 const PLAYER_ID_KEY = "firefeast_player_id";
 const AUTH_TOKEN_KEY = "firefeast_auth_token";
 const LEGACY_PLAYER_ID_KEY = "chompchamps_device_id";
@@ -31,13 +33,21 @@ const PLAYER_DATA_KEYS = [
   "fire_feast_tournament_progress_v1",
 ];
 let bootstrapPlayerCache: unknown | undefined;
+let credentialsCache: GuestCredentials | null = null;
 let credentialsPromise: Promise<GuestCredentials> | null = null;
+let recoveryPromise: Promise<GuestCredentials> | null = null;
 let requestSequence = 0;
 let coinMutationGeneration = 0;
 
 type GuestCredentials = {
   playerId: string;
   authToken: string;
+};
+
+type StoredGuestCredentials = {
+  version: 1;
+  player_id: string;
+  auth_token: string;
 };
 
 type GuestBootstrapResponse = {
@@ -89,15 +99,20 @@ export function peekBootstrapPlayer(): unknown | undefined {
 }
 
 async function clearLocalGuestData(): Promise<void> {
-  await AsyncStorage.multiRemove([
-    INSTALLATION_KEY,
-    PLAYER_ID_KEY,
-    AUTH_TOKEN_KEY,
-    LEGACY_PLAYER_ID_KEY,
-    DELETION_PENDING_KEY,
-    ...PLAYER_DATA_KEYS,
+  await Promise.all([
+    storage.secureRemove(CREDENTIALS_KEY),
+    AsyncStorage.multiRemove([
+      INSTALLATION_KEY,
+      CREDENTIALS_KEY,
+      PLAYER_ID_KEY,
+      AUTH_TOKEN_KEY,
+      LEGACY_PLAYER_ID_KEY,
+      DELETION_PENDING_KEY,
+      ...PLAYER_DATA_KEYS,
+    ]),
   ]);
   bootstrapPlayerCache = undefined;
+  credentialsCache = null;
   clearPlayerBalance();
   credentialsPromise = null;
 }
@@ -194,23 +209,64 @@ async function getInstallationId(): Promise<string> {
 }
 
 async function readStoredCredentials(): Promise<GuestCredentials | null> {
+  if (credentialsCache) return credentialsCache;
+
+  const storedBundle = await storage.secureGet(CREDENTIALS_KEY, null);
+  if (storedBundle) {
+    try {
+      const parsed = JSON.parse(storedBundle) as Partial<StoredGuestCredentials>;
+      const playerId = typeof parsed.player_id === "string" ? parsed.player_id.trim() : "";
+      const authToken = typeof parsed.auth_token === "string" ? parsed.auth_token.trim() : "";
+      if (parsed.version === 1 && playerId && authToken) {
+        credentialsCache = { playerId, authToken };
+        return credentialsCache;
+      }
+    } catch {
+      // Invalid local authentication state is cleared below and re-bootstrapped.
+    }
+    await Promise.all([
+      storage.secureRemove(CREDENTIALS_KEY),
+      AsyncStorage.multiRemove([CREDENTIALS_KEY, PLAYER_ID_KEY, AUTH_TOKEN_KEY]),
+    ]);
+    console.warn("Fire Feast auth storage contained an invalid credential bundle; cleared it.");
+    return null;
+  }
+
+  // One-time migration from the former two-key format. Persisting the pair as
+  // one JSON record prevents a player ID from one write being paired with a
+  // token from another write after interruption or storage restoration.
   const values = await AsyncStorage.multiGet([PLAYER_ID_KEY, AUTH_TOKEN_KEY]);
   const playerId = values[0]?.[1]?.trim() || "";
   const authToken = values[1]?.[1]?.trim() || "";
-  if (playerId && authToken) return { playerId, authToken };
+  if (playerId && authToken) {
+    const credentials = { playerId, authToken };
+    await storeCredentials(credentials);
+    return credentials;
+  }
   if (playerId || authToken) {
-    throw new AuthenticationError(
-      "Guest credentials are incomplete. Retry after restoring this app's local data.",
-    );
+    await AsyncStorage.multiRemove([PLAYER_ID_KEY, AUTH_TOKEN_KEY]);
+    console.warn("Fire Feast auth storage contained an incomplete legacy pair; cleared it.");
   }
   return null;
 }
 
-async function ensureGuestCredentials(): Promise<GuestCredentials> {
+async function storeCredentials(credentials: GuestCredentials): Promise<void> {
+  const record: StoredGuestCredentials = {
+    version: 1,
+    player_id: credentials.playerId,
+    auth_token: credentials.authToken,
+  };
+  const stored = await storage.secureSet(CREDENTIALS_KEY, JSON.stringify(record));
+  if (!stored) {
+    throw new AuthenticationError("Guest credentials could not be stored securely.");
+  }
+  await AsyncStorage.multiRemove([PLAYER_ID_KEY, AUTH_TOKEN_KEY]);
+  credentialsCache = credentials;
+}
+
+async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
   const stored = await readStoredCredentials();
   if (stored) return stored;
-  if (credentialsPromise) return credentialsPromise;
-
   const legacyPlayerId = await AsyncStorage.getItem(LEGACY_PLAYER_ID_KEY);
   if (legacyPlayerId) {
     throw new AuthenticationError(
@@ -218,48 +274,64 @@ async function ensureGuestCredentials(): Promise<GuestCredentials> {
     );
   }
 
-  credentialsPromise = (async () => {
-    const installationId = await getInstallationId();
-    try {
-      const response = await req(
-        "/auth/guest",
-        {
-          method: "POST",
-          body: JSON.stringify({ installation_id: installationId }),
-        },
-        false,
-      ) as GuestBootstrapResponse;
-      if (
-        !response?.player_id
-        || !response?.auth_token
-        || typeof response.player_id !== "string"
-        || typeof response.auth_token !== "string"
-      ) {
-        throw new AuthenticationError("The guest account response was invalid.");
-      }
-      const credentials = {
-        playerId: response.player_id,
-        authToken: response.auth_token,
-      };
-      await AsyncStorage.multiSet([
-        [PLAYER_ID_KEY, credentials.playerId],
-        [AUTH_TOKEN_KEY, credentials.authToken],
-      ]);
-      cacheBootstrapPlayer(response.player);
-      return credentials;
-    } catch (error) {
-      if (error instanceof AuthenticationError) throw error;
-      if (error instanceof ApiRequestError && error.status === 409) {
-        throw new AuthenticationError(
-          "Guest credentials were already issued but are not available on this installation. Local data must be restored or the app reinstalled to create a new guest.",
-        );
-      }
-      throw error;
+  const installationId = await getInstallationId();
+  try {
+    const response = await req(
+      "/auth/guest",
+      {
+        method: "POST",
+        body: JSON.stringify({ installation_id: installationId }),
+      },
+      false,
+    ) as GuestBootstrapResponse;
+    if (
+      !response?.player_id
+      || !response?.auth_token
+      || typeof response.player_id !== "string"
+      || typeof response.auth_token !== "string"
+      || (
+        response.player
+        && typeof response.player === "object"
+        && "player_id" in response.player
+        && (response.player as { player_id?: unknown }).player_id !== response.player_id
+      )
+    ) {
+      throw new AuthenticationError("The guest account response was invalid.");
     }
-  })().finally(() => {
+    const credentials = {
+      playerId: response.player_id.trim(),
+      authToken: response.auth_token.trim(),
+    };
+    if (!credentials.playerId || !credentials.authToken) {
+      throw new AuthenticationError("The guest account response was invalid.");
+    }
+    await storeCredentials(credentials);
+    console.info("Fire Feast guest credentials created", {
+      playerId: credentials.playerId,
+      tokenLength: credentials.authToken.length,
+    });
+    cacheBootstrapPlayer(response.player);
+    return credentials;
+  } catch (error) {
+    if (error instanceof AuthenticationError) throw error;
+    if (error instanceof ApiRequestError && error.status === 409) {
+      throw new AuthenticationError(
+        "Guest credentials were already issued but are not available on this installation.",
+      );
+    }
+    throw error;
+  }
+}
+
+async function ensureGuestCredentials(): Promise<GuestCredentials> {
+  if (credentialsCache) return credentialsCache;
+  if (credentialsPromise) return credentialsPromise;
+
+  // Assign before the first asynchronous storage read so every concurrent
+  // caller in this JavaScript runtime shares the exact same bootstrap.
+  credentialsPromise = loadOrBootstrapCredentials().finally(() => {
     credentialsPromise = null;
   });
-
   return credentialsPromise;
 }
 
@@ -278,7 +350,121 @@ function diagnosticRequestPath(path: string): string {
   return path;
 }
 
-async function req(path: string, opts: RequestInit = {}, authenticated = true) {
+function rewriteRequestForRecoveredPlayer(
+  path: string,
+  opts: RequestInit,
+  previousPlayerId: string,
+  recoveredPlayerId: string,
+): { path: string; opts: RequestInit } {
+  const rewrittenPath = path.replace(
+    encodeURIComponent(previousPlayerId),
+    encodeURIComponent(recoveredPlayerId),
+  );
+  if (typeof opts.body !== "string" || !opts.body) {
+    return { path: rewrittenPath, opts };
+  }
+  try {
+    const body = JSON.parse(opts.body) as Record<string, unknown>;
+    for (const key of ["device_id", "player_id"]) {
+      if (body[key] === previousPlayerId) body[key] = recoveredPlayerId;
+    }
+    return {
+      path: rewrittenPath,
+      opts: { ...opts, body: JSON.stringify(body) },
+    };
+  } catch {
+    return { path: rewrittenPath, opts };
+  }
+}
+
+function alignRequestWithCredentials(
+  path: string,
+  opts: RequestInit,
+  credentials: GuestCredentials,
+): { path: string; opts: RequestInit } {
+  const playerPath = /^\/player\/guest_[a-f0-9]{32}$/i.test(path)
+    ? `/player/${encodeURIComponent(credentials.playerId)}`
+    : path;
+  const rewrittenPath = playerPath.replace(
+    /^\/(daily\/status|matchmaking\/status)\/[^/]+$/,
+    (_match, route: string) => `/${route}/${encodeURIComponent(credentials.playerId)}`,
+  );
+  if (typeof opts.body !== "string" || !opts.body) {
+    return { path: rewrittenPath, opts };
+  }
+  try {
+    const body = JSON.parse(opts.body) as Record<string, unknown>;
+    for (const key of ["device_id", "player_id"]) {
+      if (typeof body[key] === "string") body[key] = credentials.playerId;
+    }
+    return {
+      path: rewrittenPath,
+      opts: { ...opts, body: JSON.stringify(body) },
+    };
+  } catch {
+    return { path: rewrittenPath, opts };
+  }
+}
+
+async function recoverCredentialsAfterUnauthorized(
+  rejected: GuestCredentials,
+): Promise<GuestCredentials> {
+  if (recoveryPromise) return recoveryPromise;
+
+  recoveryPromise = (async () => {
+    console.warn("Fire Feast authentication rejected; attempting session recovery", {
+      requestedPlayerId: rejected.playerId,
+      tokenLength: rejected.authToken.length,
+    });
+    const response = await fetch(`${API}/auth/session`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${rejected.authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json() as {
+        player_id?: unknown;
+        player?: unknown;
+      };
+      const playerId = typeof data.player_id === "string" ? data.player_id.trim() : "";
+      if (!playerId) {
+        throw new AuthenticationError("The authentication recovery response was invalid.");
+      }
+      const recovered = { playerId, authToken: rejected.authToken };
+      await storeCredentials(recovered);
+      if (data.player) cacheBootstrapPlayer(data.player);
+      console.info("Fire Feast authentication session repaired", {
+        previousPlayerId: rejected.playerId,
+        authenticatedPlayerId: recovered.playerId,
+      });
+      return recovered;
+    }
+
+    if (response.status !== 401) {
+      throw new AuthenticationError(
+        `Authentication recovery was unavailable (HTTP ${response.status}).`,
+      );
+    }
+
+    console.warn("Fire Feast bearer token is invalid; clearing local guest state and re-bootstrapping.");
+    await clearLocalGuestData();
+    return ensureGuestCredentials();
+  })().finally(() => {
+    recoveryPromise = null;
+  });
+
+  return recoveryPromise;
+}
+
+async function req(
+  path: string,
+  opts: RequestInit = {},
+  authenticated = true,
+  allowAuthenticationRecovery = true,
+) {
   const sequence = ++requestSequence;
   const method = (opts.method ?? "GET").toUpperCase();
   const isMutation = authenticated && method !== "GET";
@@ -286,18 +472,24 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
   const mutationGenerationAtStart = coinMutationGeneration;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const url = `${API}${path}`;
+  let url = `${API}${path}`;
+  let requestPath = path;
   let status: number | "not received" = "not received";
   let responseBody: unknown = "No response received";
 
   try {
     const credentials = authenticated ? await ensureGuestCredentials() : null;
+    const aligned = credentials
+      ? alignRequestWithCredentials(path, opts, credentials)
+      : { path, opts };
+    requestPath = aligned.path;
+    url = `${API}${requestPath}`;
     const res = await fetch(url, {
-      ...opts,
+      ...aligned.opts,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...(opts.headers as Record<string, string> | undefined),
+        ...(aligned.opts.headers as Record<string, string> | undefined),
         ...(credentials
           ? { Authorization: `Bearer ${credentials.authToken}` }
           : {}),
@@ -319,6 +511,16 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
     if (!res.ok) {
       if (res.status === 401) {
         const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();
+        if (!recoveredDeletion && authenticated && credentials && allowAuthenticationRecovery) {
+          const recovered = await recoverCredentialsAfterUnauthorized(credentials);
+          const rewritten = rewriteRequestForRecoveredPlayer(
+            requestPath,
+            aligned.opts,
+            credentials.playerId,
+            recovered.playerId,
+          );
+          return req(rewritten.path, rewritten.opts, true, false);
+        }
         throw new AuthenticationError(
           recoveredDeletion
             ? "The deleted guest account was cleared from this device. Restart to create a new guest."
@@ -332,7 +534,7 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
       );
     }
 
-    if (authenticated && path !== "/player/account") {
+    if (authenticated && requestPath !== "/player/account") {
       await AsyncStorage.removeItem(DELETION_PENDING_KEY);
     }
     if (isMutation) {
@@ -353,7 +555,7 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
       if (responseCoins !== undefined) {
         console.log("Fire Feast coin response", {
           playerId: credentials?.playerId,
-          path: diagnosticRequestPath(path),
+          path: diagnosticRequestPath(requestPath),
           coins: responseCoins,
           reward: response.coin_reward
             ?? (response.reward && typeof response.reward === "object"
@@ -364,8 +566,8 @@ async function req(path: string, opts: RequestInit = {}, authenticated = true) {
     }
     return data;
   } catch (err: any) {
-    const diagnosticPath = diagnosticRequestPath(path);
-    if (__DEV__ && path === "/contests") {
+    const diagnosticPath = diagnosticRequestPath(requestPath);
+    if (__DEV__ && requestPath === "/contests") {
       console.error("Contest request failed", {
         url,
         status,

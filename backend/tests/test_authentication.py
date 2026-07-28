@@ -94,6 +94,29 @@ class GuestAuthenticationTests(unittest.TestCase):
             )
         self.assertIs(result, player)
 
+    def test_bearer_session_resolves_authoritative_player_id_without_exposing_token(self):
+        player = {
+            "device_id": "guest_a",
+            "player_id": "guest_a",
+            "auth_token_hash": auth.hash_auth_token("correct-token"),
+            "token_version": auth.AUTH_TOKEN_VERSION,
+            "coins": 500,
+        }
+        with patch.object(server, "authenticated_bearer_player", return_value=player):
+            result = server.guest_session_endpoint("Bearer correct-token")
+
+        self.assertEqual(result["player_id"], "guest_a")
+        self.assertEqual(result["player"]["player_id"], "guest_a")
+        self.assertEqual(result["token_type"], "opaque")
+        self.assertEqual(result["token_version"], auth.AUTH_TOKEN_VERSION)
+        self.assertNotIn("auth_token", result)
+        self.assertNotIn("auth_token_hash", result["player"])
+
+    def test_bearer_session_requires_authentication(self):
+        with self.assertRaises(HTTPException) as raised:
+            server.guest_session_endpoint(None)
+        self.assertEqual(raised.exception.status_code, 401)
+
     def test_player_a_token_cannot_authorize_player_b(self):
         player_b = {
             "player_id": "guest_b",

@@ -1,4 +1,5 @@
 fastapi==0.139.0
 pydantic==2.13.4
 pymongo==4.17.0
+python-dotenv==1.2.2
 uvicorn==0.51.0
