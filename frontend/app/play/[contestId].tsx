@@ -598,6 +598,16 @@ export default function ContestScreen() {
         if (Number(player.coins ?? 0) < selectedContest.entry_fee) {
           throw new Error("Not enough coins for this contest");
         }
+        const activeMatch = await api.activeMatch();
+        if (
+          activeMatch.status === "resumable"
+          && activeMatch.contest_id
+          && activeMatch.contest_id !== selectedContestId
+        ) {
+          throw new Error("A different contest is already active.");
+        }
+        // startMatch is idempotent for the same contest and returns the original
+        // opponent/start payload needed to resume without creating a new match.
         const match = await api.startMatch(selectedContestId);
 
         if (active) {

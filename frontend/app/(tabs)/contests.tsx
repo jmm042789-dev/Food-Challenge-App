@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,6 +15,7 @@ import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
 import TournamentPanel from "../../src/tournaments/components/TournamentPanel";
 import { getTournamentPlayerProgress } from "../../src/tournaments/TournamentProgress";
 import { useTournamentProgress } from "../../src/tournaments/useTournamentProgress";
+import { useContestEntry } from "../../src/game/useContestEntry";
 import { usePlayerBalance } from "../../src/playerBalance";
 
 const COIN = require("../../src/assets/icons/coin.png");
@@ -69,7 +70,7 @@ function ContestRow({ contest, onPress }: { contest: Contest; onPress: () => voi
 
 export default function ContestsScreen() {
   const isFocused = useIsFocused();
-  const router = useRouter();
+  const enterContest = useContestEntry();
   const insets = useSafeAreaInsets();
   const [contests, setContests] = useState<Contest[]>([]);
   const coins = usePlayerBalance();
@@ -124,7 +125,7 @@ export default function ContestsScreen() {
       <FlatList
         data={visibleContests}
         keyExtractor={(contest) => contest.id}
-        renderItem={({ item }) => <ContestRow contest={item} onPress={() => router.push(`/play/${item.id}`)} />}
+        renderItem={({ item }) => <ContestRow contest={item} onPress={() => { void enterContest(item.id); }} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.listContent, { paddingTop: Math.max(insets.top, 8) }]}
         ListHeaderComponent={
@@ -147,7 +148,7 @@ export default function ContestsScreen() {
               <TournamentPanel
                 tournament={activeTournament}
                 progress={tournamentProgress}
-                onEnter={() => router.push(`/play/${activeTournament.entryContestId}?tournament=${encodeURIComponent(activeTournament.occurrenceId)}`)}
+                onEnter={() => { void enterContest(activeTournament.entryContestId, { tournamentOccurrenceId: activeTournament.occurrenceId }); }}
                 onClaimReward={(rewardId) => { void claimTournamentReward(rewardId); }}
               />
             ) : null}

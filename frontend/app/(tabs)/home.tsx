@@ -19,6 +19,7 @@ import SponsorStrip from "../../src/game/ui/SponsorStrip";
 import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import { useDailyMissions } from "../../src/missions/useDailyMissions";
 import { usePlayerBalance } from "../../src/playerBalance";
+import { useContestEntry } from "../../src/game/useContestEntry";
 
 type Player = { coins?: number; xp?: number };
 
@@ -120,6 +121,7 @@ export default function HomeScreen() {
   const coins = usePlayerBalance(Number(player.coins ?? 0));
   const [showWelcome, setShowWelcome] = useState(welcome === "1");
   const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
+  const enterContest = useContestEntry();
 
   const dismissWelcome = useCallback(() => {
     setShowWelcome(false);
@@ -178,7 +180,7 @@ export default function HomeScreen() {
             <Text style={styles.eyebrow}>{"TONIGHT'S MAIN EVENT"}</Text>
             <View style={styles.headingLine} />
           </View>
-          <FeaturedContest contest={featured} onEnter={() => router.push(`/play/${featured.id}`)} />
+          <FeaturedContest contest={featured} onEnter={() => { void enterContest(featured.id); }} />
         </FireScreenEntrance>
         {dailyMissionState ? (
           <FireScreenEntrance delay={90} duration="fast" distance={8}>
@@ -205,7 +207,7 @@ export default function HomeScreen() {
               <Text style={styles.upcomingTitle}>UPCOMING CONTESTS</Text>
               <Text style={styles.count}>{upcoming.length} EVENTS</Text>
             </View>
-            {upcoming.map((contest) => <UpcomingContest key={contest.id} contest={contest} onEnter={() => router.push(`/play/${contest.id}`)} />)}
+            {upcoming.map((contest) => <UpcomingContest key={contest.id} contest={contest} onEnter={() => { void enterContest(contest.id); }} />)}
           </View>
         ) : null}
       </ScrollView>
