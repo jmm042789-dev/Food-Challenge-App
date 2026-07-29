@@ -220,7 +220,6 @@ def guest_session_endpoint(
     """Resolve a valid opaque bearer token to its authoritative guest ID."""
     player = authenticated_bearer_player(authorization)
     player_id = player.get("player_id") or player["device_id"]
-    logger.info("Authentication session verified authenticated_player_id=%s", player_id)
     return {
         "player_id": player_id,
         "player": public_player_document(player),

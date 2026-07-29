@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { useAppPreferences } from "../../preferences/AppPreferences";
 
 type Variant = "xp" | "coins" | "health" | "heartburn" | "combo" | "timer" | "opponent" | "default";
 
@@ -26,16 +27,17 @@ const colors: Record<Variant, string> = {
 };
 
 export function useReducedMotionPreference(): boolean {
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const { preferences } = useAppPreferences();
+  const [systemReducedMotion, setSystemReducedMotion] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (mounted) setReducedMotion(enabled);
+      if (mounted) setSystemReducedMotion(enabled);
     });
     const subscription = AccessibilityInfo.addEventListener(
       "reduceMotionChanged",
-      setReducedMotion,
+      setSystemReducedMotion,
     );
     return () => {
       mounted = false;
@@ -43,7 +45,7 @@ export function useReducedMotionPreference(): boolean {
     };
   }, []);
 
-  return reducedMotion;
+  return systemReducedMotion || preferences.reducedMotion;
 }
 
 export default function FireProgressBar({

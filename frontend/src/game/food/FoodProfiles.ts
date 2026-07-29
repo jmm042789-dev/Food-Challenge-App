@@ -14,6 +14,13 @@ export type FoodMechanic =
   | "tap_and_hold"
   | "tap_and_swipe";
 
+export type FoodBiteReaction = {
+  palette: readonly [string, string, string];
+  shape: "crumb" | "fleck" | "streak" | "droplet" | "noodle";
+  spread: number;
+  shineColor: string;
+};
+
 export type FoodProfile = {
   id: string;
   displayName: string;
@@ -27,6 +34,7 @@ export type FoodProfile = {
   cameraPunch: number;
   biteAnimationSpeed: number;
   foodWobble: number;
+  biteReaction: FoodBiteReaction;
 
   specialMechanic?: {
     type: "hold_bite" | "heavy_bite" | "cheese_pull" | "shell_stability" | "noodle_slurp" | "speed_sprint" | "heat_rush";
@@ -51,6 +59,12 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     cameraPunch: 1.2,
     biteAnimationSpeed: 0.85,
     foodWobble: 0.25,
+    biteReaction: {
+      palette: ["#F3D28A", "#D89A4A", "#78A746"],
+      shape: "crumb",
+      spread: 1,
+      shineColor: "#FFF0C5",
+    },
     specialMechanic: {
       type: "heavy_bite",
       triggerEveryBites: 5,
@@ -69,6 +83,12 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     cameraPunch: 1,
     biteAnimationSpeed: 1.15,
     foodWobble: 0.35,
+    biteReaction: {
+      palette: ["#FFD66F", "#D88C3D", "#C84D32"],
+      shape: "fleck",
+      spread: 1.08,
+      shineColor: "#FFF0B0",
+    },
     specialMechanic: {
       type: "cheese_pull",
       triggerEveryBites: 6,
@@ -86,6 +106,12 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     cameraPunch: 0.95,
     biteAnimationSpeed: 1.2,
     foodWobble: 0.85,
+    biteReaction: {
+      palette: ["#8EC553", "#F5CE55", "#B96B32"],
+      shape: "fleck",
+      spread: 1.12,
+      shineColor: "#F7E59B",
+    },
     specialMechanic: {
       type: "shell_stability",
       triggerEveryBites: 5,
@@ -103,6 +129,12 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     cameraPunch: 0.8,
     biteAnimationSpeed: 1,
     foodWobble: 0.5,
+    biteReaction: {
+      palette: ["#F1C36A", "#FFF0B0", "#C87838"],
+      shape: "noodle",
+      spread: 1.06,
+      shineColor: "#FFE5A3",
+    },
     specialMechanic: {
       type: "noodle_slurp",
       triggerEveryBites: 4,
@@ -120,6 +152,12 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     cameraPunch: 0.75,
     biteAnimationSpeed: 1.35,
     foodWobble: 0.2,
+    biteReaction: {
+      palette: ["#F1B84C", "#D9422D", "#E6A257"],
+      shape: "streak",
+      spread: 1.15,
+      shineColor: "#FFD889",
+    },
     specialMechanic: {
       type: "speed_sprint",
       triggerEveryBites: 8,
@@ -139,6 +177,12 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     cameraPunch: 1.25,
     biteAnimationSpeed: 0.95,
     foodWobble: 0.45,
+    biteReaction: {
+      palette: ["#D94A28", "#F18A38", "#FFD08A"],
+      shape: "droplet",
+      spread: 1.18,
+      shineColor: "#FFE0A0",
+    },
     specialMechanic: {
       type: "heat_rush",
       triggerEveryBites: 5,

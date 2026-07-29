@@ -36,6 +36,11 @@ export default function FireLoading({
       <Text style={styles.title}>{title}</Text>
 
       <Text style={styles.subtitle}>{subtitle}</Text>
+      <View accessible={false} style={styles.skeleton}>
+        <Animated.View style={[styles.skeletonLine, styles.skeletonWide, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.55] }) }]} />
+        <Animated.View style={[styles.skeletonLine, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.42] }) }]} />
+        <Animated.View style={[styles.skeletonLine, styles.skeletonShort, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.34] }) }]} />
+      </View>
     </View>
   );
 }
@@ -63,4 +68,8 @@ const styles = StyleSheet.create({
   loaderStage: { alignItems: "center", height: 74, justifyContent: "center", width: 74 },
   loaderGlow: { backgroundColor: "rgba(255,91,20,0.35)", borderRadius: 40, height: 72, position: "absolute", width: 72 },
   loaderRing: { borderColor: "rgba(255,190,83,0.52)", borderRadius: 28, borderWidth: 1, height: 56, position: "absolute", width: 56 },
+  skeleton: { alignItems: "center", marginTop: 22, width: "100%" },
+  skeletonLine: { backgroundColor: "#D18439", borderRadius: 4, height: 7, marginTop: 7, maxWidth: 270, width: "72%" },
+  skeletonWide: { width: "88%" },
+  skeletonShort: { width: "48%" },
 });

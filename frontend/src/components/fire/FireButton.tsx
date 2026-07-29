@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useReducedMotionPreference } from "./FireProgressBar";
 import { playSound } from "../../audio/AdaptiveAudioManager";
+import { useAppPreferences } from "../../preferences/AppPreferences";
 
 type Variant = "primary" | "secondary" | "danger" | "success" | "ghost" | "gold";
 type Size = "compact" | "small" | "medium" | "large";
@@ -30,6 +31,7 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
   const shimmer = useRef(new Animated.Value(0)).current;
   const [pressed, setPressed] = useState(false);
   const reducedMotion = useReducedMotionPreference();
+  const { preferences } = useAppPreferences();
   const tone = tones[variant]; const measure = sizing[size]; const inactive = disabled || loading;
   const handlePress = () => {
     void playSound("BUTTON_PRESS");
@@ -76,7 +78,7 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
     return () => animation.stop();
   }, [inactive, reducedMotion, shimmer]);
   return <View style={[styles.wrapper, fullWidth && styles.fullWidth, style]}>
-    <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={handlePress} onPressIn={() => { setPressed(true); animate(0.93); if (haptic && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }} onPressOut={release}>
+    <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={handlePress} onPressIn={() => { setPressed(true); animate(0.93); if (haptic && preferences.hapticsEnabled && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }} onPressOut={release}>
       <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
         <LinearGradient colors={["rgba(255,255,255,0.12)", "transparent", "rgba(0,0,0,0.12)"]} pointerEvents="none" style={StyleSheet.absoluteFill} />
         <Animated.View pointerEvents="none" style={[styles.shimmer, { opacity: shimmer.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.42, 0] }), transform: [{ translateX: shimmer.interpolate({ inputRange: [0, 1], outputRange: [-90, 220] }) }, { rotate: "-18deg" }] }]} />

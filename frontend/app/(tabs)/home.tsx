@@ -20,6 +20,8 @@ import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import { useDailyMissions } from "../../src/missions/useDailyMissions";
 import { usePlayerBalance } from "../../src/playerBalance";
 import { useContestEntry } from "../../src/game/useContestEntry";
+import { useAchievements } from "../../src/achievements/useAchievements";
+import { loadDailyRewards } from "../../src/retention/DailyRewards";
 
 type Player = { coins?: number; xp?: number };
 
@@ -80,7 +82,7 @@ function FeaturedContest({ contest, onEnter }: { contest: Contest; onEnter: () =
           <Text style={styles.prize}>${contest.prize_pool.toLocaleString()}</Text>
           <Text numberOfLines={1} style={styles.meta}>⌖ {contest.location}</Text>
           <Text style={styles.meta}>◷ {contest.duration_sec}s  ·  ENTRY {contest.entry_fee.toLocaleString()}</Text>
-          <FireButton title="ENTER CONTEST" size="compact" variant="gold" fullWidth style={styles.enterButton} onPress={onEnter} />
+          <FireButton accessibilityHint="Starts the featured contest" title="PLAY FEATURED CONTEST" size="small" variant="gold" fullWidth style={styles.enterButton} onPress={onEnter} />
         </View>
       </View>
       <RestaurantIdentity name={contest.restaurant_name} logoUrl={contest.restaurant_logo_url} city={contest.city} state={contest.state} address={contest.address} postalCode={contest.postal_code} verified={contest.verified} sponsored={contest.sponsored} websiteUrl={contest.restaurant_website_url} menuUrl={contest.menu_url} variant="standard" />
@@ -121,6 +123,8 @@ export default function HomeScreen() {
   const coins = usePlayerBalance(Number(player.coins ?? 0));
   const [showWelcome, setShowWelcome] = useState(welcome === "1");
   const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
+  const { state: achievementState, refresh: refreshAchievements } = useAchievements();
+  const [dailyRewardReady, setDailyRewardReady] = useState(false);
   const enterContest = useContestEntry();
 
   const dismissWelcome = useCallback(() => {
@@ -130,10 +134,12 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => {
     void refreshMissions();
+    void refreshAchievements();
+    void loadDailyRewards().then(({ state, currentDay }) => setDailyRewardReady(!state.claimedDays.includes(currentDay)));
     void api.getPlayer().then((nextPlayer) => setPlayer(nextPlayer as Player)).catch(() => {
       // Preserve the last confirmed server value when refresh fails.
     });
-  }, [refreshMissions]));
+  }, [refreshAchievements, refreshMissions]));
 
   useEffect(() => {
     let active = true;
@@ -175,6 +181,18 @@ export default function HomeScreen() {
         <FireScreenEntrance duration="fast" distance={8}>
           <FireHeader level={level} xp={xp} nextLevelXp={nextLevelXp} coins={coins} />
         </FireScreenEntrance>
+        <FireScreenEntrance delay={35} duration="fast" distance={6}>
+          <View style={styles.quickActions}>
+            <FireButton accessibilityLabel={dailyRewardReady ? "Daily reward ready to claim" : "View daily rewards"} title={dailyRewardReady ? "REWARD READY" : "DAILY REWARDS"} size="compact" variant={dailyRewardReady ? "gold" : "secondary"} style={styles.quickButton} onPress={() => router.push("/daily-rewards")} />
+            <FireButton title="CAREER" size="compact" variant="secondary" style={styles.quickButton} onPress={() => router.push("/career")} />
+            <FireButton title="PROFILE" size="compact" variant="secondary" style={styles.quickButton} onPress={() => router.push("/(tabs)/profile")} />
+          </View>
+          <View style={styles.progressPreview}>
+            <Text style={styles.previewText}>{dailyMissionState?.missions.filter((item) => item.completed).length ?? 0} / 3 MISSIONS COMPLETE</Text>
+            <Text style={styles.previewDivider}>·</Text>
+            <Text style={styles.previewText}>{achievementState?.progress.filter((item) => item.completed).length ?? 0} / {achievementState?.progress.length ?? 0} ACHIEVEMENTS</Text>
+          </View>
+        </FireScreenEntrance>
         <FireScreenEntrance delay={60} duration="fast" distance={10}>
           <View style={styles.sectionHeading}>
             <Text style={styles.eyebrow}>{"TONIGHT'S MAIN EVENT"}</Text>
@@ -184,7 +202,7 @@ export default function HomeScreen() {
         </FireScreenEntrance>
         {dailyMissionState ? (
           <FireScreenEntrance delay={90} duration="fast" distance={8}>
-            <FirePanel compact title="DAILY MISSIONS" subtitle="Three fresh challenges every day" style={styles.missionsPanel}>
+            <FirePanel compact title="DAILY MISSIONS" subtitle={`${dailyMissionState.missions.filter((item) => item.completed).length} of 3 complete today`} style={styles.missionsPanel}>
               {dailyMissionState.missions.map((mission) => (
                 <DailyMissionCard
                   key={mission.id}
@@ -198,6 +216,7 @@ export default function HomeScreen() {
                   onClaim={() => { void claimMission(mission.id); }}
                 />
               ))}
+              <FireButton fullWidth title="VIEW ALL MISSIONS" size="compact" variant="ghost" onPress={() => router.push("/missions")} />
             </FirePanel>
           </FireScreenEntrance>
         ) : null}
@@ -218,7 +237,12 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
-  content: { paddingBottom: 22, paddingHorizontal: 12 },
+  content: { alignSelf: "center", maxWidth: 760, paddingBottom: 22, paddingHorizontal: 12, width: "100%" },
+  quickActions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 4 },
+  quickButton: { flex: 1, flexBasis: 100, marginBottom: 0, marginTop: 4, minWidth: 96 },
+  progressPreview: { alignItems: "center", backgroundColor: "rgba(23,14,13,0.9)", borderColor: "rgba(223,137,49,0.3)", borderRadius: 8, borderWidth: 1, flexDirection: "row", justifyContent: "center", marginBottom: 8, paddingHorizontal: 8, paddingVertical: 6 },
+  previewText: { color: "#BFA181", flexShrink: 1, fontSize: 7, fontWeight: "900", textAlign: "center" },
+  previewDivider: { color: "#E49A43", marginHorizontal: 7 },
   sectionHeading: { alignItems: "center", flexDirection: "row", marginBottom: 6, marginTop: 0 },
   eyebrow: { color: "#F4C06C", fontSize: 10, fontWeight: "900", letterSpacing: 1.6 },
   headingLine: { backgroundColor: "rgba(239,143,49,0.42)", flex: 1, height: 1, marginLeft: 9 },

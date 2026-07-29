@@ -22,10 +22,12 @@ export default function EffectsLayer({
   const comboStrength = combo >= 30 ? 3 : combo >= 20 ? 2 : combo >= 10 ? 1 : 0;
   return (
     <View pointerEvents="none" style={styles.container}>
-      <FloatingScore
-        visible={showScore}
-        value={scoreText}
-      />
+      <View style={styles.scoreContainer}>
+        <FloatingScore
+          visible={showScore}
+          value={scoreText}
+        />
+      </View>
 
       <View style={styles.comboContainer}>
         <ImpactEffect trigger={showCombo ? combo : 0} variant="combo" size={150 + comboStrength * 28} />
@@ -50,7 +52,16 @@ const styles = StyleSheet.create({
   },
   comboContainer: {
     position: "absolute",
-    top: "22%",
+    top: "24%",
     alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  scoreContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+    top: "39%",
+    width: "100%",
   },
 });

@@ -13,14 +13,18 @@ export type CameraControllerHandle = {
 
 type CameraControllerProps = {
   children: React.ReactNode;
+  phase?: "intro" | "active" | "result";
+  reducedMotion?: boolean;
 };
 
 const CameraController = forwardRef<CameraControllerHandle, CameraControllerProps>(
-  function CameraController({ children }, ref) {
+  function CameraController({ children, phase = "active", reducedMotion = false }, ref) {
     const scale = useRef(new Animated.Value(1)).current;
+    const ambientScale = useRef(new Animated.Value(1)).current;
     const translateX = useRef(new Animated.Value(0)).current;
     const scaleAnimation = useRef<Animated.CompositeAnimation | null>(null);
     const shakeAnimation = useRef<Animated.CompositeAnimation | null>(null);
+    const ambientAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
     const stopScaleAnimation = () => {
       scaleAnimation.current?.stop();
@@ -34,19 +38,29 @@ const CameraController = forwardRef<CameraControllerHandle, CameraControllerProp
 
     const punch = (amount: number, strength = 1) => {
       stopScaleAnimation();
+      if (reducedMotion) {
+        scale.setValue(1);
+        return;
+      }
       scale.setValue(1);
 
       scaleAnimation.current = Animated.sequence([
         Animated.timing(scale, {
           toValue: 1 + amount * Math.max(0, strength),
-          duration: 70,
+          duration: 58,
           easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 0.997,
+          duration: 72,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.spring(scale, {
           toValue: 1,
-          friction: 7,
-          tension: 210,
+          friction: 8,
+          tension: 185,
           useNativeDriver: true,
         }),
       ]);
@@ -54,38 +68,42 @@ const CameraController = forwardRef<CameraControllerHandle, CameraControllerProp
     };
 
     useImperativeHandle(ref, () => ({
-      bitePunch: (strength = 1) => punch(0.03, strength),
-      comboPunch: (strength = 1) => punch(0.06, strength),
-      countdownSettle: () => punch(0.022, 1),
+      bitePunch: (strength = 1) => punch(0.022, strength),
+      comboPunch: (strength = 1) => punch(0.045, strength),
+      countdownSettle: () => punch(0.014, 1),
       shake: (strength = 8) => {
         stopShakeAnimation();
         translateX.setValue(0);
-        const distance = Math.max(0, strength);
+        if (reducedMotion) return;
+        const distance = Math.min(4, Math.max(0, strength) * 0.65);
 
         shakeAnimation.current = Animated.sequence([
-          Animated.timing(translateX, { toValue: -distance, duration: 45, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: distance, duration: 55, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: -distance * 0.6, duration: 50, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: distance * 0.35, duration: 45, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: 0, duration: 40, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(translateX, { toValue: -distance, duration: 42, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(translateX, { toValue: distance * 0.72, duration: 50, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(translateX, { toValue: -distance * 0.36, duration: 46, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(translateX, { toValue: 0, duration: 60, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         ]);
         shakeAnimation.current.start();
       },
       victoryZoom: () => {
         stopScaleAnimation();
+        if (reducedMotion) {
+          scale.setValue(1.025);
+          return;
+        }
         scale.setValue(1);
 
         scaleAnimation.current = Animated.sequence([
           Animated.timing(scale, {
-            toValue: 1.08,
-            duration: 260,
+            toValue: 1.045,
+            duration: 320,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
           Animated.spring(scale, {
-            toValue: 1.04,
-            friction: 8,
-            tension: 110,
+            toValue: 1.025,
+            friction: 10,
+            tension: 95,
             useNativeDriver: true,
           }),
         ]);
@@ -93,30 +111,80 @@ const CameraController = forwardRef<CameraControllerHandle, CameraControllerProp
       },
       defeatSettle: () => {
         stopScaleAnimation();
+        if (reducedMotion) {
+          scale.setValue(0.992);
+          return;
+        }
         scale.setValue(1);
         scaleAnimation.current = Animated.sequence([
-          Animated.timing(scale, { toValue: 0.985, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-          Animated.spring(scale, { toValue: 0.992, friction: 10, tension: 100, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 0.986, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 0.992, friction: 12, tension: 85, useNativeDriver: true }),
         ]);
         scaleAnimation.current.start();
       },
       reset: () => {
         stopScaleAnimation();
         stopShakeAnimation();
-        scale.setValue(1);
         translateX.setValue(0);
+        if (reducedMotion) {
+          scale.setValue(1);
+          return;
+        }
+        scaleAnimation.current = Animated.timing(scale, {
+          toValue: 1,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        });
+        scaleAnimation.current.start();
       },
     }));
 
-    useEffect(() => () => {
+    useEffect(() => {
+      ambientAnimation.current?.stop();
+      ambientScale.stopAnimation();
+      ambientScale.setValue(1);
+      if (reducedMotion || phase !== "active") return;
+
+      ambientAnimation.current = Animated.loop(Animated.sequence([
+        Animated.timing(ambientScale, {
+          toValue: 1.006,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(ambientScale, {
+          toValue: 1,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]));
+      ambientAnimation.current.start();
+      return () => ambientAnimation.current?.stop();
+    }, [ambientScale, phase, reducedMotion]);
+
+    useEffect(() => {
+      if (!reducedMotion) return;
       scaleAnimation.current?.stop();
       shakeAnimation.current?.stop();
       scale.stopAnimation();
       translateX.stopAnimation();
-    }, [scale, translateX]);
+      scale.setValue(1);
+      translateX.setValue(0);
+    }, [reducedMotion, scale, translateX]);
+
+    useEffect(() => () => {
+      scaleAnimation.current?.stop();
+      shakeAnimation.current?.stop();
+      ambientAnimation.current?.stop();
+      scale.stopAnimation();
+      ambientScale.stopAnimation();
+      translateX.stopAnimation();
+    }, [ambientScale, scale, translateX]);
 
     return (
-      <Animated.View style={[styles.viewport, { transform: [{ translateX }, { scale }] }]}>
+      <Animated.View style={[styles.viewport, { transform: [{ translateX }, { scale: ambientScale }, { scale }] }]}>
         {children}
       </Animated.View>
     );

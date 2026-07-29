@@ -19,8 +19,8 @@ export default function FireEmptyState({
   onPress,
 }: FireEmptyStateProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+    <View accessibilityRole="alert" style={styles.container}>
+      <View style={styles.iconFrame}><Text style={styles.icon}>{icon}</Text></View>
 
       <Text style={styles.title}>{title}</Text>
 
@@ -44,10 +44,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
+    margin: 16,
+    backgroundColor: "rgba(18,12,13,0.92)",
+    borderColor: "rgba(217,132,47,0.42)",
+    borderRadius: 18,
+    borderWidth: 1,
   },
+  iconFrame: { alignItems: "center", backgroundColor: "rgba(91,40,16,0.55)", borderColor: "rgba(242,165,69,0.5)", borderRadius: 42, borderWidth: 1, height: 84, justifyContent: "center", marginBottom: 16, width: 84 },
   icon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 44,
   },
   title: {
     color: "#FFFFFF",
@@ -56,7 +61,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   message: {
-    color: "#B8B8B8",
+    color: "#C9B7A5",
     fontSize: 15,
     textAlign: "center",
     marginTop: 10,

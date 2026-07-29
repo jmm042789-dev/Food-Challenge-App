@@ -306,10 +306,12 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
       throw new AuthenticationError("The guest account response was invalid.");
     }
     await storeCredentials(credentials);
-    console.info("Fire Feast guest credentials created", {
-      playerId: credentials.playerId,
-      tokenLength: credentials.authToken.length,
-    });
+    if (__DEV__) {
+      console.info("Fire Feast guest credentials created", {
+        playerId: credentials.playerId,
+        tokenLength: credentials.authToken.length,
+      });
+    }
     cacheBootstrapPlayer(response.player);
     return credentials;
   } catch (error) {
@@ -412,17 +414,34 @@ async function recoverCredentialsAfterUnauthorized(
   if (recoveryPromise) return recoveryPromise;
 
   recoveryPromise = (async () => {
-    console.warn("Fire Feast authentication rejected; attempting session recovery", {
-      requestedPlayerId: rejected.playerId,
-      tokenLength: rejected.authToken.length,
-    });
-    const response = await fetch(`${API}/auth/session`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${rejected.authToken}`,
-      },
-    });
+    if (__DEV__) {
+      console.warn("Fire Feast authentication rejected; attempting session recovery", {
+        requestedPlayerId: rejected.playerId,
+        tokenLength: rejected.authToken.length,
+      });
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(`${API}/auth/session`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${rejected.authToken}`,
+        },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new AuthenticationError(
+          `Authentication recovery timed out after ${REQUEST_TIMEOUT_MS}ms.`,
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (response.ok) {
       const data = await response.json() as {
@@ -436,10 +455,12 @@ async function recoverCredentialsAfterUnauthorized(
       const recovered = { playerId, authToken: rejected.authToken };
       await storeCredentials(recovered);
       if (data.player) cacheBootstrapPlayer(data.player);
-      console.info("Fire Feast authentication session repaired", {
-        previousPlayerId: rejected.playerId,
-        authenticatedPlayerId: recovered.playerId,
-      });
+      if (__DEV__) {
+        console.info("Fire Feast authentication session repaired", {
+          previousPlayerId: rejected.playerId,
+          authenticatedPlayerId: recovered.playerId,
+        });
+      }
       return recovered;
     }
 
@@ -584,7 +605,7 @@ async function req(
     }
 
     console.error("API request failed", {
-      url,
+      url: `${API}${diagnosticPath}`,
       path: diagnosticPath,
       status,
       responseBody,

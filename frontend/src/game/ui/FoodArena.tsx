@@ -20,7 +20,7 @@ import {
 
 import { getFoodArtwork } from "../../assets/foodArtwork";
 import type { BiteMechanic } from "../../api";
-import type { FoodProfile } from "../food/FoodProfiles";
+import type { FoodBiteReaction, FoodProfile } from "../food/FoodProfiles";
 import type { HeatTier } from "../heartburn";
 import type { FoodMechanicType } from "../../achievements/AchievementTypes";
 import BurgerHeavyBiteOverlay from "./BurgerHeavyBiteOverlay";
@@ -92,6 +92,33 @@ const CRUMBS = [
 const PRESENTATION_BITES_PER_ITEM = 10;
 const COMPLETION_BURST = require("../../assets/ui/effects/combo-explosion.png");
 const DESSERT_SPARKLE = require("../../assets/ui/effects/sparkle.png");
+const DESSERT_BITE_REACTION: FoodBiteReaction = {
+  palette: ["#FFF0DF", "#F4A8C5", "#8ED5E8"],
+  shape: "fleck",
+  spread: 1.04,
+  shineColor: "#FFF7EA",
+};
+const PASTRAMI_BITE_REACTION: FoodBiteReaction = {
+  palette: ["#D98265", "#F0C080", "#A94C3E"],
+  shape: "crumb",
+  spread: 1.02,
+  shineColor: "#FFE0B0",
+};
+const FOOD_SEGMENTS = [
+  { column: 0, row: 0 },
+  { column: 1, row: 0 },
+  { column: 0, row: 1 },
+  { column: 1, row: 1 },
+] as const;
+const SEGMENT_REMOVAL_ORDER: Record<FoodProfile["biteStyle"], readonly number[]> = {
+  heavy: [1, 3, 0, 2],
+  quick: [1, 0, 3, 2],
+  rapid: [3, 2, 1, 0],
+  wobble: [0, 1, 2, 3],
+  slurp: [1, 3, 0, 2],
+  spicy: [3, 1, 2, 0],
+};
+const SEGMENT_REMOVAL_THRESHOLDS = [0.2, 0.44, 0.68, 0.9] as const;
 
 type FoodPresentationEvent = {
   id: number;
@@ -172,18 +199,20 @@ function FoodArena({
   const [foodRegionHeight, setFoodRegionHeight] = useState(0);
 
   const size = Math.min(
-    Math.max(135, width * 0.52),
-    Math.max(135, height * 0.27),
-    Math.max(135, (foodRegionHeight || height * 0.4) - 50),
-    250,
+    Math.max(150, width * 0.62),
+    Math.max(150, height * 0.31),
+    Math.max(128, (foodRegionHeight || height * 0.4) - 34),
+    292,
   );
   const foodHitSlop = Math.round(clamp(size * 0.1, 18, 28));
 
   const foodArtwork = getFoodArtwork(contestId);
 
-  const impactScale = useRef(new Animated.Value(1)).current;
+  const impactScaleX = useRef(new Animated.Value(1)).current;
+  const impactScaleY = useRef(new Animated.Value(1)).current;
   const holdPresentationScale = useRef(new Animated.Value(1)).current;
   const consumptionScale = useRef(new Animated.Value(1)).current;
+  const consumptionProgress = useRef(new Animated.Value(0)).current;
   const completionBurst = useRef(new Animated.Value(0)).current;
   const impactRotation = useRef(new Animated.Value(0)).current;
 
@@ -235,7 +264,13 @@ function FoodArena({
 
   const normalizedFoodName = (foodName ?? foodProfile.displayName).toLowerCase();
   const dessertFood = /dessert|ice cream|cake|cookie/.test(normalizedFoodName);
+  const pastramiFood = /pastrami|sandwich/.test(normalizedFoodName);
   const hotFood = foodProfile.biteStyle === "spicy" || /hot dog|pizza|pastrami|wing|spicy/.test(normalizedFoodName);
+  const biteReaction = dessertFood
+    ? DESSERT_BITE_REACTION
+    : pastramiFood
+      ? PASTRAMI_BITE_REACTION
+      : foodProfile.biteReaction;
   const heavyBiteMechanic =
     foodProfile.specialMechanic?.type === "heavy_bite"
       ? foodProfile.specialMechanic
@@ -309,7 +344,7 @@ function FoodArena({
   const rotationDistance = reducedMotion
     ? 0
     : clamp((1.45 + impactTier * 0.28) * wobbleMovement * stylePresentation.rotation, 0, 3.2);
-  const recoveryTension = clamp(330 * animationSpeed / stylePresentation.recovery, 240, 440);
+  const recoveryTension = clamp(275 * animationSpeed / stylePresentation.recovery, 210, 360);
   const flashIntensity = clamp(cameraPunch * stylePresentation.flash, 0.7, 1.5);
   const effectIntensity = clamp(cameraPunch * stylePresentation.effect, 0.7, 1.5);
   const hitFlashOpacity = clamp((0.32 + impactTier * 0.07) * flashIntensity, 0.24, 0.62);
@@ -317,7 +352,7 @@ function FoodArena({
   const impactEffectSize = clamp((0.64 + impactTier * 0.07) * effectIntensity, 0.52, 0.92);
   const crumbDistance = reducedMotion
     ? 0
-    : 1 + impactTier * 0.12;
+    : (1 + impactTier * 0.12) * biteReaction.spread;
 
   const steamValues = useMemo(
     () => [steamA, steamB, steamC] as const,
@@ -392,9 +427,9 @@ function FoodArena({
     }
 
     const animations: Animated.CompositeAnimation[] = [
-      createLoop(idleY, 2200),
-      createLoop(idleBreath, 2750, 120),
-      createLoop(idleRotation, 3400, 240),
+      createLoop(idleY, 2800),
+      createLoop(idleBreath, 3600, 160),
+      createLoop(idleRotation, 4200, 280),
       createLoop(shine, 3300, 450),
       createLoop(haloPulse, 1800),
       createLoop(floorPulse, 2100),
@@ -446,18 +481,22 @@ function FoodArena({
     cheesePullActiveRef.current = false;
     noodleSlurpActiveRef.current = false;
 
-    impactScale.stopAnimation();
+    impactScaleX.stopAnimation();
+    impactScaleY.stopAnimation();
     holdPresentationScale.stopAnimation();
     consumptionScale.stopAnimation();
+    consumptionProgress.stopAnimation();
     completionBurst.stopAnimation();
     impactRotation.stopAnimation();
     shakeX.stopAnimation();
     crumbProgress.stopAnimation();
     hitFlash.stopAnimation();
 
-    impactScale.setValue(0.86);
+    impactScaleX.setValue(0.9);
+    impactScaleY.setValue(0.86);
     holdPresentationScale.setValue(1);
     consumptionScale.setValue(1);
+    consumptionProgress.setValue(0);
     completionBurst.setValue(0);
     impactRotation.setValue(0);
     shakeX.setValue(0);
@@ -474,21 +513,31 @@ function FoodArena({
     heatRushRef.current?.reset();
     hotDogSpeedSprintRef.current?.reset();
 
-    Animated.spring(impactScale, {
-      toValue: 1,
-      friction: 6,
-      tension: 210,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.spring(impactScaleX, {
+        toValue: 1,
+        friction: 7,
+        tension: 190,
+        useNativeDriver: true,
+      }),
+      Animated.spring(impactScaleY, {
+        toValue: 1,
+        friction: 7,
+        tension: 190,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [
     contestId,
     completionBurst,
     consumptionScale,
+    consumptionProgress,
     crumbProgress,
     hitFlash,
     holdPresentationScale,
     impactRotation,
-    impactScale,
+    impactScaleX,
+    impactScaleY,
     resetKey,
     shakeX,
   ]);
@@ -562,8 +611,10 @@ function FoodArena({
       if (completionTimer.current) clearTimeout(completionTimer.current);
 
       [
-        impactScale,
+        impactScaleX,
+        impactScaleY,
         consumptionScale,
+        consumptionProgress,
         completionBurst,
         holdPresentationScale,
         impactRotation,
@@ -585,6 +636,7 @@ function FoodArena({
     [
       completionBurst,
       consumptionScale,
+      consumptionProgress,
       crumbProgress,
       emberValues,
       floorPulse,
@@ -596,7 +648,8 @@ function FoodArena({
       idleRotation,
       idleY,
       impactRotation,
-      impactScale,
+      impactScaleX,
+      impactScaleY,
       shakeX,
       shine,
       steamValues,
@@ -651,12 +704,21 @@ function FoodArena({
     const biteWithinItem = ((nextBiteCount - 1) % PRESENTATION_BITES_PER_ITEM) + 1;
     const itemCompleted = biteWithinItem === PRESENTATION_BITES_PER_ITEM;
     consumptionScale.stopAnimation();
-    Animated.timing(consumptionScale, {
-      toValue: 1 - (biteWithinItem / PRESENTATION_BITES_PER_ITEM) * 0.24,
-      duration: reducedMotion ? 80 : 150,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    consumptionProgress.stopAnimation();
+    Animated.parallel([
+      Animated.timing(consumptionScale, {
+        toValue: 1 - (biteWithinItem / PRESENTATION_BITES_PER_ITEM) * 0.1,
+        duration: reducedMotion ? 80 : 170,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(consumptionProgress, {
+        toValue: biteWithinItem / PRESENTATION_BITES_PER_ITEM,
+        duration: reducedMotion ? 80 : 170,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
     if (itemCompleted) {
       if (completionTimer.current) clearTimeout(completionTimer.current);
       setFoodPresentationEvent({ id: nextBiteCount, type: "ITEM_COMPLETED" });
@@ -710,38 +772,74 @@ function FoodArena({
     biteAnimation.current?.stop();
     biteAnimation.current = null;
 
-    impactScale.stopAnimation();
+    impactScaleX.stopAnimation();
+    impactScaleY.stopAnimation();
     impactRotation.stopAnimation();
     shakeX.stopAnimation();
     crumbProgress.stopAnimation();
     hitFlash.stopAnimation();
 
-    impactScale.setValue(1);
+    impactScaleX.setValue(1);
+    impactScaleY.setValue(1);
     impactRotation.setValue(0);
     shakeX.setValue(0);
     crumbProgress.setValue(0);
     hitFlash.setValue(0);
 
     biteAnimation.current = Animated.parallel([
-      Animated.sequence([
-        Animated.timing(impactScale, {
-          toValue: compression,
-          duration: speedDuration(38),
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(impactScale, {
-          toValue: reducedMotion ? 1 : 1.025 + impactTier * 0.004,
-          duration: speedDuration(34),
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.spring(impactScale, {
-          toValue: 1,
-          friction: 6,
-          tension: recoveryTension,
-          useNativeDriver: true,
-        }),
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(impactScaleX, {
+            toValue: reducedMotion ? 1.004 : 0.992,
+            duration: speedDuration(24),
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(impactScaleX, {
+            toValue: reducedMotion ? 1.008 : 1.045 + impactTier * 0.008,
+            duration: speedDuration(46),
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(impactScaleX, {
+            toValue: reducedMotion ? 1 : 0.988,
+            duration: speedDuration(48),
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.spring(impactScaleX, {
+            toValue: 1,
+            friction: 7.5,
+            tension: recoveryTension,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(impactScaleY, {
+            toValue: reducedMotion ? 0.998 : 1.015,
+            duration: speedDuration(24),
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(impactScaleY, {
+            toValue: compression,
+            duration: speedDuration(46),
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(impactScaleY, {
+            toValue: reducedMotion ? 1 : 1.035 + impactTier * 0.005,
+            duration: speedDuration(48),
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.spring(impactScaleY, {
+            toValue: 1,
+            friction: 7.5,
+            tension: recoveryTension,
+            useNativeDriver: true,
+          }),
+        ]),
       ]),
 
       Animated.sequence([
@@ -780,14 +878,15 @@ function FoodArena({
       }),
 
       Animated.sequence([
+        Animated.delay(speedDuration(18)),
         Animated.timing(hitFlash, {
           toValue: 1,
-          duration: speedDuration(45),
+          duration: speedDuration(42),
           useNativeDriver: true,
         }),
         Animated.timing(hitFlash, {
           toValue: 0,
-          duration: speedDuration(180),
+          duration: speedDuration(145),
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
@@ -1041,13 +1140,13 @@ function FoodArena({
                 {
                   translateY: idleY.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [4, -6],
+                    outputRange: [3, -4],
                   }),
                 },
                 {
                   scale: idleBreath.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0.992, 1.014],
+                    outputRange: [0.996, 1.01],
                   }),
                 },
               ],
@@ -1132,7 +1231,9 @@ function FoodArena({
                 height: size,
                 width: size,
                 transform: [
-                  { scale: Animated.multiply(Animated.multiply(impactScale, consumptionScale), holdPresentationScale) },
+                  { scale: Animated.multiply(consumptionScale, holdPresentationScale) },
+                  { scaleX: impactScaleX },
+                  { scaleY: impactScaleY },
                   { rotate: foodRotation },
                 ],
               },
@@ -1158,14 +1259,52 @@ function FoodArena({
               ]}
             />
 
-            <Image
-              source={foodArtwork.source}
-              resizeMode="contain"
+            <View
+              pointerEvents="none"
               style={{
                 height: size * foodArtwork.scale,
                 width: size * foodArtwork.scale,
               }}
-            />
+            >
+              {FOOD_SEGMENTS.map((segment, segmentIndex) => {
+                const artworkSize = size * foodArtwork.scale;
+                const segmentSize = artworkSize / 2;
+                const removalPosition = SEGMENT_REMOVAL_ORDER[foodProfile.biteStyle].indexOf(segmentIndex);
+                const threshold = SEGMENT_REMOVAL_THRESHOLDS[removalPosition];
+                const transitionStart = Math.max(0, threshold - 0.14);
+
+                return (
+                  <Animated.View
+                    key={`${segment.column}-${segment.row}`}
+                    style={[
+                      styles.foodSegment,
+                      {
+                        height: segmentSize + 1,
+                        left: segment.column * segmentSize,
+                        opacity: consumptionProgress.interpolate({
+                          inputRange: [0, transitionStart, threshold, 1],
+                          outputRange: [1, 1, 0, 0],
+                        }),
+                        top: segment.row * segmentSize,
+                        width: segmentSize + 1,
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={foodArtwork.source}
+                      resizeMode="contain"
+                      style={{
+                        height: artworkSize,
+                        left: -segment.column * segmentSize,
+                        position: "absolute",
+                        top: -segment.row * segmentSize,
+                        width: artworkSize,
+                      }}
+                    />
+                  </Animated.View>
+                );
+              })}
+            </View>
 
             <Animated.View
               pointerEvents="none"
@@ -1202,6 +1341,7 @@ function FoodArena({
               style={[
                 styles.shine,
                 {
+                  backgroundColor: biteReaction.shineColor,
                   opacity: shine.interpolate({
                     inputRange: [0, 0.5, 1],
                     outputRange: [0, 0.14, 0],
@@ -1231,12 +1371,23 @@ function FoodArena({
                   key={index}
                   style={[
                     styles.crumb,
+                    biteReaction.shape === "droplet" && styles.droplet,
                     {
-                      height: crumb.size,
+                      backgroundColor: biteReaction.palette[index % biteReaction.palette.length],
+                      borderRadius: biteReaction.shape === "droplet" ? crumb.size : 2,
+                      height: biteReaction.shape === "streak"
+                        ? Math.max(2, crumb.size * 0.55)
+                        : biteReaction.shape === "noodle"
+                          ? crumb.size * 2.4
+                          : biteReaction.shape === "droplet"
+                            ? crumb.size * 1.5
+                            : biteReaction.shape === "fleck"
+                              ? crumb.size * 0.7
+                              : crumb.size,
                       opacity: crumbProgress.interpolate({
                         inputRange: [0, 0.12, 0.75, 1],
                         outputRange: reducedMotion
-                          ? [0, 0, 0, 0]
+                          ? [0, 0.42, 0.2, 0]
                           : [
                               0,
                               0.82 + impactTier * 0.06,
@@ -1269,11 +1420,27 @@ function FoodArena({
                           scale:
                             crumbProgress.interpolate({
                               inputRange: [0, 1],
-                              outputRange: [0.55, 1.25],
+                              outputRange: reducedMotion ? [0.85, 1] : [0.55, 1.25],
                             }),
                         },
+                        {
+                          rotate: crumbProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: reducedMotion
+                              ? ["0deg", "0deg"]
+                              : ["0deg", `${(index % 2 === 0 ? -1 : 1) * (28 + index * 7)}deg`],
+                          }),
+                        },
                       ],
-                      width: crumb.size,
+                      width: biteReaction.shape === "streak"
+                        ? crumb.size * 2.4
+                        : biteReaction.shape === "noodle"
+                          ? Math.max(2, crumb.size * 0.55)
+                          : biteReaction.shape === "droplet"
+                            ? crumb.size * 0.9
+                            : biteReaction.shape === "fleck"
+                              ? crumb.size * 1.5
+                              : crumb.size,
                     },
                   ]}
                 />
@@ -1365,8 +1532,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 0,
     overflow: "visible",
-    paddingHorizontal: 46,
-    paddingTop: 6,
+    paddingBottom: 2,
+    paddingHorizontal: 24,
     width: "100%",
   },
 
@@ -1387,21 +1554,21 @@ const styles = StyleSheet.create({
   },
 
   arenaGlowOuter: {
-    backgroundColor: "rgba(255,82,18,0.18)",
-    borderColor: "rgba(255,167,63,0.24)",
+    backgroundColor: "rgba(255,82,18,0.2)",
+    borderColor: "rgba(255,178,75,0.3)",
     borderRadius: 999,
     borderWidth: 1,
     position: "absolute",
-    top: "8%",
+    top: "6%",
   },
 
   arenaGlowInner: {
-    backgroundColor: "rgba(255,116,30,0.23)",
-    borderColor: "rgba(255,197,105,0.18)",
+    backgroundColor: "rgba(255,116,30,0.26)",
+    borderColor: "rgba(255,207,125,0.24)",
     borderRadius: 999,
     borderWidth: 1,
     position: "absolute",
-    top: "13%",
+    top: "11%",
   },
 
   foodPressable: {
@@ -1416,9 +1583,9 @@ const styles = StyleSheet.create({
   },
 
   foodShadow: {
-    backgroundColor: "rgba(0,0,0,0.62)",
+    backgroundColor: "rgba(0,0,0,0.72)",
     borderRadius: 999,
-    bottom: -1,
+    bottom: -3,
     position: "absolute",
   },
 
@@ -1427,15 +1594,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "visible",
   },
+  foodSegment: {
+    overflow: "hidden",
+    position: "absolute",
+  },
   completionBurst: { height: "130%", position: "absolute", width: "130%" },
-  foodProgress: { alignItems: "center", bottom: 3, position: "absolute", width: 132, zIndex: 6 },
-  foodProgressTrack: { backgroundColor: "rgba(25,10,7,0.92)", borderColor: "rgba(255,177,76,0.42)", borderRadius: 4, borderWidth: 1, height: 6, overflow: "hidden", width: "100%" },
-  foodProgressFill: { backgroundColor: "#F29A32", height: "100%" },
-  foodProgressText: { color: "#FFD28A", fontSize: 7, fontWeight: "900", letterSpacing: 0.7, marginTop: 2 },
+  foodProgress: { alignItems: "center", bottom: 1, position: "absolute", width: 148, zIndex: 6 },
+  foodProgressTrack: { backgroundColor: "rgba(18,7,6,0.96)", borderColor: "rgba(255,188,83,0.58)", borderRadius: 5, borderWidth: 1, height: 7, overflow: "hidden", width: "100%" },
+  foodProgressFill: { backgroundColor: "#F7A13A", height: "100%" },
+  foodProgressText: { color: "#FFE0A2", fontSize: 8, fontWeight: "900", letterSpacing: 0.8, marginTop: 3 },
 
   foodBackGlow: {
-    backgroundColor: "rgba(255,92,23,0.35)",
-    borderColor: "rgba(255,185,79,0.25)",
+    backgroundColor: "rgba(255,92,23,0.38)",
+    borderColor: "rgba(255,195,97,0.32)",
     borderRadius: 999,
     borderWidth: 1,
     position: "absolute",
@@ -1456,11 +1627,12 @@ const styles = StyleSheet.create({
   },
 
   crumb: {
-    backgroundColor: "#F6B24D",
-    borderRadius: 3,
     left: "50%",
     position: "absolute",
     top: "48%",
+  },
+  droplet: {
+    borderBottomLeftRadius: 2,
   },
 
   steamLayer: {
@@ -1482,46 +1654,51 @@ const styles = StyleSheet.create({
   },
 
   pedestalGlow: {
-    backgroundColor: "rgba(255,80,18,0.28)",
+    backgroundColor: "rgba(255,87,20,0.34)",
     borderRadius: 999,
-    height: 44,
-    marginTop: -38,
+    height: 52,
+    marginTop: -43,
     position: "absolute",
-    width: 150,
+    width: 176,
     zIndex: 0,
   },
 
   pedestal: {
-    backgroundColor: "rgba(8,5,6,0.94)",
-    borderColor: "rgba(234,127,36,0.52)",
+    backgroundColor: "rgba(10,5,6,0.98)",
+    borderColor: "rgba(244,146,52,0.72)",
     borderRadius: 100,
-    borderWidth: 1,
-    height: 44,
-    marginTop: -30,
-    transform: [{ scaleX: 1.78 }],
-    width: 142,
+    borderWidth: 2,
+    elevation: 8,
+    height: 50,
+    marginTop: -34,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    transform: [{ scaleX: 1.72 }],
+    width: 156,
     zIndex: 1,
   },
 
   pedestalRim: {
-    borderColor: "rgba(255,174,74,0.5)",
+    borderColor: "rgba(255,191,91,0.7)",
     borderRadius: 100,
-    borderTopWidth: 2,
-    height: 18,
-    left: 8,
+    borderTopWidth: 3,
+    height: 21,
+    left: 9,
     position: "absolute",
-    right: 8,
+    right: 9,
     top: 4,
   },
 
   pedestalCore: {
-    backgroundColor: "rgba(255,104,25,0.09)",
+    backgroundColor: "rgba(255,112,28,0.14)",
     borderRadius: 999,
-    bottom: 6,
-    left: 22,
+    bottom: 7,
+    left: 24,
     position: "absolute",
-    right: 22,
-    top: 12,
+    right: 24,
+    top: 13,
   },
 
 });

@@ -12,6 +12,7 @@ import FireButton from "@/src/components/fire/FireButton";
 import FirePanel from "@/src/components/fire/FirePanel";
 import ArcadeBackground from "@/src/game/ui/ArcadeBackground";
 import { disposeAudio, initializeAudio, pauseAllAudio, resumeAudio, stopMusic, transitionMusic } from "@/src/audio/AdaptiveAudioManager";
+import { AppPreferencesProvider } from "@/src/preferences/AppPreferences";
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   const router = useRouter();
@@ -74,15 +75,24 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#070405" }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <AnimationProvider>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#070405" } }}>
+        <AppPreferencesProvider>
+          <AnimationProvider>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#070405" } }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="play/[contestId]" options={{ presentation: "fullScreenModal", animation: "fade" }} />
             <Stack.Screen name="result" options={{ presentation: "fullScreenModal", animation: "fade" }} />
             <Stack.Screen name="matchmaking" options={{ animation: "fade" }} />
             <Stack.Screen name="tutorial" options={{ animation: "slide_from_right" }} />
-          </Stack>
-        </AnimationProvider>
+            <Stack.Screen name="settings" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="legal/[document]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="daily-rewards" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="achievements" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="missions" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="avatar-customization" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="career" options={{ animation: "slide_from_right" }} />
+            </Stack>
+          </AnimationProvider>
+        </AppPreferencesProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +13,8 @@ import FireScreenEntrance from "../src/components/fire/FireScreenEntrance";
 
 export default function TutorialScreen() {
   const router = useRouter();
+  const { replay } = useLocalSearchParams<{ replay?: string | string[] }>();
+  const replayMode = (Array.isArray(replay) ? replay[0] : replay) === "1";
   const insets = useSafeAreaInsets();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,10 @@ export default function TutorialScreen() {
 
   async function completeTutorial() {
     if (submissionInFlight.current) return;
+    if (replayMode) {
+      router.back();
+      return;
+    }
 
     submissionInFlight.current = true;
     setSubmitting(true);
@@ -52,34 +58,35 @@ export default function TutorialScreen() {
       >
         <FireScreenEntrance duration="fast" distance={10}>
 
-        <Text style={styles.title}>🔥 FIRE FEAST GUIDE</Text>
+        <Text accessibilityRole="header" style={styles.title}>{replayMode ? "FIRE FEAST REFRESHER" : "WELCOME TO FIRE FEAST"}</Text>
+        <Text style={styles.intro}>{replayMode ? "Review the arena essentials anytime. Your progress and rewards will not be changed." : "Three quick steps, then your first featured contest is ready."}</Text>
 
         </FireScreenEntrance>
-        <FirePanel compact title="How to Play" style={styles.card}>
+        <FirePanel compact title="Choose a Contest" style={styles.card}>
           <FireBadge label="STEP 1 OF 3" variant="gold" />
           <FireText variant="body" style={styles.text}>
-            Enter contests, compete in food challenges, and earn points in the Fire Feast Arena.
+            Pick a featured feast, review its food and difficulty, then enter the arena.
           </FireText>
         </FirePanel>
 
-        <FirePanel compact title="Scoring" style={styles.card}>
+        <FirePanel compact title="Follow the Action Prompt" style={styles.card}>
           <FireBadge label="STEP 2 OF 3" variant="info" />
           <FireText variant="body" style={styles.text}>
-            Your performance is ranked based on speed, completion, and bonus objectives.
+            Use the control shown beneath the food. Build combos, watch your heat, and use Antacid when needed.
           </FireText>
         </FirePanel>
 
-        <FirePanel compact title="Rewards" style={styles.card}>
+        <FirePanel compact title="Grow Your Career" style={styles.card}>
           <FireBadge label="STEP 3 OF 3" variant="gold" />
           <FireText variant="body" style={styles.text}>
-            Win coins, XP, and unlock higher ranked arenas as you progress.
+            Complete matches to build your career, achievements, missions, ranks, and collections.
           </FireText>
         </FirePanel>
 
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
         <FireButton
-          title="START YOUR FEAST"
-          accessibilityLabel="Start Your Feast"
+          title={replayMode ? "RETURN TO SETTINGS" : "CLAIM REWARD & ENTER ARENA"}
+          accessibilityLabel={replayMode ? "Return to Settings" : "Claim welcome reward and enter arena"}
           disabled={submitting}
           loading={submitting}
           onPress={() => { void completeTutorial(); }}
@@ -99,15 +106,20 @@ const styles = StyleSheet.create({
   },
 
   content: {
+    alignSelf: "center",
+    maxWidth: 720,
     paddingHorizontal: theme.spacing.screen,
+    width: "100%",
   },
 
   title: {
-    fontSize: 22,
+    fontSize: 27,
     fontWeight: "900",
     color: theme.colors.primary,
-    marginBottom: 20,
+    marginBottom: 6,
+    textAlign: "center",
   },
+  intro: { color: "#C9B7A5", fontSize: 14, lineHeight: 21, marginBottom: 20, textAlign: "center" },
 
   card: {
     marginBottom: theme.spacing.cardGap,

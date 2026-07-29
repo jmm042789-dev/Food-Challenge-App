@@ -106,12 +106,12 @@ export default function GameplayHUD(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 7, paddingTop: 5, width: "100%", zIndex: 20 },
-  leftMeter: { left: 9, position: "absolute", top: 110 },
-  meterGroup: { alignItems: "center", width: 42 },
+  container: { paddingHorizontal: 9, paddingTop: 6, width: "100%", zIndex: 20 },
+  leftMeter: { left: 12, position: "absolute", top: 105 },
+  meterGroup: { alignItems: "center", width: 38 },
   meterConnector: { backgroundColor: "rgba(232,141,47,0.62)", height: 9, position: "absolute", top: -9, width: 1 },
-  meterValue: { color: "#FFD06A", fontSize: 10, fontWeight: "900", marginBottom: 3 },
-  meterShell: { backgroundColor: "rgba(8,6,7,0.97)", borderColor: "rgba(238,145,48,0.76)", borderRadius: 8, borderTopLeftRadius: 2, borderTopRightRadius: 2, borderWidth: 1, height: 108, padding: 4, width: 30 },
+  meterValue: { color: "#FFDA82", fontSize: 10, fontWeight: "900", marginBottom: 3 },
+  meterShell: { backgroundColor: "rgba(8,6,7,0.97)", borderColor: "rgba(241,157,60,0.8)", borderRadius: 8, borderTopLeftRadius: 2, borderTopRightRadius: 2, borderWidth: 1, height: 92, padding: 4, width: 28 },
   meterShellWarning: { backgroundColor: "rgba(54,10,8,0.96)", borderColor: "#FF6038", borderWidth: 2 },
   heatGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,72,25,0.3)", borderRadius: 9 },
   comboGlow: { backgroundColor: "rgba(255,188,62,0.28)" },
@@ -120,6 +120,6 @@ const styles = StyleSheet.create({
   comboFill: { backgroundColor: "#F39A2D" },
   heatFill: { backgroundColor: "#D94B28" },
   meterShine: { backgroundColor: "rgba(255,230,180,0.18)", bottom: 2, left: 2, position: "absolute", top: 2, width: 3 },
-  meterLabel: { color: "#DDB274", fontSize: 7, fontWeight: "900", letterSpacing: 0.6, marginTop: 4 },
+  meterLabel: { color: "#E9BF80", fontSize: 7, fontWeight: "900", letterSpacing: 0.7, marginTop: 4 },
   meterDetail: { color: "#FFCA72", fontSize: 6, fontWeight: "900", marginTop: 1, maxWidth: 42, textAlign: "center" },
 });

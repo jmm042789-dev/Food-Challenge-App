@@ -68,18 +68,19 @@ export default function FloatingScore({
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
     alignSelf: "center",
-    top: -20,
+    justifyContent: "center",
     zIndex: 999,
   },
   text: {
     fontWeight: "900",
-    textShadowColor: "#000",
-    textShadowRadius: 10,
+    letterSpacing: 0.8,
+    textAlign: "center",
+    textShadowColor: "rgba(20,4,2,0.95)",
+    textShadowRadius: 12,
     textShadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
   },
 });

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
@@ -7,7 +7,6 @@ import { useIsFocused } from "@react-navigation/native";
 import { api } from "../../src/api";
 import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
 import FireBadge from "../../src/components/fire/FireBadge";
-import FireProgressBar from "../../src/components/fire/FireProgressBar";
 import FireButton from "../../src/components/fire/FireButton";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
@@ -18,13 +17,11 @@ import RestaurantUnlockBanner from "../../src/restaurants/components/RestaurantU
 import { useRestaurantProgress } from "../../src/restaurants/useRestaurantProgress";
 import TitleBrowserPanel from "../../src/titles/components/TitleBrowserPanel";
 import TitleUnlockBanner from "../../src/titles/components/TitleUnlockBanner";
-import { TITLE_BY_ID } from "../../src/titles/TitleCatalog";
 import { useTitleProgress } from "../../src/titles/useTitleProgress";
 import { usePlayerBalance } from "../../src/playerBalance";
+import PlayerProfileCard from "../../src/profile/PlayerProfileCard";
+import { DEFAULT_IDENTITY, loadPlayerIdentity, type PlayerIdentity } from "../../src/profile/PlayerIdentity";
 
-const BLAZE = require("../../src/assets/characters/blaze.png");
-const COIN = require("../../src/assets/icons/coin.png");
-const ANTACID = require("../../src/assets/icons/antacid.png");
 
 type Player = {
   username?: string;
@@ -39,6 +36,8 @@ type Player = {
   best_score: number;
   longest_combo: number;
   streak_days: number;
+  current_streak?: number;
+  longest_streak?: number;
   owned_gear: string[];
   equipped_gear: string | null;
 };
@@ -70,18 +69,6 @@ const FALLBACK_PLAYER: Player = {
   equipped_gear: null,
 };
 
-function Counter({ source, label, value }: { source: number; label: string; value: number }) {
-  return (
-    <View style={styles.counter}>
-      <Image source={source} resizeMode="contain" style={styles.counterIcon} />
-      <View>
-        <Text style={styles.counterLabel}>{label}</Text>
-        <Text style={styles.counterValue}>{Number(value || 0).toLocaleString()}</Text>
-      </View>
-    </View>
-  );
-}
-
 function StatTile({ label, value, accent = false }: { label: string; value: number | string; accent?: boolean }) {
   return (
     <View style={styles.statTile}>
@@ -100,6 +87,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [identity, setIdentity] = useState<PlayerIdentity>(DEFAULT_IDENTITY);
   const { state: achievementState, migrate: migrateAchievements, claim: claimAchievement } = useAchievements();
   const { state: restaurantState, notification: restaurantNotification, dismissNotification: dismissRestaurantNotification, sync: syncRestaurants } = useRestaurantProgress();
   const { state: titleState, notification: titleNotification, dismissNotification: dismissTitleNotification, sync: syncTitles, equip: equipTitle } = useTitleProgress();
@@ -131,7 +119,10 @@ export default function ProfileScreen() {
     setLoading(false);
   }, [migrateAchievements]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    load();
+    void loadPlayerIdentity().then(setIdentity);
+  }, [load]));
 
   const xp = Number(player.xp || 0) + (achievementState?.claimedRewards.xp ?? 0);
   const coins = usePlayerBalance(player.coins);
@@ -144,7 +135,6 @@ export default function ProfileScreen() {
   const beltRank = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);
   const completedAchievementIds = useMemo(() => achievementState?.progress.filter((item) => item.completed).map((item) => item.achievementId) ?? [], [achievementState]);
   const unlockedRestaurantIds = useMemo(() => restaurantState?.restaurants.filter((item) => item.status === "unlocked").map((item) => item.restaurantId) ?? [], [restaurantState]);
-  const equippedTitle = titleState?.equippedTitleId ? TITLE_BY_ID.get(titleState.equippedTitleId) : undefined;
 
   useEffect(() => {
     void syncRestaurants(xp);
@@ -210,46 +200,38 @@ export default function ProfileScreen() {
       <ArcadeBackground active={isFocused} />
       {titleNotification ? <TitleUnlockBanner notification={titleNotification} onDismiss={dismissTitleNotification} /> : restaurantNotification ? <RestaurantUnlockBanner notification={restaurantNotification} onDismiss={dismissRestaurantNotification} /> : null}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <FireButton
+          accessibilityLabel="Open settings"
+          fullWidth
+          onPress={() => router.push("/settings")}
+          size="small"
+          title="SETTINGS"
+          variant="secondary"
+        />
+        <View style={styles.retentionNav}>
+          <FireButton title="DAILY REWARDS" size="compact" variant="gold" style={styles.retentionButton} onPress={() => router.push("/daily-rewards")} />
+          <FireButton title="ACHIEVEMENTS" size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/achievements")} />
+          <FireButton title="MISSIONS" size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/missions")} />
+        </View>
         <FireScreenEntrance duration="fast" distance={9}>
-          <View style={[styles.identityPanel, { borderColor: belt.color }]}>
-            <View style={styles.panelHighlight} pointerEvents="none" />
-            <View style={styles.hudRow}>
-              <Text numberOfLines={2} style={styles.profileLabel}>ARENA PROFILE</Text>
-              <View style={styles.counters}>
-                <Counter source={COIN} label="COINS" value={coins} />
-                <Counter source={ANTACID} label="ANTACID" value={player.antacid} />
-              </View>
-            </View>
-
-            <View style={styles.identityBody}>
-              <View style={styles.avatarStage}>
-                <View style={styles.avatarGlow} pointerEvents="none" />
-                <Image source={BLAZE} resizeMode="contain" style={styles.blaze} />
-                <View style={styles.avatarBadge}><Text style={styles.avatarEmoji}>{player.avatar_emoji || "🍔"}</Text></View>
-              </View>
-              <View style={styles.identityInfo}>
-                <Text numberOfLines={2} style={styles.name}>{player.username}</Text>
-                <Text numberOfLines={2} style={[styles.equippedTitle, equippedTitle && { color: equippedTitle.colorTheme }]}>{equippedTitle?.displayName.toUpperCase() ?? "ROOKIE EATER"}</Text>
-                <Text style={styles.country}>{player.country}</Text>
-                <View style={styles.rankRow}>
-                  <Text style={styles.rankIcon}>{belt.icon}</Text>
-                  <View>
-                    <Text style={[styles.rank, { color: belt.color }]}>{belt.name.toUpperCase()}</Text>
-                    <Text style={styles.rankSub}>{next ? `NEXT: ${next.name.toUpperCase()}` : "MAXIMUM RANK"}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.progressBlock}>
-              <View style={styles.progressMeta}>
-                <Text style={styles.progressLabel}>RANK PROGRESS</Text>
-                <Text style={styles.progressValue}>{next ? `${xp.toLocaleString()} / ${next.min_xp.toLocaleString()} XP` : `${xp.toLocaleString()} XP · MAX RANK`}</Text>
-              </View>
-              <FireProgressBar value={progressValue} max={progressMax} variant="xp" compact />
-            </View>
-          </View>
+          <PlayerProfileCard
+            identity={identity}
+            rank={belt.name}
+            rankColor={belt.color}
+            level={beltRank}
+            xp={xp}
+            progress={progressValue}
+            progressMax={progressMax}
+            coins={coins}
+            wins={player.wins}
+            matches={player.matches}
+            streak={player.streak_days}
+            achievementCompleted={completedAchievementIds.length}
+            achievementTotal={achievementState?.progress.length ?? 0}
+          />
         </FireScreenEntrance>
+        <FireButton accessibilityLabel="Edit gamer name and avatar" fullWidth title="CUSTOMIZE PLAYER IDENTITY" variant="gold" onPress={() => router.push("/avatar-customization")} />
+        <FireButton accessibilityLabel="View complete career statistics and history" fullWidth title="VIEW FULL CAREER" variant="secondary" onPress={() => router.push("/career")} />
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>CAREER STATS</Text>
@@ -258,8 +240,10 @@ export default function ProfileScreen() {
         <View style={styles.statsGrid}>
           <StatTile label="WINS" value={player.wins} accent />
           <StatTile label="MATCHES" value={player.matches} />
+          <StatTile label="WIN RATE" value={`${player.matches ? Math.round((player.wins / player.matches) * 100) : 0}%`} accent />
           <StatTile label="BEST SCORE" value={player.best_score} accent />
-          <StatTile label="DAY STREAK" value={player.streak_days} />
+          <StatTile label="CURRENT STREAK" value={player.current_streak ?? player.streak_days} />
+          <StatTile label="LONGEST STREAK" value={player.longest_streak ?? player.streak_days} />
           <StatTile label="LOSSES" value={player.losses} />
           <StatTile label="BEST COMBO" value={`x${player.longest_combo || 0}`} accent />
         </View>
@@ -322,7 +306,9 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
-  content: { paddingBottom: 18, paddingHorizontal: 12, paddingTop: 7 },
+  content: { alignSelf: "center", maxWidth: 760, paddingBottom: 18, paddingHorizontal: 12, paddingTop: 7, width: "100%" },
+  retentionNav: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  retentionButton: { flex: 1, flexBasis: 100, marginTop: 0, minWidth: 96 },
   identityPanel: { backgroundColor: "rgba(13,9,10,0.95)", borderRadius: 15, borderWidth: 1.5, elevation: 7, overflow: "hidden", padding: 11, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 10 },
   panelHighlight: { backgroundColor: "rgba(255,220,160,0.13)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
   hudRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minWidth: 0 },

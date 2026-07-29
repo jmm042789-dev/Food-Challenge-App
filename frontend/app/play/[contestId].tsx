@@ -44,12 +44,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayerBalance } from "../../src/playerBalance";
 import { stopGameplayMusic } from "../../src/audio";
 import { ANTACID_HEAT_REDUCTION } from "../../src/game/heartburn";
+import { useAppPreferences } from "../../src/preferences/AppPreferences";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
 
 export default function ContestScreen() {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const { preferences } = useAppPreferences();
   const router = useRouter();
   const { contestId, replay: replayParam, tournament: tournamentParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[]; tournament?: string | string[] }>();
   const selectedContestId = Array.isArray(contestId) ? contestId[0] : contestId ?? "";
@@ -120,7 +122,9 @@ export default function ContestScreen() {
   const [roundLabel, setRoundLabel] = useState("WORLD TOUR EVENT");
   const [coolingTrigger, setCoolingTrigger] = useState(0);
   const [antacidAcknowledging, setAntacidAcknowledging] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [systemReducedMotion, setSystemReducedMotion] = useState(false);
+  const reducedMotion = systemReducedMotion || preferences.reducedMotion;
+  const hapticsEnabled = preferences.hapticsEnabled;
   const [playerXp, setPlayerXp] = useState(0);
   const [resultReward, setResultReward] = useState<{ coins: number; xp: number; totalXp: number } | null>(null);
   const coins = usePlayerBalance();
@@ -195,18 +199,18 @@ export default function ContestScreen() {
     const newEvents = presentationEvents.filter((event) => event.id > lastHeatPresentationId.current);
     if (!newEvents.length) return;
     lastHeatPresentationId.current = newEvents[newEvents.length - 1].id;
-    if (newEvents.some((event) => event.type === "OVERHEAT_WARNING_STARTED") && !reducedMotion) {
+    if (newEvents.some((event) => event.type === "OVERHEAT_WARNING_STARTED") && hapticsEnabled && !reducedMotion) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     }
     if (newEvents.some((event) => event.type === "OVERHEATED")) {
       cameraRef.current?.shake(5);
-      if (!reducedMotion) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      if (hapticsEnabled && !reducedMotion) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
     if (newEvents.some((event) => event.type === "PERFECT_COOLDOWN")) {
       void playAudioEvent("PERFECT_MECHANIC");
-      if (!reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      if (hapticsEnabled && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
-  }, [playAudioEvent, presentationEvents, reducedMotion]);
+  }, [hapticsEnabled, playAudioEvent, presentationEvents, reducedMotion]);
 
   useEffect(() => () => {
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
@@ -225,12 +229,12 @@ export default function ContestScreen() {
         cameraRef.current?.comboPunch();
         cameraRef.current?.shake(4);
         void playAudioEvent("COMBO_MILESTONE");
-        if (!reducedMotion) {
+        if (hapticsEnabled && !reducedMotion) {
           Haptics.impactAsync(state.combo >= 20 ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         }
       }
     }
-  }, [playAudioEvent, reducedMotion, state.combo]);
+  }, [hapticsEnabled, playAudioEvent, reducedMotion, state.combo]);
 
   useEffect(() => {
     if (state.status !== "COUNTDOWN") return;
@@ -240,9 +244,9 @@ export default function ContestScreen() {
     }
     if (countdownValue === "GO") {
       cameraRef.current?.countdownSettle();
-      if (!reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      if (hapticsEnabled && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
-  }, [countdownValue, playAudioEvent, reducedMotion, state.status]);
+  }, [countdownValue, hapticsEnabled, playAudioEvent, reducedMotion, state.status]);
 
   useEffect(() => {
     const priorStatus = previousStatus.current;
@@ -254,11 +258,11 @@ export default function ContestScreen() {
       const won = state.score > opponentScore;
       if (won) cameraRef.current?.victoryZoom();
       else cameraRef.current?.defeatSettle();
-      if (!reducedMotion) {
+      if (hapticsEnabled && !reducedMotion) {
         Haptics.notificationAsync(won ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning).catch(() => {});
       }
     }
-  }, [opponentScore, playAudioEvent, reducedMotion, state.score, state.status]);
+  }, [hapticsEnabled, opponentScore, playAudioEvent, reducedMotion, state.score, state.status]);
 
   useEffect(() => {
     cameraRef.current?.reset();
@@ -535,7 +539,7 @@ export default function ContestScreen() {
 
   useEffect(() => {
     let mounted = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => { if (mounted) setReducedMotion(enabled); });
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => { if (mounted) setSystemReducedMotion(enabled); });
     return () => { mounted = false; };
   }, []);
 
@@ -661,7 +665,7 @@ export default function ContestScreen() {
     cameraRef.current?.bitePunch();
     void playAudioEventLatest("CORRECT_BITE");
     const now = Date.now();
-    if (!reducedMotion && now - lastBiteHapticAt.current >= 80) {
+    if (hapticsEnabled && !reducedMotion && now - lastBiteHapticAt.current >= 80) {
       lastBiteHapticAt.current = now;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
@@ -695,7 +699,7 @@ export default function ContestScreen() {
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
     return acceptedActionSequence;
-  }, [reducedMotion]);
+  }, [hapticsEnabled, reducedMotion]);
 
   const handleUseAntacid = useCallback((): boolean => {
     const used = applyAntacid();
@@ -711,11 +715,13 @@ export default function ContestScreen() {
     cameraRef.current?.comboPunch(0.85);
     cameraRef.current?.shake(2.5);
     void playAudioEvent("PERFECT_MECHANIC");
-    Haptics.notificationAsync(
-      Haptics.NotificationFeedbackType.Success
-    ).catch(() => {});
+    if (hapticsEnabled && !reducedMotion) {
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      ).catch(() => {});
+    }
     return true;
-  }, [applyAntacid, playAudioEvent]);
+  }, [applyAntacid, hapticsEnabled, playAudioEvent, reducedMotion]);
   const replay = () => {
     if (resultNavigationInFlight.current) return;
     resultNavigationInFlight.current = true;
@@ -818,8 +824,8 @@ export default function ContestScreen() {
         combo={state.combo}
       />
 
-      <CameraController ref={cameraRef}>
-      <SceneMotion phase={scenePhase} comboImpact={comboImpact} style={[styles.overlay, { paddingTop: Math.max(insets.top, 5), paddingBottom: Math.max(insets.bottom, 6) }]}>
+      <CameraController ref={cameraRef} phase={scenePhase} reducedMotion={reducedMotion || !preferences.cameraEffectsEnabled}>
+      <SceneMotion phase={scenePhase} comboImpact={comboImpact} reducedMotion={reducedMotion} style={[styles.overlay, { paddingTop: Math.max(insets.top, 5), paddingBottom: Math.max(insets.bottom, 6) }]}>
         <FireScreenEntrance disabled={state.status !== "PLAYING"} duration="fast" distance={8}>
         <GameplayHUD
           level={1}
@@ -975,7 +981,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 0,
   },
-  utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 82, paddingHorizontal: 10, width: "100%", zIndex: 40 },
+  utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 80, paddingHorizontal: 12, paddingTop: 2, width: "100%", zIndex: 40 },
   antacidControl: { maxWidth: "60%", zIndex: 40 },
   antacidControlCritical: { backgroundColor: "rgba(116,42,8,0.34)", borderRadius: 16 },
   antacidControlWarning: { backgroundColor: "rgba(180,22,12,0.42)", elevation: 12, zIndex: 90 },

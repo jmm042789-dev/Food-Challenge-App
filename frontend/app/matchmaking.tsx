@@ -108,8 +108,9 @@ export default function MatchmakingScreen() {
           ) : null}
           {status === "error" ? (
             <FireScreenEntrance duration="fast" distance={8}>
-              <Text style={styles.error}>Connection Error</Text>
-              <FireButton title="Retry" onPress={() => setAttempt((current) => current + 1)} variant="secondary" size="small" />
+              <Text accessibilityRole="alert" style={styles.error}>ARENA CONNECTION LOST</Text>
+              <Text style={styles.errorDetail}>We couldn&apos;t reach matchmaking. Check your connection and try again.</Text>
+              <FireButton accessibilityLabel="Retry matchmaking" title="RETRY" onPress={() => setAttempt((current) => current + 1)} variant="secondary" size="small" />
             </FireScreenEntrance>
           ) : null}
           <FireButton title="Cancel" onPress={cancel} variant="ghost" size="small" />
@@ -123,7 +124,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#070A12", justifyContent: "center", alignItems: "center", paddingHorizontal: 16 },
   title: { fontSize: 30, fontWeight: "900", color: "#fff", marginBottom: 20, textAlign: "center" },
   panel: { alignItems: "center", maxWidth: 360, width: "100%" },
-  text: { color: "#aaa", fontSize: 16, textAlign: "center" },
+  text: { color: "#C9B7A5", fontSize: 16, textAlign: "center" },
   cinematic: { color: "#FFD700", fontSize: 24, fontWeight: "900", marginTop: 10, textAlign: "center" },
-  error: { color: "red", fontSize: 16, textAlign: "center" },
+  error: { color: "#F09A84", fontSize: 16, fontWeight: "900", letterSpacing: 0.7, textAlign: "center" },
+  errorDetail: { color: "#BFA99A", fontSize: 13, lineHeight: 19, marginTop: 7, textAlign: "center" },
 });
