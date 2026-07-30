@@ -122,7 +122,7 @@ function HeartburnMeter({ heartburn, heatTier, heatMultiplier, isOverheated, ove
       <View style={styles.statusRow}>
         {showAntacidCue ? <Image source={ANTACID_ICON} resizeMode="contain" style={styles.antacidCue} /> : <View style={styles.cueSpacer} />}
         <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.tier, heatTier === "CRITICAL" && styles.risk]}>{displayTier}</Text>
-        <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.multiplier, overheatPenaltyActive && styles.penaltyText]}>{overheatPenaltyActive ? "0.5x" : `${multiplier}x`}</Text>
+        <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.multiplier, isOverheated && styles.penaltyText]}>{`${multiplier}x`}</Text>
       </View>
       {isOverheated ? (
         <>
@@ -130,7 +130,7 @@ function HeartburnMeter({ heartburn, heatTier, heatMultiplier, isOverheated, ove
           <View style={styles.rescueTrack}><View style={[styles.rescueFill, { width: `${rescueProgress * 100}%` }]} /></View>
         </>
       ) : (
-        <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={styles.detail}>{overheatPenaltyActive ? "PENALTY 0.5x" : heatTier === "CRITICAL" ? "RISK BONUS" : "SCORE MULTIPLIER"}</Text>
+        <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={styles.detail}>{isOverheated ? "OVERHEAT -10%" : overheatPenaltyActive ? "RECOVERING" : heatTier === "CRITICAL" ? "RISK BONUS" : "SCORE MULTIPLIER"}</Text>
       )}
     </Animated.View>
   );

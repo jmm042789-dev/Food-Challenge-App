@@ -13,9 +13,6 @@ export const MAX_HEARTBURN = 100;
 export const OVERHEAT_WARNING_DURATION_MS = 2000;
 export const OVERHEAT_RESET_HEAT = 68;
 export const OVERHEAT_PENALTY_MS = 850;
-export const OVERHEAT_SCORE_MULTIPLIER = 0.5;
-export const ANTACID_HEAT_REDUCTION = 50;
-export const ANTACID_HEAT_PROTECTION_MS = 2000;
 export const ANTACID_CRITICAL_THRESHOLD = 85;
 export const ANTACID_PROMPT_THRESHOLD = 90;
 export const REPEATED_OVERHEAT_WINDOW_MS = 5000;
@@ -42,10 +39,6 @@ export function getHeatMultiplier(tier: HeatTier): number {
 
 export function addHeartburnValue(current: number, amount = DEFAULT_HEARTBURN_PER_BITE): number {
   return clampHeartburn(current + (Number.isFinite(amount) ? amount : DEFAULT_HEARTBURN_PER_BITE));
-}
-
-export function reduceHeartburnWithAntacid(heartburn: number): number {
-  return clampHeartburn(heartburn - ANTACID_HEAT_REDUCTION);
 }
 
 export function coolHeartburn(heartburn: number, elapsedMs: number): number {

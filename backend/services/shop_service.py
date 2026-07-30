@@ -120,6 +120,10 @@ def equip_item(device_id: str, gear_id: str | None) -> dict:
         raise GearNotOwnedError
     if gear_id is not None and gear_id not in player.get("owned_gear", []):
         raise GearNotOwnedError
+    if gear_id is not None:
+        item = get_shop_item(gear_id)
+        if not item or item.get("type") != "gear":
+            raise GearNotOwnedError
 
     updated = update_player_document(
         device_id,

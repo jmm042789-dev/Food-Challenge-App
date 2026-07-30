@@ -16,7 +16,7 @@ GEAR = [
     {
         "id": "tap_boost",
 
-        "name": "Tap Boost Gloves",
+        "name": "Tap Boost",
 
         "slot": "Hands",
 
@@ -36,9 +36,9 @@ GEAR = [
     },
 
     {
-        "id": "combo_gloves",
+        "id": "combo_boost",
 
-        "name": "Combo Gloves",
+        "name": "Combo Boost",
 
         "slot": "Hands",
 
@@ -46,37 +46,37 @@ GEAR = [
 
         "icon": "🔥",
 
-        "price": 125,
+        "price": 75,
 
         "tap_bonus": 0,
 
-        "combo_bonus": 20,
+        "combo_bonus": 25,
 
         "heartburn_resistance": 0,
 
-        "description": "Combos last 20% longer."
+        "description": "Increases the combo window from 700 ms to 875 ms."
     },
 
     {
-        "id": "fire_apron",
+        "id": "score_multiplier",
 
-        "name": "Fire Apron",
+        "name": "Score Multiplier",
 
-        "slot": "Body",
+        "slot": "Hands",
 
         "rarity": "Epic",
 
-        "icon": "🧥",
+        "icon": "💥",
 
-        "price": 250,
+        "price": 100,
 
-        "tap_bonus": 2,
+        "tap_bonus": 0,
 
-        "combo_bonus": 10,
+        "combo_bonus": 0,
 
-        "heartburn_resistance": 5,
+        "heartburn_resistance": 0,
 
-        "description": "Professional competitive eating apron."
+        "description": "Earn 1.5x score with 15% additional tap heat."
     },
 
     {

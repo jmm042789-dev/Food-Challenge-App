@@ -2,7 +2,6 @@ import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 import type { GameplayPresentationEvent } from "../useGameLoop";
-import { ANTACID_HEAT_REDUCTION } from "../heartburn";
 
 type Props = {
   events: readonly GameplayPresentationEvent[];
@@ -36,9 +35,9 @@ function resolvePresentation(event: GameplayPresentationEvent): Presentation | u
     case "CRITICAL_WARNING":
       return { title: "CRITICAL", subtitle: "1.5x RISK BONUS" };
     case "ANTACID_USED":
-      return { title: "ANTACID!", subtitle: `-${ANTACID_HEAT_REDUCTION} HEAT`, positive: true, effect: "cooling" };
+      return { title: "COOLING DOWN!", subtitle: `-${event.heatReduction ?? 40} HEAT · SHIELD ACTIVE`, positive: true, effect: "cooling" };
     case "ANTACID_SAVE":
-      return { title: "CLUTCH SAVE!", subtitle: "COMBO SAVED", positive: true, effect: "cooling" };
+      return { title: "CLUTCH SAVE!", subtitle: "COMBO SAVED · FRESH STOMACH", positive: true, effect: "cooling" };
     case "OVERHEATED": {
       const subtitle = event.comboBefore !== undefined && event.comboAfter === 0 && event.comboBefore > 0
         ? "COMBO LOST"
@@ -50,7 +49,7 @@ function resolvePresentation(event: GameplayPresentationEvent): Presentation | u
     case "PERFECT_COOLDOWN":
       return { title: "PERFECT COOLDOWN", subtitle: "+5", positive: true, effect: "sparkle" };
     case "OVERHEAT_PENALTY_STARTED":
-      return { title: "0.5x SCORE", subtitle: "HEAT PENALTY" };
+      return { title: "OVERHEAT BREAK", subtitle: "COMBO RECOVERING" };
     case "OVERHEAT_PENALTY_ENDED":
       return { title: "HEAT RECOVERED", positive: true, subtle: true };
     default:

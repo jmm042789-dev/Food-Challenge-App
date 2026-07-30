@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Alert, Animated, AppState, Easing, Image, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Alert, Animated, AppState, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -43,7 +43,7 @@ import { useAdaptiveAudio } from "../../src/audio/useAdaptiveAudio";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayerBalance } from "../../src/playerBalance";
 import { stopGameplayMusic } from "../../src/audio";
-import { ANTACID_HEAT_REDUCTION } from "../../src/game/heartburn";
+import { antacidHeatReduction } from "../../src/game/matchModifiers";
 import { useAppPreferences } from "../../src/preferences/AppPreferences";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
@@ -64,6 +64,7 @@ export default function ContestScreen() {
   const [matchStartAttempt, setMatchStartAttempt] = useState(0);
   const [resultSubmitAttempt, setResultSubmitAttempt] = useState(0);
   const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
+  const [equippedGear, setEquippedGear] = useState<string | null>(null);
   const [introPlayer, setIntroPlayer] = useState({ name: "Hungry Hero", rank: beltForXp(0).name, title: undefined as string | undefined });
   const matchDurationSeconds = resolveContestDurationSeconds(contest);
   const foodProfile = useMemo(
@@ -92,10 +93,12 @@ export default function ContestScreen() {
   canUseAntacid,
   applyAntacid,
   presentationEvents,
+  matchStats,
 } = useGameLoop({
   duration: matchDurationSeconds,
   matchKey: matchRouteKey,
   antacidCount: playerAntacidCount,
+  equippedGear,
 
   foodId: selectedContestId,
   foodName: contest?.food,
@@ -574,6 +577,7 @@ export default function ContestScreen() {
     setContestLoaded(false);
     setMatchStartError(false);
     setContest(null);
+    setEquippedGear(null);
 
     async function loadContestDetails() {
       try {
@@ -617,6 +621,7 @@ export default function ContestScreen() {
         if (active) {
           const inventory = Number(player?.antacid);
           if (Number.isFinite(inventory)) setPlayerAntacidCount(Math.max(0, Math.floor(inventory)));
+          setEquippedGear(typeof match?.equipped_gear === "string" ? match.equipped_gear : null);
           playerBestScore.current = Math.max(0, Number(player.best_score) || 0);
           setPlayerXp(Math.max(0, Number(player.xp) || 0));
           const equippedTitleId = titleResult.status === "fulfilled" ? titleResult.value.equippedTitleId : null;
@@ -702,6 +707,7 @@ export default function ContestScreen() {
   }, [hapticsEnabled, reducedMotion]);
 
   const handleUseAntacid = useCallback((): boolean => {
+    const heatReduction = antacidHeatReduction(heartburn);
     const used = applyAntacid();
     if (!used) return false;
 
@@ -720,8 +726,9 @@ export default function ContestScreen() {
         Haptics.NotificationFeedbackType.Success
       ).catch(() => {});
     }
+    setFeedbackText(`-${heatReduction} HEAT`);
     return true;
-  }, [applyAntacid, hapticsEnabled, playAudioEvent, reducedMotion]);
+  }, [applyAntacid, heartburn, hapticsEnabled, playAudioEvent, reducedMotion]);
   const replay = () => {
     if (resultNavigationInFlight.current) return;
     resultNavigationInFlight.current = true;
@@ -848,6 +855,11 @@ export default function ContestScreen() {
         </FireScreenEntrance>
 
         <View style={styles.utilityHud}>
+          <View style={styles.matchModifierRow}>
+            {matchStats.equippedGearName ? <Text style={styles.perkIndicator}>⚡ {matchStats.equippedGearName.toUpperCase()}</Text> : null}
+            {state.antacidProtectionRemainingMs > 0 ? <Text style={styles.shieldIndicator}>🛡 HEAT SHIELD</Text> : null}
+            {state.freshStomachRemainingMs > 0 ? <Text style={styles.freshIndicator}>✨ FRESH STOMACH +10%</Text> : null}
+          </View>
           <HeartburnMeter
             coolingTrigger={coolingTrigger}
             heartburn={heartburn}
@@ -860,10 +872,10 @@ export default function ContestScreen() {
         {state.status === "PLAYING" ? (
           <Animated.View style={[styles.antacidControl, canUseAntacid && heartburn >= 85 && styles.antacidControlCritical, canUseAntacid && overheatWarningActive && styles.antacidControlWarning, antacidAcknowledging && styles.antacidControlAcknowledged, { opacity: canUseAntacid || antacidAcknowledging ? 1 : 0.46, transform: [{ scale: antacidPulse.interpolate({ inputRange: [0, 1], outputRange: [1, overheatWarningActive ? 1.11 : heartburn >= 90 ? 1.075 : 1.045] }) }] }]}>
             <FireButton
-              accessibilityHint={`Reduces heat by ${ANTACID_HEAT_REDUCTION} and protects from new heat for two seconds.`}
-              accessibilityLabel={antacidCount <= 0 ? "Antacid unavailable, none remaining" : `Use antacid, ${antacidCount} remaining, reduce heat by ${ANTACID_HEAT_REDUCTION}`}
+              accessibilityHint={`Reduces heat by ${antacidHeatReduction(heartburn)} and protects from new heat for two seconds.`}
+              accessibilityLabel={antacidCount <= 0 ? "Antacid unavailable, none remaining" : `Use antacid, ${antacidCount} remaining, reduce heat by ${antacidHeatReduction(heartburn)}`}
               title={antacidAcknowledging ? "ANTACID!" : overheatWarningActive ? "SAVE COMBO" : "ANTACID"}
-              subtitle={antacidAcknowledging ? `-${ANTACID_HEAT_REDUCTION} HEAT` : overheatWarningActive ? `USE NOW · ${antacidCount} LEFT` : heartburn >= 90 && canUseAntacid ? `READY · -${ANTACID_HEAT_REDUCTION} HEAT · ${antacidCount}` : `-${ANTACID_HEAT_REDUCTION} HEAT · ${antacidCount} LEFT`}
+              subtitle={antacidAcknowledging ? `-${antacidHeatReduction(heartburn)} HEAT` : overheatWarningActive ? `USE NOW · ${antacidCount} LEFT` : heartburn >= 90 && canUseAntacid ? `READY · -${antacidHeatReduction(heartburn)} HEAT · ${antacidCount}` : `-${antacidHeatReduction(heartburn)} HEAT · ${antacidCount} LEFT`}
               leftIcon={<Image accessibilityIgnoresInvertColors source={ANTACID_ICON} resizeMode="contain" style={styles.antacidIcon} />}
               size="compact"
               variant={canUseAntacid && heartburn >= 85 ? "gold" : "secondary"}
@@ -982,6 +994,10 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 72, paddingHorizontal: 12, paddingVertical: 2, width: "100%", zIndex: 40 },
+  matchModifierRow: { alignItems: "flex-start", gap: 3, left: 12, position: "absolute", top: -4, zIndex: 45 },
+  perkIndicator: { backgroundColor: "rgba(75,35,8,0.92)", borderColor: "#D89A3C", borderRadius: 6, borderWidth: 1, color: "#FFD879", fontSize: 7, fontWeight: "900", letterSpacing: 0.5, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
+  shieldIndicator: { backgroundColor: "rgba(7,49,56,0.94)", borderColor: "#8DE7F3", borderRadius: 6, borderWidth: 1, color: "#DFFFFF", fontSize: 7, fontWeight: "900", letterSpacing: 0.5, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
+  freshIndicator: { backgroundColor: "rgba(45,30,7,0.94)", borderColor: "#FFD66B", borderRadius: 6, borderWidth: 1, color: "#FFF1A8", fontSize: 7, fontWeight: "900", letterSpacing: 0.45, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
   antacidControl: { maxWidth: "60%", zIndex: 40 },
   antacidControlCritical: { backgroundColor: "rgba(116,42,8,0.34)", borderRadius: 16 },
   antacidControlWarning: { backgroundColor: "rgba(180,22,12,0.42)", elevation: 12, zIndex: 90 },

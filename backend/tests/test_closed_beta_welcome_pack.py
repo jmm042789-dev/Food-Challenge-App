@@ -71,6 +71,25 @@ class ClosedBetaWelcomePackTests(unittest.TestCase):
             {"closed_beta_welcome_pack_claimed": {"$ne": True}},
         )
 
+    def test_only_owned_gameplay_gear_can_be_equipped(self):
+        player = {
+            "device_id": "guest_gear",
+            "owned_gear": ["tap_boost", "gold_apron"],
+        }
+        updated = {**player, "equipped_gear": "tap_boost"}
+        with (
+            patch.object(shop_service, "find_player", return_value=player),
+            patch.object(shop_service, "update_player_document", return_value=updated),
+        ):
+            result = shop_service.equip_item("guest_gear", "tap_boost")
+            self.assertEqual(result["equipped_gear"], "tap_boost")
+
+            with self.assertRaises(shop_service.GearNotOwnedError):
+                shop_service.equip_item("guest_gear", "gold_apron")
+
+            with self.assertRaises(shop_service.GearNotOwnedError):
+                shop_service.equip_item("guest_gear", "unknown_gear")
+
 
 if __name__ == "__main__":
     unittest.main()
