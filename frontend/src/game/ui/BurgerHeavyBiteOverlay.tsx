@@ -1,5 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  claimHeavyBiteCompletion,
+  normalizeHeavyBiteDuration,
+  type HeavyBiteCompletionState,
+} from "./heavyBiteValidation";
 
 type Props = {
   holdDurationMs?: number;
@@ -7,16 +12,14 @@ type Props = {
   onComplete: () => void;
 };
 
-const clampDuration = (duration?: number): number =>
-  Math.round(Math.min(700, Math.max(250, duration ?? 450)));
-
 export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, onComplete }: Props) {
   const progress = useRef(new Animated.Value(0)).current;
   const pressure = useRef(new Animated.Value(0)).current;
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holding = useRef(false);
   const completed = useRef(false);
-  const duration = clampDuration(holdDurationMs);
+  const completionState = useRef<HeavyBiteCompletionState>({ completed: false });
+  const duration = normalizeHeavyBiteDuration(holdDurationMs);
 
   const clearHoldTimer = () => {
     if (!holdTimer.current) return;
@@ -57,7 +60,7 @@ export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, 
     }
 
     holdTimer.current = setTimeout(() => {
-      if (!holding.current || completed.current) return;
+      if (!holding.current || !claimHeavyBiteCompletion(completionState.current, duration, duration)) return;
       completed.current = true;
       holding.current = false;
       holdTimer.current = null;

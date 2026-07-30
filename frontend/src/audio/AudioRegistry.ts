@@ -23,7 +23,7 @@ export const SOUND_REGISTRY: Record<SoundEvent, SoundDefinition> = {
   COUNTDOWN_TICK: { source: AUDIO_ASSETS.sfx.countdown, priority: 5, minIntervalMs: 800, volumeScale: 0.70 },
   URGENCY_TICK: { priority: 7, minIntervalMs: 1000 },
   GO: { source: AUDIO_ASSETS.sfx.countdown, priority: 6, minIntervalMs: 800, volumeScale: 0.70 },
-  CORRECT_BITE: { source: AUDIO_ASSETS.sfx.bite, priority: 2, minIntervalMs: 35, volumeScale: 0.55, poolSize: 5 },
+  CORRECT_BITE: { source: AUDIO_ASSETS.sfx.bite, priority: 2, minIntervalMs: 50, volumeScale: 0.42, poolSize: 3 },
   COMBO: { source: AUDIO_ASSETS.sfx.combo, priority: 3, minIntervalMs: 180, volumeScale: 0.65 },
   COMBO_MILESTONE: { source: AUDIO_ASSETS.sfx.combo, priority: 5, duckMusicTo: 0.72, duckDurationMs: 450, minIntervalMs: 280, volumeScale: 0.65 },
   PERFECT_MECHANIC: { source: AUDIO_ASSETS.sfx.combo, priority: 6, duckMusicTo: 0.65, duckDurationMs: 600, volumeScale: 0.65 },

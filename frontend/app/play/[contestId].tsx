@@ -847,22 +847,6 @@ export default function ContestScreen() {
         />
         </FireScreenEntrance>
 
-        <View style={styles.gameplayContent}>
-          <FoodArena
-            active={state.status === "PLAYING"}
-            biteMechanic={contest?.bite_mechanic}
-            combo={state.combo}
-            contestId={selectedContestId}
-            foodName={contest?.food}
-            foodProfile={foodProfile}
-            heatTier={heatTier}
-            overheatWarningActive={overheatWarningActive}
-            resetKey={matchRouteKey}
-            timeRemaining={timeRemaining}
-            onAcceptedAction={handleTap}
-            onMechanicCompleted={handleMechanicCompleted}
-          />
-        </View>
         <View style={styles.utilityHud}>
           <HeartburnMeter
             coolingTrigger={coolingTrigger}
@@ -890,6 +874,22 @@ export default function ContestScreen() {
             />
           </Animated.View>
         ) : null}
+        </View>
+        <View style={styles.gameplayContent}>
+          <FoodArena
+            active={state.status === "PLAYING"}
+            biteMechanic={contest?.bite_mechanic}
+            combo={state.combo}
+            contestId={selectedContestId}
+            foodName={contest?.food}
+            foodProfile={foodProfile}
+            heatTier={heatTier}
+            overheatWarningActive={overheatWarningActive}
+            resetKey={matchRouteKey}
+            timeRemaining={timeRemaining}
+            onAcceptedAction={handleTap}
+            onMechanicCompleted={handleMechanicCompleted}
+          />
         </View>
       </SceneMotion>
       </CameraController>
@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 0,
   },
-  utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 80, paddingHorizontal: 12, paddingTop: 2, width: "100%", zIndex: 40 },
+  utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 72, paddingHorizontal: 12, paddingVertical: 2, width: "100%", zIndex: 40 },
   antacidControl: { maxWidth: "60%", zIndex: 40 },
   antacidControlCritical: { backgroundColor: "rgba(116,42,8,0.34)", borderRadius: 16 },
   antacidControlWarning: { backgroundColor: "rgba(180,22,12,0.42)", elevation: 12, zIndex: 90 },

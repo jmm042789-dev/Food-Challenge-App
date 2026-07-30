@@ -35,6 +35,14 @@ export type FoodProfile = {
   biteAnimationSpeed: number;
   foodWobble: number;
   biteReaction: FoodBiteReaction;
+  swipeGesture?: {
+    gestureKind: "slice" | "flick";
+    minDistancePx: number;
+    minDurationMs: number;
+    maxDurationMs: number;
+    maxOffAxisRatio: number;
+    requireAlternatingDirection: boolean;
+  };
 
   specialMechanic?: {
     type: "hold_bite" | "heavy_bite" | "cheese_pull" | "shell_stability" | "noodle_slurp" | "speed_sprint" | "heat_rush";
@@ -68,7 +76,7 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     specialMechanic: {
       type: "heavy_bite",
       triggerEveryBites: 5,
-      holdDurationMs: 450,
+      holdDurationMs: 300,
     },
     description: "A weighty, high-value bite with deliberate pacing and a strong impact.",
   },
@@ -92,6 +100,14 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
     specialMechanic: {
       type: "cheese_pull",
       triggerEveryBites: 6,
+    },
+    swipeGesture: {
+      gestureKind: "slice",
+      minDistancePx: 96,
+      minDurationMs: 140,
+      maxDurationMs: 700,
+      maxOffAxisRatio: 0.75,
+      requireAlternatingDirection: false,
     },
     description: "A quick, combo-friendly slice with an occasional stretchy cheese pull.",
   },
@@ -189,6 +205,14 @@ export const FOOD_PROFILES: Record<string, FoodProfile> = {
       durationMs: 2000,
       tapTarget: 5,
     },
+    swipeGesture: {
+      gestureKind: "flick",
+      minDistancePx: 52,
+      minDurationMs: 50,
+      maxDurationMs: 320,
+      maxOffAxisRatio: 0.6,
+      requireAlternatingDirection: true,
+    },
     description: "A high-value spicy bite with heavy impact and rapidly building heat.",
   },
 };
@@ -197,7 +221,7 @@ const FOOD_KEYWORDS: ReadonlyArray<readonly [profileId: string, keywords: readon
   ["hot-dog", ["hot-dog", "hotdog", "dog"]],
   ["wings", ["wings", "wing", "chicken"]],
   ["ramen", ["ramen", "noodle"]],
-  ["burger", ["burger"]],
+  ["burger", ["burger", "pastrami"]],
   ["pizza", ["pizza"]],
   ["taco", ["taco"]],
 ];

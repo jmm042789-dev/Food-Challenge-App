@@ -6,6 +6,7 @@ import {
   SWIPE_CONFIG,
   claimSwipeSubmission,
   validateSwipe,
+  type SwipeGestureConfig,
   type SwipeSubmissionState,
   type SwipeValidationReason,
 } from "./swipeValidation";
@@ -18,18 +19,23 @@ type Props = {
   reducedMotion: boolean;
   resetKey: string;
   onAction: () => number | null;
+  gesture?: SwipeGestureConfig & {
+    gestureKind: "slice" | "flick";
+    requireAlternatingDirection: boolean;
+  };
 };
 
-type Feedback = "GOOD SWIPE!" | "SWIPE FARTHER" | "TOO SLOW" | "TRY AGAIN";
+type Feedback = "GOOD SWIPE!" | "SWIPE FARTHER" | "TOO SLOW" | "ALTERNATE!" | "TRY AGAIN";
 
 const feedbackForReason = (reason: SwipeValidationReason): Feedback => {
   if (reason === "VALID") return "GOOD SWIPE!";
   if (reason === "TOO_SHORT") return "SWIPE FARTHER";
   if (reason === "TOO_SLOW") return "TOO SLOW";
+  if (reason === "WRONG_DIRECTION") return "ALTERNATE!";
   return "TRY AGAIN";
 };
 
-function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, reducedMotion, resetKey, onAction }: Props) {
+function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, reducedMotion, resetKey, onAction, gesture }: Props) {
   const [swiping, setSwiping] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const indicatorX = useRef(new Animated.Value(0)).current;
@@ -38,6 +44,7 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
   const endPosition = useRef({ x: 0, y: 0 });
   const startedAt = useRef(0);
   const directionRef = useRef<"LEFT" | "RIGHT" | null>(null);
+  const lastAcceptedDirectionRef = useRef<"LEFT" | "RIGHT" | null>(null);
   const cancelledRef = useRef(false);
   const submissionStateRef = useRef<SwipeSubmissionState>({ submitted: false });
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -101,10 +108,14 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
       dx,
       dy,
       duration,
-    });
+      requiredDirection: gesture?.requireAlternatingDirection && lastAcceptedDirectionRef.current
+        ? lastAcceptedDirectionRef.current === "LEFT" ? "RIGHT" : "LEFT"
+        : null,
+    }, gesture);
     directionRef.current = result.direction;
     const acceptedSequence = result.valid ? onActionRef.current() : null;
     const successful = result.valid && acceptedSequence !== null;
+    if (successful) lastAcceptedDirectionRef.current = result.direction;
     showFeedback(successful ? "GOOD SWIPE!" : feedbackForReason(result.valid ? "INACTIVE" : result.reason), successful);
     centerIndicator();
   };
@@ -176,6 +187,7 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
     cancelledRef.current = false;
     startedAt.current = 0;
     directionRef.current = null;
+    lastAcceptedDirectionRef.current = null;
     startPosition.current = { x: 0, y: 0 };
     endPosition.current = { x: 0, y: 0 };
     setSwiping(false);
@@ -193,7 +205,13 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
   }, [active, feedbackFlash, indicatorX, resetKey]);
 
   const successful = feedback === "GOOD SWIPE!";
-  const statusLabel = feedback ?? (swiping ? "KEEP SWIPING" : active ? "SWIPE!" : "WAITING");
+  const actionLabel = gesture?.gestureKind === "slice" ? "SLICE!" : gesture?.gestureKind === "flick" ? "FLICK!" : "SWIPE!";
+  const statusLabel = feedback ?? (swiping ? actionLabel : active ? actionLabel : "WAITING");
+  const idleInstruction = gesture?.gestureKind === "slice"
+    ? "LONG HORIZONTAL SLICE"
+    : gesture?.gestureKind === "flick"
+      ? lastAcceptedDirectionRef.current ? "FLICK THE OTHER WAY" : "QUICK LEFT OR RIGHT FLICK"
+      : "SWIPE LEFT OR RIGHT";
 
   return (
     <View
@@ -229,7 +247,7 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
             <View style={styles.centerMark} />
             <Animated.View style={[styles.indicator, { transform: [{ translateX: indicatorX }] }]} />
           </View>
-          <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={styles.subtitle}>{swiping ? "KEEP IT HORIZONTAL" : feedback ? (successful ? "BITE ACCEPTED" : "TRY AGAIN") : "SWIPE LEFT OR RIGHT"}</Text>
+          <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={styles.subtitle}>{swiping ? (gesture?.gestureKind === "flick" ? "QUICK FLICK" : "KEEP IT HORIZONTAL") : feedback ? (successful ? "BITE ACCEPTED" : "TRY AGAIN") : idleInstruction}</Text>
         </View>
       </View>
     </View>

@@ -40,9 +40,9 @@ function TapActionControl({
   const animatePress = (pressed: boolean) => {
     pressScale.stopAnimation();
     Animated.spring(pressScale, {
-      toValue: pressed && !reducedMotion ? 0.965 : 1,
-      friction: 8,
-      tension: 320,
+      toValue: pressed && !reducedMotion ? 0.94 : 1,
+      friction: 7,
+      tension: 360,
       useNativeDriver: true,
     }).start();
   };
@@ -78,6 +78,7 @@ function TapActionControl({
       onPressOut={() => animatePress(false)}
       style={styles.touchTarget}
     >
+      <View pointerEvents="none" style={[styles.softGlow, combo >= 5 && styles.comboGlow, !active && styles.disabledGlow]} />
       <Animated.View pointerEvents="none" style={[styles.impactGlow, energyTier >= 1 && styles.energyGlow, energyTier >= 3 && styles.maxGlow, {
         opacity: impact,
         transform: [{ scale: impact.interpolate({ inputRange: [0, 1], outputRange: [1.08, 0.96] }) }],
@@ -105,7 +106,10 @@ function TapActionControl({
 export default memo(TapActionControl);
 
 const styles = StyleSheet.create({
-  touchTarget: { alignItems: "center", height: 82, justifyContent: "center", maxWidth: 520, width: "78%" },
+  touchTarget: { alignItems: "center", height: 88, justifyContent: "center", maxWidth: 520, width: "84%" },
+  softGlow: { backgroundColor: "rgba(255,106,33,0.2)", borderRadius: 28, bottom: 1, left: -7, position: "absolute", right: -7, shadowColor: "#FF6A21", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 14, top: 1 },
+  comboGlow: { backgroundColor: "rgba(255,187,55,0.28)", shadowColor: "#FFC75A", shadowOpacity: 0.44 },
+  disabledGlow: { opacity: 0 },
   impactGlow: { backgroundColor: "rgba(255,141,47,0.48)", borderRadius: 24, bottom: 1, left: -5, position: "absolute", right: -5, top: 1 },
   energyGlow: { backgroundColor: "rgba(255,187,55,0.58)" },
   maxGlow: { left: -8, right: -8 },

@@ -198,11 +198,14 @@ function FoodArena({
   const { width, height } = useWindowDimensions();
   const [foodRegionHeight, setFoodRegionHeight] = useState(0);
 
+  const availableFoodHeight = foodRegionHeight > 0
+    ? foodRegionHeight
+    : height * 0.4;
   const size = Math.min(
-    Math.max(150, width * 0.62),
-    Math.max(150, height * 0.31),
-    Math.max(128, (foodRegionHeight || height * 0.4) - 34),
-    292,
+    Math.max(132, width * 0.68),
+    Math.max(120, height * 0.34),
+    Math.max(104, availableFoodHeight - 30),
+    304,
   );
   const foodHitSlop = Math.round(clamp(size * 0.1, 18, 28));
 
@@ -1510,6 +1513,7 @@ function FoodArena({
         overheatWarningActive={overheatWarningActive}
         reducedMotion={reducedMotion}
         resetKey={resetKey}
+        swipeGesture={foodProfile.swipeGesture}
         onAction={tap}
         onHoldStateChange={handleHoldStateChange}
       />
@@ -1532,8 +1536,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 0,
     overflow: "visible",
-    paddingBottom: 2,
-    paddingHorizontal: 24,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    paddingTop: 4,
     width: "100%",
   },
 

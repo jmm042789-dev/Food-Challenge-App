@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
 
 import type { BiteMechanic } from "../../api";
+import type { FoodProfile } from "../food/FoodProfiles";
 import type { HeatTier } from "../heartburn";
 import { resolveActionControlKind } from "./actionControlSelection";
 import HoldReleaseActionControl from "./HoldReleaseActionControl";
@@ -19,11 +20,12 @@ type Props = {
   resetKey: string;
   onAction: () => number | null;
   onHoldStateChange?: (holding: boolean) => void;
+  swipeGesture?: FoodProfile["swipeGesture"];
 };
 
 export const GAMEPLAY_ACTION_ZONE_HEIGHT = 96;
 
-function GameplayActionZone({ mechanic, active, combo, heatTier, overheatWarningActive, reducedMotion, resetKey, onAction, onHoldStateChange }: Props) {
+function GameplayActionZone({ mechanic, active, combo, heatTier, overheatWarningActive, reducedMotion, resetKey, onAction, onHoldStateChange, swipeGesture }: Props) {
   const sharedProps = {
     active,
     combo,
@@ -41,7 +43,7 @@ function GameplayActionZone({ mechanic, active, combo, heatTier, overheatWarning
     : controlKind === "hold_release"
       ? <HoldReleaseActionControl {...sharedProps} resetKey={resetKey} onHoldStateChange={onHoldStateChange} />
       : controlKind === "swipe"
-        ? <SwipeActionControl {...sharedProps} resetKey={resetKey} />
+        ? <SwipeActionControl {...sharedProps} gesture={swipeGesture} resetKey={resetKey} />
         : <TapActionControl {...sharedProps} />;
 
   return <View style={styles.zone}>{control}</View>;
