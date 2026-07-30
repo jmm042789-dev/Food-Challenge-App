@@ -7,7 +7,7 @@
 
 This Privacy Policy explains how J&B Forge Studios ("J&B Forge Studios," "we," "us," or "our") handles information when you use Fire Feast (the "Game").
 
-Fire Feast currently uses guest accounts rather than email-based or password-based accounts. This policy describes the information used by the current version of the Game and its supporting services.
+Fire Feast currently uses guest accounts rather than email-based or password-based accounts. This policy describes the information used by the current version of the Game and its online services.
 
 ## 2. Information We Collect
 
@@ -15,7 +15,7 @@ We collect or process the following categories of information as needed to provi
 
 ### Guest account and installation identifiers
 
-When you first use the Game, Fire Feast creates identifiers for the installation and its guest account. The Game also issues an authentication credential used to protect access to the guest account. The supporting service stores protected representations of the installation identifier and authentication credential rather than storing those credential values in readable form.
+When you first use the Game, Fire Feast creates identifiers for the installation and its guest account. The Game also issues an authentication credential used to protect access to the guest account. Fire Feast servers store protected representations of the installation identifier and authentication credential rather than storing those credential values in readable form.
 
 ### Profile information you choose to provide
 
@@ -45,11 +45,11 @@ The Game stores certain settings and progress locally on your device. Depending 
 - restaurant unlock progress; and
 - tournament progress.
 
-Some locally stored beta progression and reward information is separate from the authoritative coin, XP, and inventory balances maintained by the supporting service.
+Some locally stored beta progression and reward information is separate from the authoritative coin, XP, and inventory balances maintained by Fire Feast online services.
 
 ### Technical information required to operate the service
 
-When the Game communicates with the supporting service, we process technical request information needed to deliver responses, authenticate requests, apply rate limits, diagnose failures, and protect the service from misuse. This can include network request information such as an IP address and request metadata. Fire Feast does not currently include an advertising or general-purpose analytics SDK in the repository.
+When the Game communicates with Fire Feast online services, we process technical request information needed to deliver responses, authenticate requests, apply rate limits, diagnose failures, and protect the service from misuse. This can include network request information such as an IP address and request metadata. Fire Feast does not currently use advertising or general-purpose analytics services.
 
 The current Game does not ask you to provide an email address or password. It does not include player chat or user media uploads. The current coin bundle is not connected to a real-money payment system, and the Game does not currently collect payment-card information.
 
@@ -75,7 +75,7 @@ Fire Feast currently uses guest accounts. A guest account is associated with cre
 
 If you lose access to the device, remove the Game's locally stored credentials, or delete the guest account, your account and progress may not be recoverable.
 
-Deleting a guest account permanently removes the account data handled by the current supporting service. After deletion, the previous credentials can no longer be used to access that account.
+Deleting a guest account permanently removes the account data handled by Fire Feast online services. After deletion, the previous credentials can no longer be used to access that account.
 
 ## 5. Local Device Storage
 
@@ -106,7 +106,9 @@ Leaderboard information is displayed to other players as part of the Game. The c
 
 ## 8. Data Security
 
-We use reasonable administrative and technical measures designed to protect Fire Feast information. Current safeguards include guest-account authentication, protected credential storage, input validation, request limits, restricted production diagnostics, and encrypted network connections for production Game traffic.
+We use reasonable administrative and technical measures designed to protect Fire Feast information. Current safeguards include guest-account authentication, protected credential storage, input validation, request limits, and restricted production diagnostics.
+
+Fire Feast uses encrypted connections for communication with its online services where appropriate.
 
 No method of storage or transmission is completely secure. We cannot guarantee absolute security, and users should understand that any online service carries some risk.
 
@@ -120,7 +122,7 @@ Information stored locally remains on the device until the Game removes it, you 
 
 Fire Feast provides an account-deletion control in the Profile screen under **Account & Data**. The Game requires confirmation before submitting the deletion request.
 
-When an authenticated deletion request succeeds, the current supporting service deletes the guest profile and its associated profile data, credentials, gameplay progress, balances, inventory, active-match information, and leaderboard entry. The Game also attempts to clear Fire Feast credentials and certain guest-progression records from that device.
+When an authenticated deletion request succeeds, Fire Feast online services delete the guest profile and its associated profile data, credentials, gameplay progress, balances, inventory, active-match information, and leaderboard entry. The Game also attempts to clear Fire Feast credentials and certain guest-progression records from that device.
 
 Account deletion is permanent. J&B Forge Studios may not be able to restore a deleted guest account or its progress.
 
@@ -130,7 +132,7 @@ If you cannot access the in-app deletion control, contact us using the informati
 
 Fire Feast is a general-audience game. The current Game does not ask users to provide an email address, password, payment-card information, chat messages, or user-uploaded media.
 
-We do not knowingly collect personal information from children in a way that requires parental consent under applicable law. If you believe a child has provided personal information through Fire Feast inappropriately, contact us so we can review the situation and take appropriate action.
+We do not knowingly collect personal information from children in violation of applicable law. If you believe a child has provided personal information through Fire Feast inappropriately, contact us so we can review the situation and take appropriate action.
 
 Parents and guardians should supervise children's use of online games and help them choose a gamer name that does not reveal personal information.
 
@@ -147,3 +149,5 @@ If you have questions, privacy requests, or concerns about this Privacy Policy o
 **Email:** TODO Support Email
 
 **Website:** TODO Website
+
+Response times may vary.
