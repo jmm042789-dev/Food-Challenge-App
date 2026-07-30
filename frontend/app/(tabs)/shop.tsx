@@ -31,11 +31,20 @@ type ShopItem = {
 type Player = {
   coins: number;
   antacid: number;
+  xp: number;
   owned_gear: string[];
   equipped_gear?: string | null;
+  closed_beta_welcome_pack_claimed: boolean;
 };
 
-const EMPTY_PLAYER: Player = { coins: 0, antacid: 0, owned_gear: [], equipped_gear: null };
+const EMPTY_PLAYER: Player = {
+  coins: 0,
+  antacid: 0,
+  xp: 0,
+  owned_gear: [],
+  equipped_gear: null,
+  closed_beta_welcome_pack_claimed: false,
+};
 
 function CurrencyCounter({ icon, label, value }: { icon: number; label: string; value: number }) {
   return (
@@ -50,6 +59,9 @@ function CurrencyCounter({ icon, label, value }: { icon: number; label: string; 
 }
 
 function Price({ item }: { item: ShopItem }) {
+  if (item.type === "welcome_pack") {
+    return <Text style={styles.oneTimeLabel}>ONE-TIME GIFT</Text>;
+  }
   return (
     <View style={styles.priceRow}>
       <Image source={COIN} resizeMode="contain" style={styles.priceIcon} />
@@ -108,12 +120,20 @@ export default function ShopScreen() {
       if (owned && item.type === "gear") {
         await api.equipGear(item.id);
       } else {
-        const purchase = await api.purchase(item.id) as Partial<Player> & { new_coins?: number; new_tums?: number };
+        const purchase = await api.purchase(item.id) as Partial<Player> & {
+          new_coins?: number;
+          new_tums?: number;
+          new_xp?: number;
+        };
         setPlayer((current) => ({
           ...current,
           coins: purchase.new_coins ?? current.coins,
           antacid: purchase.new_tums ?? current.antacid,
+          xp: purchase.new_xp ?? current.xp,
           owned_gear: purchase.owned_gear ?? current.owned_gear,
+          closed_beta_welcome_pack_claimed:
+            purchase.closed_beta_welcome_pack_claimed
+            ?? current.closed_beta_welcome_pack_claimed,
         }));
         if (item.type === "gear") {
           await trackAchievementEvent({ type: "ITEM_ACQUIRED", ownedItemCount: player.owned_gear.length + 1 });
@@ -129,10 +149,11 @@ export default function ShopScreen() {
   }, [load, player.equipped_gear, player.owned_gear]);
 
   const statusFor = useCallback((item: ShopItem) => {
+    if (item.type === "welcome_pack" && player.closed_beta_welcome_pack_claimed) return "redeemed";
     if (player.equipped_gear === item.id) return "equipped";
     if (player.owned_gear.includes(item.id)) return "owned";
     return "available";
-  }, [player.equipped_gear, player.owned_gear]);
+  }, [player.closed_beta_welcome_pack_claimed, player.equipped_gear, player.owned_gear]);
 
   const renderItem = ({ item }: { item: ShopItem }) => {
     const status = statusFor(item);
@@ -151,9 +172,9 @@ export default function ShopScreen() {
         <View style={styles.itemAction}>
           <Price item={item} />
           <FireButton
-            title={status === "equipped" ? "EQUIPPED" : status === "owned" && item.type === "gear" ? "EQUIP" : "BUY"}
+            title={status === "redeemed" ? "REDEEMED" : status === "equipped" ? "EQUIPPED" : status === "owned" && item.type === "gear" ? "EQUIP" : "BUY"}
             onPress={() => actOnItem(item)}
-            disabled={pendingId !== null || status === "equipped" || (unaffordable && status === "available")}
+            disabled={pendingId !== null || status === "equipped" || status === "redeemed" || (unaffordable && status === "available")}
             loading={pendingId === item.id}
             size="compact"
             variant={status === "owned" ? "secondary" : "primary"}
@@ -194,9 +215,9 @@ export default function ShopScreen() {
               </View>
             </View>
             <FireButton
-              title={statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && featured.type === "gear" ? "EQUIP ITEM" : "PURCHASE ITEM"}
+              title={statusFor(featured) === "redeemed" ? "ALREADY REDEEMED" : statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && featured.type === "gear" ? "EQUIP ITEM" : featured.type === "welcome_pack" ? "CLAIM WELCOME PACK" : "PURCHASE ITEM"}
               onPress={() => actOnItem(featured)}
-              disabled={pendingId !== null || statusFor(featured) === "equipped" || (featured.price > coins && statusFor(featured) === "available")}
+              disabled={pendingId !== null || statusFor(featured) === "equipped" || statusFor(featured) === "redeemed" || (featured.price > coins && statusFor(featured) === "available")}
               loading={pendingId === featured.id}
               variant="gold"
               size="small"
@@ -264,6 +285,7 @@ const styles = StyleSheet.create({
   priceRow: { alignItems: "center", flexDirection: "row" },
   priceIcon: { height: 18, marginRight: 3, width: 18 },
   price: { color: "#FFC75B", fontSize: 15, fontWeight: "900" },
+  oneTimeLabel: { color: "#FFC75B", fontSize: 9, fontWeight: "900", letterSpacing: 0.6 },
   sectionHeader: { alignItems: "center", flexDirection: "row", marginBottom: 6, marginTop: 11, paddingHorizontal: 2 },
   sectionTitle: { color: "#E8BD7A", fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
   sectionRule: { backgroundColor: "rgba(218,129,42,0.3)", flex: 1, height: 1, marginHorizontal: 8 },

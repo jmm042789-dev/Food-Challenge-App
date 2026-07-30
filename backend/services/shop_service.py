@@ -25,6 +25,10 @@ class AlreadyOwnedError(Exception):
     pass
 
 
+class WelcomePackAlreadyClaimedError(Exception):
+    pass
+
+
 class GearNotOwnedError(Exception):
     pass
 
@@ -34,7 +38,12 @@ def _purchase_response(player: dict) -> dict:
         "ok": True,
         "new_coins": player.get("coins", 0),
         "new_tums": player.get("antacid", 0),
+        "new_xp": player.get("xp", 0),
         "owned_gear": player.get("owned_gear", []),
+        "closed_beta_welcome_pack_claimed": player.get(
+            "closed_beta_welcome_pack_claimed",
+            False,
+        ),
     }
 
 
@@ -65,10 +74,17 @@ def purchase_item(device_id: str, item_id: str) -> dict:
             {"$inc": {"coins": -price, "antacid": grant}},
             extra_filter={"coins": {"$gte": price}},
         )
-    elif item_type == "currency":
+    elif item_type == "welcome_pack":
         player = update_player_document(
             device_id,
-            {"$inc": {"coins": int(item.get("reward", 0))}},
+            {
+                "$inc": {
+                    "coins": int(item.get("coin_reward", 0)),
+                    "xp": int(item.get("xp_reward", 0)),
+                },
+                "$set": {"closed_beta_welcome_pack_claimed": True},
+            },
+            extra_filter={"closed_beta_welcome_pack_claimed": {"$ne": True}},
         )
     else:
         raise ItemNotFoundError
@@ -79,13 +95,18 @@ def purchase_item(device_id: str, item_id: str) -> dict:
                 "Coin purchase player=%s item=%s purchase_amount=%s before=%s after=%s",
                 device_id,
                 item_id,
-                price if item_type != "currency" else 0,
+                price,
                 before.get("coins"),
                 player.get("coins"),
             )
         return _purchase_response(player)
 
     current = find_player(device_id) or {}
+    if (
+        item_type == "welcome_pack"
+        and current.get("closed_beta_welcome_pack_claimed") is True
+    ):
+        raise WelcomePackAlreadyClaimedError
     if item_type in {"gear", "cosmetic"} and item_id in current.get("owned_gear", []):
         raise AlreadyOwnedError
     if int(current.get("coins", 0)) < price:

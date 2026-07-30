@@ -48,6 +48,7 @@ from services.shop_service import (
     GearNotOwnedError,
     InsufficientCoinsError as ShopInsufficientCoinsError,
     ItemNotFoundError,
+    WelcomePackAlreadyClaimedError,
     equip_item,
     purchase_item,
 )
@@ -476,6 +477,8 @@ def purchase_endpoint(
         raise HTTPException(status_code=400, detail="not enough coins")
     except AlreadyOwnedError:
         raise HTTPException(status_code=400, detail="item already owned")
+    except WelcomePackAlreadyClaimedError:
+        raise HTTPException(status_code=409, detail="welcome pack already redeemed")
 
 
 @app.post("/api/player/equip")

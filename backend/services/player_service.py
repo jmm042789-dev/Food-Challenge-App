@@ -128,6 +128,8 @@ def _new_player(device_id: str):
         "tutorial_done": False,
 
         "welcome_reward_claimed": False,
+
+        "closed_beta_welcome_pack_claimed": False,
     }
 
     return player

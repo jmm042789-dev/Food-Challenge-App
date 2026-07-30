@@ -88,6 +88,7 @@ class Player(BaseModel):
     streak_days: int = 0
     tutorial_done: bool = False
     welcome_reward_claimed: bool = False
+    closed_beta_welcome_pack_claimed: bool = False
 
 
 # ==========================================================

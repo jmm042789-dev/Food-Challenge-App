@@ -90,23 +90,27 @@ SHOP_ITEMS = [
     },
 
     {
-        "id": "coin_bundle",
+        "id": "closed_beta_welcome_pack",
 
-        "name": "Coin Bundle",
+        "name": "🎁 Closed Beta Welcome Pack",
 
-        "type": "currency",
+        "type": "welcome_pack",
 
-        "category": "Currency",
+        "category": "Closed Beta",
 
-        "icon": "🪙",
+        "icon": "🎁",
 
         "price": 0,
 
-        "reward": 500,
+        "coin_reward": 50000,
 
-        "rarity": "Common",
+        "xp_reward": 5000,
 
-        "description": "Instantly receive 500 coins."
+        "rarity": "One Time",
+
+        "perk": "+50,000 Coins · +5,000 XP",
+
+        "description": "A one-time reward so beta testers can fully explore Fire Feast before launch."
     },
 
     # =====================================
