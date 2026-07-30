@@ -78,7 +78,7 @@ export default function SettingsScreen() {
       <FirePanel title="SUPPORT" subtitle={`Beta support · ${SUPPORT_EMAIL}`} elevated>
         <FireButton fullWidth title="PRIVACY POLICY" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "privacy" } })} />
         <FireButton fullWidth title="TERMS OF SERVICE" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "terms" } })} />
-        <FireButton fullWidth title="DISCLAIMER" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "disclaimer" } })} />
+        <FireButton fullWidth title="GAMEPLAY & HEALTH DISCLAIMER" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "disclaimer" } })} />
         <FireButton fullWidth title="CONTACT SUPPORT" variant="secondary" onPress={() => contact("Fire Feast Support")} />
         <FireButton fullWidth title="REPORT A BUG" variant="secondary" onPress={() => contact("Fire Feast Beta Bug Report")} />
       </FirePanel>
