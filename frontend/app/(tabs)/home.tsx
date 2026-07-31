@@ -185,8 +185,8 @@ export default function HomeScreen() {
     return () => { active = false; };
   }, [loadAttempt]);
 
-  if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} /></View>;
-  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} /></View>;
+  if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards?fromPrompt=1")} /></View>;
+  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards?fromPrompt=1")} /></View>;
 
   const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
   const belt = beltForXp(xp);
@@ -252,7 +252,7 @@ export default function HomeScreen() {
         ) : null}
       </ScrollView>
       <WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} />
-      <DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} />
+      <DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards?fromPrompt=1")} />
     </View>
   );
 }

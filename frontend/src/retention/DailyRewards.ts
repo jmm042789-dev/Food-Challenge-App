@@ -27,10 +27,31 @@ export type DailySpinClaim = {
   bonus_spins_available: number;
 };
 
-export function landingRotation(rewardIndex: number, sliceCount: number, turns: number) {
-  if (sliceCount < 1 || rewardIndex < 0 || rewardIndex >= sliceCount) return 0;
-  const sliceAngle = 360 / sliceCount;
-  return turns * 360 + (360 - (rewardIndex + 0.5) * sliceAngle);
+export function responsiveWheelSize(viewportWidth: number, viewportHeight: number) {
+  const widthAllowance = Math.max(0, viewportWidth - 40);
+  const heightAllowance = Math.max(0, viewportHeight * 0.46);
+  return Math.max(160, Math.min(360, widthAllowance, heightAllowance));
+}
+
+export function normalizeClockwiseDegrees(degrees: number) {
+  return ((degrees % 360) + 360) % 360;
+}
+
+/**
+ * Slice zero is centered at 12 o'clock and slice centers increase clockwise.
+ * The fixed pointer is also at 12 o'clock, so the wheel rotates clockwise by
+ * the normalized inverse of the selected slice's center angle.
+ */
+export function landingRotationForReward(
+  rewardId: string,
+  slices: readonly Pick<DailyRewardSlice, "id">[],
+  turns: number,
+) {
+  const rewardIndex = slices.findIndex((slice) => slice.id === rewardId);
+  if (rewardIndex < 0 || slices.length < 1) return null;
+  const sliceAngle = 360 / slices.length;
+  const landingAngle = normalizeClockwiseDegrees(-rewardIndex * sliceAngle);
+  return Math.max(0, Math.floor(turns)) * 360 + landingAngle;
 }
 
 export function serverCountdownMs(
