@@ -50,10 +50,32 @@ test("screen uses backend eligibility, claim, animation completion, and balances
   assert.match(screen, /Animated\.timing/);
   assert.match(screen, /SpinPhase = "idle" \| "claiming" \| "spinning" \| "finalizing"/);
   assert.match(screen, /disabled=\{!status\.eligible \|\| busy\}/);
-  assert.match(screen, /preferences\.reducedMotion \? 450/);
+  assert.match(screen, /preferences\.reducedMotion \? 420/);
   assert.match(screen, /setClaim\(result\)/);
   assert.match(screen, /claim\.player\.coins/);
   assert.match(screen, /result\.reward\.id/);
   assert.match(screen, /MAYBE LATER/);
   assert.doesNotMatch(screen, /claimDailyReward|AsyncStorage|Math\.random\(\).*reward/);
+});
+
+test("wheel stage is frozen and result state cannot reflow its center", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const \[wheelSize\] = useState/);
+  assert.match(screen, /testID="fixed-square-wheel-stage"/);
+  assert.match(screen, /RESULT_REGION_HEIGHT = 174/);
+  assert.match(screen, /testID="reserved-result-region"/);
+  assert.match(screen, /height: RESULT_REGION_HEIGHT/);
+  assert.doesNotMatch(screen, /justifyContent: "center", maxWidth: 520/);
+});
+
+test("board animation is rotation-only and stationary decor and pointer are siblings", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /testID="stationary-charcuterie-decorations"/);
+  assert.match(screen, /testID="fixed-twelve-oclock-pointer"/);
+  assert.match(screen, /testID="rotation-only-reward-wheel"[\s\S]*transform: \[\{ rotate \}\]/);
+  assert.doesNotMatch(screen, /Animated\.spring|Easing\.(bounce|elastic|back)/);
+  assert.doesNotMatch(screen, /translateX|translateY|perspective|skewX|skewY/);
+  const decorPosition = screen.indexOf("<TableDecorations");
+  const wheelPosition = screen.indexOf("<Animated.View accessibilityLabel=\"Premium Charcuterie reward wheel\"");
+  assert.ok(decorPosition >= 0 && wheelPosition > decorPosition, "decor must remain outside the animated wheel");
 });
