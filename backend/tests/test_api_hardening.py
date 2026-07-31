@@ -132,6 +132,7 @@ class ApiHardeningTests(unittest.TestCase):
             "/api/auth/guest",
             "/api/player/tutorial_done",
             "/api/player/welcome_reward",
+            "/api/daily/claim",
             "/api/matchmaking/join",
             "/api/match/start",
             "/api/match/result",

@@ -1,62 +1,52 @@
-import { storage } from "../utils/storage";
-
-const STORAGE_KEY = "fire_feast_daily_rewards_v1";
-const DAY_MS = 86_400_000;
-
-export const DAILY_REWARDS = [
-  { day: 1, label: "50 COINS", icon: "C" },
-  { day: 2, label: "75 XP", icon: "XP" },
-  { day: 3, label: "1 ANTACID", icon: "+" },
-  { day: 4, label: "100 COINS", icon: "C" },
-  { day: 5, label: "125 XP", icon: "XP" },
-  { day: 6, label: "2 ANTACID", icon: "+" },
-  { day: 7, label: "BETA CHEST", icon: "★" },
-] as const;
-
-export type DailyRewardState = {
-  version: 1;
-  cycleStart: string;
-  claimedDays: number[];
+export type DailyRewardSlice = {
+  id: string;
+  label: string;
+  kind: "coins" | "xp" | "antacid";
+  amount: number;
 };
 
-function localDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export type DailySpinStatus = {
+  eligible: boolean;
+  server_time: string;
+  next_daily_spin: string;
+  daily_spin_streak: number;
+  total_daily_spins: number;
+  free_spins_available: number;
+  bonus_spins_available: number;
+  reward_slices: DailyRewardSlice[];
+};
+
+export type DailySpinClaim = {
+  reward: DailyRewardSlice;
+  reward_index: number;
+  player: { coins?: number; xp?: number; antacid?: number };
+  server_time: string;
+  next_daily_spin: string;
+  daily_spin_streak: number;
+  free_spins_available: number;
+  bonus_spins_available: number;
+};
+
+export function landingRotation(rewardIndex: number, sliceCount: number, turns: number) {
+  if (sliceCount < 1 || rewardIndex < 0 || rewardIndex >= sliceCount) return 0;
+  const sliceAngle = 360 / sliceCount;
+  return turns * 360 + (360 - (rewardIndex + 0.5) * sliceAngle);
 }
 
-function dayNumber(start: string, now = new Date()) {
-  const [year, month, day] = start.split("-").map(Number);
-  const startUtc = Date.UTC(year, month - 1, day);
-  const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.floor((nowUtc - startUtc) / DAY_MS) + 1;
+export function serverCountdownMs(
+  serverTime: string,
+  nextSpin: string,
+  elapsedSinceResponseMs: number,
+) {
+  const initial = Date.parse(nextSpin) - Date.parse(serverTime);
+  if (!Number.isFinite(initial)) return 0;
+  return Math.max(0, initial - Math.max(0, elapsedSinceResponseMs));
 }
 
-export async function loadDailyRewards(now = new Date()): Promise<{ state: DailyRewardState; currentDay: number }> {
-  const serialized = await storage.getItem(STORAGE_KEY, "");
-  let state: DailyRewardState = { version: 1, cycleStart: localDateKey(now), claimedDays: [] };
-  if (serialized) {
-    try {
-      const stored = JSON.parse(serialized) as DailyRewardState;
-      if (stored.version === 1 && stored.cycleStart && Array.isArray(stored.claimedDays)) state = stored;
-    } catch {
-      // Invalid beta data starts a fresh local cycle.
-    }
-  }
-  let currentDay = dayNumber(state.cycleStart, now);
-  if (currentDay < 1 || currentDay > 7) {
-    state = { version: 1, cycleStart: localDateKey(now), claimedDays: [] };
-    currentDay = 1;
-    await storage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-  return { state, currentDay };
-}
-
-export async function claimDailyReward(now = new Date()) {
-  const loaded = await loadDailyRewards(now);
-  if (loaded.state.claimedDays.includes(loaded.currentDay)) return { ...loaded, claimed: false };
-  const state = { ...loaded.state, claimedDays: [...loaded.state.claimedDays, loaded.currentDay] };
-  await storage.setItem(STORAGE_KEY, JSON.stringify(state));
-  return { state, currentDay: loaded.currentDay, claimed: true };
+export function formatCountdown(milliseconds: number) {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return [hours, minutes, remainder].map((value) => String(value).padStart(2, "0")).join(":");
 }

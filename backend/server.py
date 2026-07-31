@@ -28,6 +28,11 @@ from services.player_service import (
     WelcomeRewardUnavailableError,
 )
 from services.leaderboard_service import get_leaderboard
+from services.daily_reward_service import (
+    DailySpinUnavailableError,
+    claim_daily_spin,
+    daily_spin_status,
+)
 from services.match_service import (
     ContestNotFoundError,
     InsufficientCoinsError as MatchInsufficientCoinsError,
@@ -105,6 +110,7 @@ match_abandon_limit = rate_limit("match-abandon", requests=10, window_seconds=60
 purchase_limit = rate_limit("purchase", requests=30, window_seconds=60)
 tutorial_limit = rate_limit("tutorial-reward", requests=10, window_seconds=60)
 welcome_limit = rate_limit("welcome-reward", requests=10, window_seconds=60)
+daily_spin_limit = rate_limit("daily-spin", requests=10, window_seconds=60)
 account_deletion_limit = rate_limit(
     "account-deletion",
     requests=3,
@@ -278,6 +284,39 @@ def get_player_endpoint(
 ):
     player = authenticated_player(device_id, authorization)
     return public_player_document(player)
+
+
+@app.get("/api/daily/status/{device_id}")
+def daily_spin_status_endpoint(
+    device_id: str,
+    authorization: str | None = Header(default=None),
+):
+    authenticated_player(device_id, authorization)
+    status = daily_spin_status(device_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="player not found")
+    return status
+
+
+@app.post("/api/daily/claim", dependencies=[Depends(daily_spin_limit)])
+def daily_spin_claim_endpoint(
+    data: PlayerCreate,
+    authorization: str | None = Header(default=None),
+):
+    authenticated_player(data.device_id, authorization)
+    try:
+        result = claim_daily_spin(data.device_id)
+    except DailySpinUnavailableError as error:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "daily spin is not available yet",
+                "next_daily_spin": error.next_daily_spin,
+            },
+        )
+    if not result:
+        raise HTTPException(status_code=404, detail="player not found")
+    return result
 
 
 @app.patch("/api/player/{device_id}")

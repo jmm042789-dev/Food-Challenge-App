@@ -15,13 +15,12 @@ import { loadAchievementState } from "../src/achievements/AchievementStorage";
 import type { AchievementState } from "../src/achievements/AchievementTypes";
 import { loadDailyMissions } from "../src/missions/MissionTracker";
 import type { DailyMissionState } from "../src/missions/MissionTypes";
-import { loadDailyRewards, type DailyRewardState } from "../src/retention/DailyRewards";
 import { loadTitleProgress } from "../src/titles/TitleProgress";
 import { TITLE_BY_ID } from "../src/titles/TitleCatalog";
 import type { TitleProgressState } from "../src/titles/TitleTypes";
 import { useAppPreferences } from "../src/preferences/AppPreferences";
 
-type Player = { xp?: number; coins?: number; matches?: number; wins?: number; losses?: number; best_score?: number; longest_combo?: number; streak_days?: number; current_streak?: number; longest_streak?: number };
+type Player = { xp?: number; coins?: number; matches?: number; wins?: number; losses?: number; best_score?: number; longest_combo?: number; streak_days?: number; current_streak?: number; longest_streak?: number; total_daily_spins?: number };
 const placeholder = (label: string): CareerStat => ({ label, value: "NOT YET TRACKED", placeholder: true });
 const dateLabel = (value: string | null | undefined) => value ? new Date(value).toLocaleDateString() : "NOT YET RECORDED";
 
@@ -32,7 +31,6 @@ export default function CareerScreen() {
   const [identity, setIdentity] = useState<PlayerIdentity>(DEFAULT_IDENTITY);
   const [achievements, setAchievements] = useState<AchievementState | null>(null);
   const [missions, setMissions] = useState<DailyMissionState | null>(null);
-  const [daily, setDaily] = useState<DailyRewardState | null>(null);
   const [titles, setTitles] = useState<TitleProgressState | null>(null);
   const [loading, setLoading] = useState(true);
   const [liveStatsError, setLiveStatsError] = useState(false);
@@ -40,14 +38,13 @@ export default function CareerScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setLiveStatsError(false);
-    const results = await Promise.allSettled([api.getPlayer(), loadPlayerIdentity(), loadAchievementState(), loadDailyMissions(), loadDailyRewards(), loadTitleProgress()]);
+    const results = await Promise.allSettled([api.getPlayer(), loadPlayerIdentity(), loadAchievementState(), loadDailyMissions(), loadTitleProgress()]);
     if (results[0].status === "fulfilled") setPlayer(results[0].value as Player);
     else setLiveStatsError(true);
     if (results[1].status === "fulfilled") setIdentity(results[1].value);
     if (results[2].status === "fulfilled") setAchievements(results[2].value);
     if (results[3].status === "fulfilled") setMissions(results[3].value);
-    if (results[4].status === "fulfilled") setDaily(results[4].value.state);
-    if (results[5].status === "fulfilled") setTitles(results[5].value);
+    if (results[4].status === "fulfilled") setTitles(results[4].value);
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -77,7 +74,7 @@ export default function CareerScreen() {
   const progression: CareerStat[] = [
     { label: "Total XP", value: xp.toLocaleString() }, trackedXp === undefined ? placeholder("Locally Tracked XP Earned") : { label: "Locally Tracked XP Earned", value: trackedXp.toLocaleString() },
     trackedCoins === undefined ? placeholder("Locally Tracked Coins Earned") : { label: "Locally Tracked Coins Earned", value: trackedCoins.toLocaleString() },
-    { label: "Achievements Completed", value: `${completed.length} / ${achievements?.progress.length ?? 0}` }, { label: "Daily Rewards Claimed (Current Cycle)", value: daily?.claimedDays.length ?? 0 },
+    { label: "Achievements Completed", value: `${completed.length} / ${achievements?.progress.length ?? 0}` }, { label: "Daily Charcuterie Spins", value: Number(player.total_daily_spins ?? 0) },
     { label: "Missions Completed Today", value: missions?.missions.filter((item) => item.completed).length ?? 0 },
   ];
   const collection: CareerStat[] = [{ label: "Avatar Cosmetics Available", value: cosmeticsOwned }, { label: "Badges Earned", value: completed.length }, { label: "Titles Unlocked", value: titles?.unlockedTitles.length ?? 0 }, placeholder("Seasonal Rewards")];

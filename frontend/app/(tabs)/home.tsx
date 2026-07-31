@@ -21,7 +21,7 @@ import { useDailyMissions } from "../../src/missions/useDailyMissions";
 import { usePlayerBalance } from "../../src/playerBalance";
 import { useContestEntry } from "../../src/game/useContestEntry";
 import { useAchievements } from "../../src/achievements/useAchievements";
-import { loadDailyRewards } from "../../src/retention/DailyRewards";
+import type { DailySpinStatus } from "../../src/retention/DailyRewards";
 
 type Player = { coins?: number; xp?: number };
 
@@ -59,6 +59,22 @@ function WelcomeRewardModal({ visible, onDismiss }: { visible: boolean; onDismis
       </View>
     </Modal>
   );
+}
+
+function DailySpinModal({ visible, onLater, onSpin }: { visible: boolean; onLater: () => void; onSpin: () => void }) {
+  const insets = useSafeAreaInsets();
+  return <Modal animationType="fade" onRequestClose={onLater} statusBarTranslucent transparent visible={visible}>
+    <View accessibilityViewIsModal style={[styles.welcomeBackdrop, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <FireScreenEntrance distance={8} scaleFrom={0.96} style={styles.welcomeEntrance}>
+        <FirePanel accent="gold" elevated highlighted style={styles.welcomePanel}>
+          <Text style={styles.dailyGift}>🎁</Text>
+          <Text accessibilityRole="header" style={styles.welcomeTitle}>DAILY CHARCUTERIE BOARD</Text>
+          <Text style={styles.welcomeGuidance}>Your free spin is ready. Visit the serving board for a chance at Coins, XP, or Antacids.</Text>
+          <View style={styles.dailyActions}><FireButton fullWidth title="SPIN NOW" variant="gold" onPress={onSpin} /><FireButton fullWidth title="MAYBE LATER" variant="ghost" onPress={onLater} /></View>
+        </FirePanel>
+      </FireScreenEntrance>
+    </View>
+  </Modal>;
 }
 
 function FeaturedContest({ contest, onEnter }: { contest: Contest; onEnter: () => void }) {
@@ -125,6 +141,7 @@ export default function HomeScreen() {
   const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
   const { state: achievementState, refresh: refreshAchievements } = useAchievements();
   const [dailyRewardReady, setDailyRewardReady] = useState(false);
+  const [showDailySpin, setShowDailySpin] = useState(false);
   const enterContest = useContestEntry();
 
   const dismissWelcome = useCallback(() => {
@@ -135,7 +152,11 @@ export default function HomeScreen() {
   useFocusEffect(useCallback(() => {
     void refreshMissions();
     void refreshAchievements();
-    void loadDailyRewards().then(({ state, currentDay }) => setDailyRewardReady(!state.claimedDays.includes(currentDay)));
+    void api.dailyStatus().then((value) => {
+      const status = value as DailySpinStatus;
+      setDailyRewardReady(status.eligible === true);
+      setShowDailySpin(status.eligible === true);
+    }).catch(() => setDailyRewardReady(false));
     void api.getPlayer().then((nextPlayer) => setPlayer(nextPlayer as Player)).catch(() => {
       // Preserve the last confirmed server value when refresh fails.
     });
@@ -164,8 +185,8 @@ export default function HomeScreen() {
     return () => { active = false; };
   }, [loadAttempt]);
 
-  if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
-  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /></View>;
+  if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} /></View>;
+  if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} /></View>;
 
   const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
   const belt = beltForXp(xp);
@@ -231,6 +252,7 @@ export default function HomeScreen() {
         ) : null}
       </ScrollView>
       <WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} />
+      <DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} />
     </View>
   );
 }
@@ -289,4 +311,5 @@ const styles = StyleSheet.create({
   welcomeRewardIcon: { height: 34, width: 34 },
   welcomeRewardText: { color: "#FFD27D", fontSize: 10, fontWeight: "900", marginTop: 6, textAlign: "center" },
   welcomeGuidance: { color: "#D8C5B3", fontSize: 14, lineHeight: 20, marginTop: 18, textAlign: "center" },
+  dailyGift: { fontSize: 48, textAlign: "center" }, dailyActions: { gap: 5, marginTop: 14 },
 });

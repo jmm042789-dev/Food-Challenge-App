@@ -89,6 +89,11 @@ class Player(BaseModel):
     tutorial_done: bool = False
     welcome_reward_claimed: bool = False
     closed_beta_welcome_pack_claimed: bool = False
+    last_daily_spin: Optional[str] = None
+    next_daily_spin: Optional[str] = None
+    daily_spin_streak: int = 0
+    total_daily_spins: int = 0
+    bonus_spins: int = 0
 
 
 # ==========================================================

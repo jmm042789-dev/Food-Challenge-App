@@ -130,6 +130,16 @@ def _new_player(device_id: str):
         "welcome_reward_claimed": False,
 
         "closed_beta_welcome_pack_claimed": False,
+
+        "last_daily_spin": None,
+
+        "next_daily_spin": None,
+
+        "daily_spin_streak": 0,
+
+        "total_daily_spins": 0,
+
+        "bonus_spins": 0,
     }
 
     return player
