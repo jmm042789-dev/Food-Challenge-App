@@ -112,10 +112,6 @@ export default function ContestScreen() {
     (contest as any)?.extraHeat ??
     (contest as any)?.extra_heat,
 });
-  const result = state.status === "FINISHED"
-    ? state.score === opponentScore ? "draw" : state.score > opponentScore ? "victory" : "defeat"
-    : null;
-
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
   const [showScore, setShowScore] = useState(false);
   const [comboLabel, setComboLabel] = useState("COMBO");
@@ -129,7 +125,12 @@ export default function ContestScreen() {
   const reducedMotion = systemReducedMotion || preferences.reducedMotion;
   const hapticsEnabled = preferences.hapticsEnabled;
   const [playerXp, setPlayerXp] = useState(0);
-  const [resultReward, setResultReward] = useState<{ coins: number; xp: number; totalXp: number } | null>(null);
+  const [resultReward, setResultReward] = useState<{ coins: number; xp: number; totalXp: number; won: boolean; acceptedScore: number } | null>(null);
+  const result = state.status === "FINISHED"
+    ? state.score === opponentScore
+      ? "draw"
+      : (resultReward?.won ?? state.score > opponentScore) ? "victory" : "defeat"
+    : null;
   const coins = usePlayerBalance();
   const [resultAchievements, setResultAchievements] = useState<AchievementCompletionNotification[]>([]);
   const [resultTournament, setResultTournament] = useState<VictoryTournamentPresentation | null>(null);
@@ -314,13 +315,17 @@ export default function ContestScreen() {
       match_id: matchId,
       contest_id: selectedContestId,
       score: state.score,
+      opponent_score: opponentScore,
       duration_sec: duration,
-      won: state.score > opponentScore,
+      accepted_taps: state.acceptedTapCount,
+      completed_progress: state.completedProgress,
+      maximum_combo: highestCombo,
       opponent_id: opponentId,
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
+      completion_reason: "timer_completed",
       is_tournament: Boolean(tournamentOccurrenceId),
     }).then((response) => {
-      const reward = response as { coin_reward?: unknown; xp_reward?: unknown; new_xp?: unknown };
+      const reward = response as { coin_reward?: unknown; xp_reward?: unknown; new_xp?: unknown; won?: unknown; accepted_score?: unknown };
       if (
         typeof reward.coin_reward !== "number"
         || !Number.isFinite(reward.coin_reward)
@@ -328,6 +333,9 @@ export default function ContestScreen() {
         || !Number.isFinite(reward.xp_reward)
         || typeof reward.new_xp !== "number"
         || !Number.isFinite(reward.new_xp)
+        || typeof reward.won !== "boolean"
+        || typeof reward.accepted_score !== "number"
+        || !Number.isFinite(reward.accepted_score)
       ) {
         throw new Error("Match reward response was invalid.");
       }
@@ -335,6 +343,8 @@ export default function ContestScreen() {
         coins: Math.max(0, reward.coin_reward),
         xp: Math.max(0, reward.xp_reward),
         totalXp: Math.max(0, reward.new_xp),
+        won: reward.won,
+        acceptedScore: Math.max(0, reward.accepted_score),
       });
       submittedResultKey.current = matchRouteKey;
     }).catch(() => {
@@ -345,11 +355,16 @@ export default function ContestScreen() {
           () => setResultSubmitAttempt((current) => current + 1),
           resultRetryCount.current * 1000,
         );
+      } else {
+        Alert.alert(
+          "Match could not be verified",
+          "No rewards were applied. Return to the arena and start a new match.",
+        );
       }
     }).finally(() => {
       resultRequestInFlight.current = false;
     });
-  }, [antacidCount, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultSubmitAttempt, selectedContestId, state.score, state.status, tournamentOccurrenceId]);
+  }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultSubmitAttempt, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
@@ -467,14 +482,14 @@ export default function ContestScreen() {
   }, [playAudioEvent, state.status, timeRemaining]);
 
   useEffect(() => {
-    if (state.status !== "FINISHED" || missionRecordedMatch.current === matchRouteKey) return;
+    if (state.status !== "FINISHED" || resultReward === null || missionRecordedMatch.current === matchRouteKey) return;
     missionRecordedMatch.current = matchRouteKey;
-    const won = state.score > opponentScore;
+    const won = resultReward.won;
     void trackMissionEvent({
       type: "MATCH_COMPLETED",
       won,
-      coinsEarned: won ? 50 : 0,
-      xpEarned: won ? 120 : 0,
+      coinsEarned: resultReward.coins,
+      xpEarned: resultReward.xp,
       highestCombo,
       foodId: foodProfile.id,
       opponentId: currentOpponent.id,
@@ -484,12 +499,12 @@ export default function ContestScreen() {
       type: "MATCH_COMPLETED",
       eventId: achievementMatchEventId.current,
       won,
-      score: state.score,
+      score: resultReward.acceptedScore,
       highestCombo,
       foodId: foodProfile.id,
       opponentId: currentOpponent.id,
-      coinsEarned: won ? 50 : 0,
-      xpEarned: won ? 120 : 0,
+      coinsEarned: resultReward.coins,
+      xpEarned: resultReward.xp,
     }).then((achievementResult) => {
       if (activeResultKey.current === resultKey) {
         setResultAchievements(achievementResult.newlyCompleted);
@@ -499,7 +514,7 @@ export default function ContestScreen() {
     if (tournamentOccurrenceId) {
       void recordTournamentMatch(tournamentOccurrenceId, {
         matchId: achievementMatchEventId.current,
-        score: state.score,
+        score: resultReward.acceptedScore,
         won,
         highestCombo,
       }).then((tournamentState) => {
@@ -518,7 +533,7 @@ export default function ContestScreen() {
         });
       });
     }
-  }, [currentOpponent.id, foodProfile.id, highestCombo, matchRouteKey, opponentScore, playAudioEvent, state.score, state.status, tournamentOccurrenceId]);
+  }, [currentOpponent.id, foodProfile.id, highestCombo, matchRouteKey, playAudioEvent, resultReward, state.status, tournamentOccurrenceId]);
 
   const arenaCallbacksRef = useRef({
     commentate,
@@ -619,7 +634,7 @@ export default function ContestScreen() {
         const match = await api.startMatch(selectedContestId);
 
         if (active) {
-          const inventory = Number(player?.antacid);
+          const inventory = Number(match?.player_tums);
           if (Number.isFinite(inventory)) setPlayerAntacidCount(Math.max(0, Math.floor(inventory)));
           setEquippedGear(typeof match?.equipped_gear === "string" ? match.equipped_gear : null);
           playerBestScore.current = Math.max(0, Number(player.best_score) || 0);
@@ -633,7 +648,14 @@ export default function ContestScreen() {
         }
 
         if (active && contestIndex >= 0) {
-          setContest(contests[contestIndex]);
+          const authoritativeContest = match?.contest;
+          setContest(
+            authoritativeContest
+            && typeof authoritativeContest === "object"
+            && authoritativeContest.id === selectedContestId
+              ? authoritativeContest as Contest
+              : contests[contestIndex],
+          );
           setNextContestId(contests[contestIndex + 1]?.id ?? null);
           setRoundLabel(`ROUND ${contestIndex + 1}`);
         }

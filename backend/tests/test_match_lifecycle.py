@@ -20,13 +20,28 @@ NOW = datetime(2026, 7, 24, 12, 0, tzinfo=timezone.utc)
 
 
 def active_match(*, age_seconds=0, match_id="match-a", started_at=None):
+    start = started_at or (NOW - timedelta(seconds=age_seconds)).isoformat()
+    try:
+        start_datetime = datetime.fromisoformat(start)
+    except ValueError:
+        start_datetime = NOW
     return {
+        "schema_version": match_service.MATCH_SCHEMA_VERSION,
         "id": match_id,
         "device_id": "player-a",
         "contest_id": "nathans",
         "opponent_id": "opponent-a",
         "status": "active",
-        "started_at": started_at or (NOW - timedelta(seconds=age_seconds)).isoformat(),
+        "started_at": start,
+        "allowed_duration_sec": 60,
+        "expires_at": (
+            start_datetime
+            + timedelta(seconds=60 + match_service.MATCH_SUBMISSION_GRACE_SECONDS)
+        ).isoformat(),
+        "starting_antacid": 3,
+        "equipped_gear": None,
+        "perk_modifiers": dict(match_service.BASE_PERK_MODIFIERS),
+        "challenge_config": {"prize_pool": 500},
         "start_response": {
             "match_id": match_id,
             "contest": {"id": "nathans"},
@@ -42,9 +57,13 @@ def result(**overrides):
         "contest_id": "nathans",
         "opponent_id": "opponent-a",
         "score": 100,
+        "opponent_score": 50,
         "duration_sec": 60,
-        "won": True,
+        "accepted_taps": 60,
+        "completed_progress": 60,
+        "maximum_combo": 20,
         "tums_used": 0,
+        "completion_reason": "timer_completed",
         "is_tournament": False,
     }
     values.update(overrides)
@@ -241,6 +260,232 @@ class MatchLifecycleTests(unittest.TestCase):
             response = match_service.start_match("player-a", "next")
         self.assertEqual(response["match_id"], stored["id"])
         self.assertEqual(stored["status"], "active")
+
+    def test_match_start_records_authoritative_snapshot(self):
+        player = {
+            "device_id": "player-a",
+            "player_id": "account-a",
+            "coins": 1000,
+            "xp": 25,
+            "elo": 1000,
+            "antacid": 4,
+            "equipped_gear": "tap_boost",
+        }
+        stored = {}
+
+        def start(_device_id, _entry_fee, match):
+            stored.update(match)
+            return {**player, "coins": 950, "active_match": match}
+
+        with (
+            patch.object(match_service, "find_internal_player", return_value=player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "_utc_now", return_value=NOW),
+            patch.object(match_service, "get_contest", return_value={
+                "id": "nathans",
+                "entry_fee": 50,
+                "prize_pool": 500,
+                "duration_sec": 60,
+                "difficulty": "easy",
+                "heartburn_per_bite": 2,
+                "bite_mechanic": "tap",
+            }),
+            patch.object(match_service, "_opponent_for", return_value={
+                "id": "opponent-a",
+                "difficulty": "easy",
+                "tap_speed": 1,
+            }),
+            patch.object(match_service, "start_player_match", side_effect=start),
+        ):
+            response = match_service.start_match("player-a", "nathans")
+
+        self.assertEqual(stored["player_id"], "account-a")
+        self.assertEqual(stored["equipped_gear"], "tap_boost")
+        self.assertEqual(stored["perk_modifiers"]["tap_power"], 2)
+        self.assertEqual(stored["starting_antacid"], 4)
+        self.assertEqual(stored["entry_fee_charged"], 50)
+        self.assertEqual(stored["allowed_duration_sec"], 60)
+        self.assertEqual(response["player_tums"], 4)
+        self.assertEqual(response["authoritative_duration_sec"], 60)
+
+    def test_unknown_equipment_uses_base_authoritative_stats(self):
+        gear, modifiers = match_service.authoritative_perk_config("future_item")
+        self.assertIsNone(gear)
+        self.assertEqual(modifiers, match_service.BASE_PERK_MODIFIERS)
+
+    def test_each_gameplay_perk_uses_trusted_server_values(self):
+        expected = {
+            "tap_boost": ("tap_power", 2),
+            "combo_boost": ("combo_window_ms", 875),
+            "score_multiplier": ("score_multiplier", 1.5),
+        }
+        for gear_id, (field, value) in expected.items():
+            with self.subTest(gear_id=gear_id):
+                normalized, modifiers = match_service.authoritative_perk_config(
+                    gear_id
+                )
+                self.assertEqual(normalized, gear_id)
+                self.assertEqual(modifiers[field], value)
+
+    def test_plausible_fast_tap_boost_result_is_accepted(self):
+        match = active_match(age_seconds=60)
+        match["equipped_gear"] = "tap_boost"
+        match["perk_modifiers"] = dict(
+            match_service.GEAR_PERK_MODIFIERS["tap_boost"]
+        )
+        bounds, outcome = match_service._validate_result(
+            match,
+            result(
+                accepted_taps=600,
+                completed_progress=1200,
+                maximum_combo=600,
+                score=5000,
+            ),
+            NOW,
+        )
+        self.assertGreaterEqual(bounds["maximum_taps"], 600)
+        self.assertEqual(outcome, "accepted")
+
+    def test_impossible_taps_reject_and_close_match(self):
+        match = active_match(age_seconds=60)
+        with (
+            patch.object(match_service, "transition_player_match") as transition,
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service._validate_result(
+                match,
+                result(accepted_taps=5000, completed_progress=5000),
+                NOW,
+            )
+        self.assertEqual(raised.exception.reason, "impossible_taps")
+        transition.assert_called_once()
+        self.assertEqual(transition.call_args.kwargs["rejection_reason"], "impossible_taps")
+
+    def test_impossible_score_relative_to_submitted_taps_is_rejected(self):
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service._validate_result(
+                active_match(age_seconds=60),
+                result(
+                    score=10000,
+                    accepted_taps=1,
+                    completed_progress=1,
+                    maximum_combo=1,
+                ),
+                NOW,
+            )
+        self.assertEqual(raised.exception.reason, "impossible_score")
+
+    def test_timer_result_cannot_arrive_before_plausible_completion(self):
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service._validate_result(
+                active_match(age_seconds=2),
+                result(duration_sec=2),
+                NOW,
+            )
+        self.assertEqual(raised.exception.reason, "impossible_timing")
+
+    def test_inventory_and_progress_are_bounded_by_start_snapshot(self):
+        for invalid, reason in (
+            (result(tums_used=4), "invalid_inventory"),
+            (
+                result(accepted_taps=10, completed_progress=20, maximum_combo=10),
+                "impossible_progress",
+            ),
+        ):
+            with (
+                patch.object(match_service, "transition_player_match"),
+                self.assertRaises(match_service.MatchValidationError) as raised,
+            ):
+                match_service._validate_result(active_match(age_seconds=60), invalid, NOW)
+            self.assertEqual(raised.exception.reason, reason)
+
+    def test_valid_settlement_computes_reward_and_settles_once(self):
+        match = active_match(age_seconds=60)
+        player = {
+            "device_id": "player-a",
+            "coins": 100,
+            "xp": 0,
+            "antacid": 3,
+            "elo": 1000,
+            "active_match": match,
+        }
+        settled_document = {
+            "last_match_result": {
+                "response": {
+                    "coin_reward": 500,
+                    "xp_reward": 50,
+                    "new_coins": 600,
+                    "new_xp": 50,
+                    "new_tums": 2,
+                    "accepted_score": 100,
+                    "won": True,
+                    "validation_outcome": "accepted",
+                }
+            }
+        }
+        with (
+            patch.object(match_service, "find_internal_player", return_value=player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "_utc_now", return_value=NOW),
+            patch.object(match_service, "get_contest", return_value={"id": "nathans"}),
+            patch.object(
+                match_service,
+                "settle_player_match",
+                return_value=settled_document,
+            ) as settle,
+        ):
+            response = match_service.submit_result(result(tums_used=1))
+        self.assertEqual(response["coin_reward"], 500)
+        self.assertEqual(response["xp_reward"], 50)
+        self.assertEqual(response["new_tums"], 2)
+        settle.assert_called_once()
+        update = settle.call_args.args[2][0]["$set"]
+        self.assertEqual(update["last_match_result"]["response"]["coin_reward"], 500)
+        self.assertEqual(
+            update["antacid"]["$max"][1]["$subtract"][1],
+            1,
+        )
+
+    def test_server_derives_loss_from_scores_not_client_authority(self):
+        match = active_match(age_seconds=60)
+        player = {
+            "device_id": "player-a",
+            "coins": 100,
+            "xp": 0,
+            "antacid": 3,
+            "elo": 1000,
+            "active_match": match,
+        }
+        captured = {}
+
+        def settle(_device, _match, pipeline):
+            captured.update(pipeline[0]["$set"])
+            return {
+                "last_match_result": {
+                    "response": {
+                        "coin_reward": 10,
+                        "xp_reward": 15,
+                        "new_xp": 15,
+                    }
+                }
+            }
+
+        with (
+            patch.object(match_service, "find_internal_player", return_value=player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "_utc_now", return_value=NOW),
+            patch.object(match_service, "get_contest", return_value={"id": "nathans"}),
+            patch.object(match_service, "settle_player_match", side_effect=settle),
+        ):
+            match_service.submit_result(result(score=40, opponent_score=50))
+        self.assertEqual(captured["last_match_result"]["response"]["coin_reward"], 10)
+        self.assertEqual(captured["last_match_result"]["response"]["xp_reward"], 15)
 
 
 if __name__ == "__main__":

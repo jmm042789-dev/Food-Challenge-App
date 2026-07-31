@@ -184,10 +184,15 @@ class GuestAuthenticationTests(unittest.TestCase):
             lambda: server.match_result(
                 MatchResult(
                     device_id="guest_a",
+                    match_id="match-a",
                     contest_id="nathans-hotdogs",
                     opponent_id="ai-1",
                     score=1,
+                    opponent_score=0,
                     duration_sec=1,
+                    accepted_taps=1,
+                    completed_progress=1,
+                    maximum_combo=0,
                 ),
                 None,
             ),

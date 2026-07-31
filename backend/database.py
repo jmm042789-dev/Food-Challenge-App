@@ -255,6 +255,7 @@ def transition_player_match(
     match_id: Optional[str],
     status: str,
     ended_at: str,
+    rejection_reason: Optional[str] = None,
 ) -> Optional[dict]:
     """Atomically close one unresolved match without applying rewards."""
     query = {"device_id": device_id}
@@ -262,16 +263,17 @@ def transition_player_match(
         query["active_match.id"] = match_id
     else:
         query["active_match"] = {"$exists": True}
+    lifecycle = {
+        "match_id": match_id or "malformed",
+        "status": status,
+        "ended_at": ended_at,
+    }
+    if rejection_reason:
+        lifecycle["rejection_reason"] = rejection_reason
     return _players().find_one_and_update(
         query,
         {
-            "$set": {
-                "last_match_lifecycle": {
-                    "match_id": match_id or "malformed",
-                    "status": status,
-                    "ended_at": ended_at,
-                }
-            },
+            "$set": {"last_match_lifecycle": lifecycle},
             "$unset": {"active_match": ""},
         },
         return_document=ReturnDocument.AFTER,

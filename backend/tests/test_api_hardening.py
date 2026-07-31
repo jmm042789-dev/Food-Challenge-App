@@ -61,10 +61,34 @@ class ApiHardeningTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             MatchResult(
                 device_id="guest_a",
+                match_id="match-a",
                 contest_id="contest-a",
                 opponent_id="opponent-a",
                 score=10_000_001,
+                opponent_score=0,
                 duration_sec=1,
+                accepted_taps=1,
+                completed_progress=1,
+                maximum_combo=0,
+            )
+
+        valid = {
+            "device_id": "guest_a",
+            "match_id": "match-a",
+            "contest_id": "contest-a",
+            "opponent_id": "opponent-a",
+            "score": 1,
+            "opponent_score": 0,
+            "duration_sec": 1,
+            "completed_progress": 1,
+            "maximum_combo": 0,
+        }
+        with self.assertRaises(ValidationError):
+            MatchResult(**valid, accepted_taps=1.5)
+        with self.assertRaises(ValidationError):
+            MatchResult(
+                **{**valid, "completed_progress": float("nan")},
+                accepted_taps=1,
             )
 
     def test_unexpected_request_fields_are_rejected(self):

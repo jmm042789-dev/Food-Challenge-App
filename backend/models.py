@@ -103,13 +103,22 @@ class QueuePlayer(BaseModel):
 
 class MatchResult(RequestModel):
     device_id: Identifier
-    match_id: Optional[Identifier] = None
+    match_id: Identifier
     contest_id: Identifier
     opponent_id: Identifier
     score: int = Field(ge=0, le=10_000_000)
+    opponent_score: int = Field(ge=0, le=10_000_000)
     duration_sec: int = Field(ge=0, le=86_400)
-    won: bool = False
+    accepted_taps: int = Field(ge=0, le=100_000)
+    completed_progress: float = Field(ge=0, le=1_000_000, allow_inf_nan=False)
+    maximum_combo: int = Field(ge=0, le=100_000)
     tums_used: int = Field(default=0, ge=0, le=10_000)
+    completion_reason: Literal[
+        "timer_completed",
+        "challenge_completed",
+        "player_exited",
+        "other",
+    ] = "timer_completed"
     is_tournament: bool = False
 
 

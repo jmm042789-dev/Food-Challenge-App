@@ -62,6 +62,8 @@ export type GameplayPresentationEvent = {
 export interface GameState {
   score: number;
   combo: number;
+  acceptedTapCount: number;
+  completedProgress: number;
   status: GameStatus;
   heartburn: number;
   heatTier: HeatTier;
@@ -100,6 +102,8 @@ const debugLog = (...args: unknown[]) => {
 const initialState = (antacidCount: number): GameState => ({
   score: 0,
   combo: 0,
+  acceptedTapCount: 0,
+  completedProgress: 0,
   status: "IDLE",
   heartburn: 0,
   heatTier: "COOL",
@@ -157,6 +161,7 @@ export function useGameLoop({
   const mountedRef = useRef(true);
   const eventIdRef = useRef(0);
   const acceptedActionSequenceRef = useRef(0);
+  const acceptedTapCountRef = useRef(0);
   const antacidCountRef = useRef(fallbackAntacidCount);
   const inventoryHydratedRef = useRef(false);
   const antacidProcessingRef = useRef(false);
@@ -478,6 +483,7 @@ export function useGameLoop({
     scoreRef.current = 0;
     comboRef.current = 0;
     acceptedActionSequenceRef.current = 0;
+    acceptedTapCountRef.current = 0;
     lastTapRef.current = 0;
     heartburnRef.current = 0;
     heatTierRef.current = "COOL";
@@ -621,6 +627,7 @@ export function useGameLoop({
     if (statusRef.current !== "PLAYING") return null;
     const now = Date.now();
     const tapPower = effectiveTapPower(matchStats, heartburnRef.current);
+    acceptedTapCountRef.current += 1;
     acceptedActionSequenceRef.current += tapPower;
     const acceptedActionSequence = acceptedActionSequenceRef.current;
     const delta = lastTapRef.current === 0 ? 0 : now - lastTapRef.current;
@@ -663,6 +670,8 @@ export function useGameLoop({
       ...old,
       score: Math.floor(scoreRef.current),
       combo: comboRef.current,
+      acceptedTapCount: acceptedTapCountRef.current,
+      completedProgress: acceptedActionSequence,
       heartburn: heartburnRef.current,
       heatTier: warningActive ? "OVERHEATED" : heatTierRef.current,
       isOverheated: warningActive,

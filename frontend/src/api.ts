@@ -703,10 +703,14 @@ export const api = {
     match_id: string;
     contest_id: string;
     score: number;
+    opponent_score: number;
     duration_sec: number;
-    won: boolean;
+    accepted_taps: number;
+    completed_progress: number;
+    maximum_combo: number;
     opponent_id: string;
     tums_used: number;
+    completion_reason: "timer_completed" | "challenge_completed" | "player_exited" | "other";
     is_tournament?: boolean;
   }) => {
     const id = await getDeviceId();
@@ -721,14 +725,14 @@ export const api = {
   },
 
   activeMatch: () => req(`/match/active`) as Promise<{
-    status: "resumable" | "expired" | "cancelled" | "settled" | "absent";
+    status: "resumable" | "expired" | "cancelled" | "rejected" | "settled" | "absent";
     match_id?: string;
     contest_id?: string;
     started_at?: string;
   }>,
 
   abandonMatch: () => req(`/match/abandon`, { method: "POST" }) as Promise<{
-    status: "cancelled" | "expired" | "settled" | "absent";
+    status: "cancelled" | "expired" | "rejected" | "settled" | "absent";
   }>,
 
   leaderboard: () => req(`/leaderboard`, {}, false),
