@@ -27,12 +27,12 @@ import {
   calculateTapScore,
   consumeAntacid,
   deriveMatchStats,
+  effectiveTapPower,
   effectiveComboWindowMs,
   FRESH_STOMACH_DURATION_MS,
   FRESH_STOMACH_SCORE_MULTIPLIER,
   getHeatGameplayModifiers,
   HEAT_SHIELD_DURATION_MS,
-  processHeatLimitedTap,
 } from "./matchModifiers";
 
 export type GameStatus = "IDLE" | "MATCH_INTRO" | "COUNTDOWN" | "PLAYING" | "FINISHED";
@@ -149,7 +149,6 @@ export function useGameLoop({
   const comboRef = useRef(0);
   const statusRef = useRef<GameStatus>("IDLE");
   const lastTapRef = useRef(0);
-  const tapAcceptanceCreditRef = useRef(0);
   const heartburnRef = useRef(0);
   const heatTierRef = useRef<HeatTier>("COOL");
   const timeRemainingRef = useRef(resolvedMatchDuration);
@@ -480,7 +479,6 @@ export function useGameLoop({
     comboRef.current = 0;
     acceptedActionSequenceRef.current = 0;
     lastTapRef.current = 0;
-    tapAcceptanceCreditRef.current = 0;
     heartburnRef.current = 0;
     heatTierRef.current = "COOL";
     timeRemainingRef.current = resolvedMatchDuration;
@@ -622,13 +620,8 @@ export function useGameLoop({
   const tap = useCallback((): number | null => {
     if (statusRef.current !== "PLAYING") return null;
     const now = Date.now();
-    const heatLimitedTap = processHeatLimitedTap(
-      tapAcceptanceCreditRef.current,
-      heartburnRef.current,
-    );
-    tapAcceptanceCreditRef.current = heatLimitedTap.credit;
-    if (!heatLimitedTap.accepted) return null;
-    acceptedActionSequenceRef.current += matchStats.tapPower;
+    const tapPower = effectiveTapPower(matchStats, heartburnRef.current);
+    acceptedActionSequenceRef.current += tapPower;
     const acceptedActionSequence = acceptedActionSequenceRef.current;
     const delta = lastTapRef.current === 0 ? 0 : now - lastTapRef.current;
     lastTapRef.current = now;
@@ -664,6 +657,7 @@ export function useGameLoop({
       matchStats,
       freshStomachEndsAtRef.current > now,
       heartburnRef.current,
+      tapPower,
     );
     setState((old) => ({
       ...old,

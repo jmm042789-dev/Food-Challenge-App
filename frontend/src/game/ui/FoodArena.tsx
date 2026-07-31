@@ -701,22 +701,26 @@ function FoodArena({
   const performBite = () => {
     const acceptedSequence = onAcceptedAction();
     if (acceptedSequence === null) return null;
+    const previousBiteCount = biteCounter.current;
     const nextBiteCount = acceptedSequence;
     biteCounter.current = nextBiteCount;
     setBiteEvent(nextBiteCount);
-    const biteWithinItem = ((nextBiteCount - 1) % PRESENTATION_BITES_PER_ITEM) + 1;
-    const itemCompleted = biteWithinItem === PRESENTATION_BITES_PER_ITEM;
+    const completedItemsBefore = Math.floor(previousBiteCount / PRESENTATION_BITES_PER_ITEM);
+    const completedItemsAfter = Math.floor(nextBiteCount / PRESENTATION_BITES_PER_ITEM);
+    const itemCompleted = completedItemsAfter > completedItemsBefore;
+    const progressWithinItem = (nextBiteCount % PRESENTATION_BITES_PER_ITEM) / PRESENTATION_BITES_PER_ITEM;
+    const presentationProgress = itemCompleted && progressWithinItem === 0 ? 1 : progressWithinItem;
     consumptionScale.stopAnimation();
     consumptionProgress.stopAnimation();
     Animated.parallel([
       Animated.timing(consumptionScale, {
-        toValue: 1 - (biteWithinItem / PRESENTATION_BITES_PER_ITEM) * 0.1,
+        toValue: 1 - presentationProgress * 0.1,
         duration: reducedMotion ? 80 : 170,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(consumptionProgress, {
-        toValue: biteWithinItem / PRESENTATION_BITES_PER_ITEM,
+        toValue: presentationProgress,
         duration: reducedMotion ? 80 : 170,
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
@@ -770,7 +774,7 @@ function FoodArena({
     tacoStabilityRef.current?.registerTap(nextBiteCount);
 
     const direction =
-      biteCounter.current % 2 === 0 ? -1 : 1;
+      Math.floor(biteCounter.current) % 2 === 0 ? -1 : 1;
 
     biteAnimation.current?.stop();
     biteAnimation.current = null;

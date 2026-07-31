@@ -10,7 +10,7 @@ export type DerivedMatchStats = {
 };
 
 export type HeatGameplayModifiers = {
-  tapAcceptanceRate: number;
+  tapEffectivenessMultiplier: number;
   scoreMultiplier: number;
   comboWindowMultiplier: number;
 };
@@ -71,34 +71,30 @@ export function deriveMatchStats(equippedGear?: string | null): DerivedMatchStat
 export function getHeatGameplayModifiers(heat: number): HeatGameplayModifiers {
   if (heat >= 100) {
     return {
-      tapAcceptanceRate: 0.75,
+      tapEffectivenessMultiplier: 0.75,
       scoreMultiplier: 0.9,
       comboWindowMultiplier: 0.85,
     };
   }
   if (heat >= 80) {
     return {
-      tapAcceptanceRate: 0.9,
+      tapEffectivenessMultiplier: 0.9,
       scoreMultiplier: 1,
       comboWindowMultiplier: 1,
     };
   }
   return {
-    tapAcceptanceRate: 1,
+    tapEffectivenessMultiplier: 1,
     scoreMultiplier: 1,
     comboWindowMultiplier: 1,
   };
 }
 
-export function processHeatLimitedTap(
-  credit: number,
+export function effectiveTapPower(
+  matchStats: DerivedMatchStats,
   heat: number,
-): { accepted: boolean; credit: number } {
-  const rate = getHeatGameplayModifiers(heat).tapAcceptanceRate;
-  if (rate >= 1) return { accepted: true, credit: 0 };
-  const nextCredit = Math.max(0, credit) + rate;
-  if (nextCredit < 1 - 1e-9) return { accepted: false, credit: nextCredit };
-  return { accepted: true, credit: nextCredit - 1 };
+): number {
+  return matchStats.tapPower * getHeatGameplayModifiers(heat).tapEffectivenessMultiplier;
 }
 
 export function effectiveComboWindowMs(baseWindowMs: number, heat: number): number {
@@ -111,17 +107,16 @@ export function calculateTapScore(
   matchStats: DerivedMatchStats,
   freshStomachActive: boolean,
   heat: number,
+  tapPower = effectiveTapPower(matchStats, heat),
 ): number {
   const freshMultiplier = freshStomachActive ? FRESH_STOMACH_SCORE_MULTIPLIER : 1;
   const overheatMultiplier = getHeatGameplayModifiers(heat).scoreMultiplier;
-  return Math.round(
-    baseGain
-    * matchStats.tapPower
+  return baseGain
+    * tapPower
     * heatTierMultiplier
     * matchStats.scoreMultiplier
     * freshMultiplier
-    * overheatMultiplier,
-  );
+    * overheatMultiplier;
 }
 
 export function antacidHeatReduction(heat: number): number {

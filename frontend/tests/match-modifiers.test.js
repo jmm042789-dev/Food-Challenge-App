@@ -6,12 +6,12 @@ const {
   calculateTapScore,
   consumeAntacid,
   deriveMatchStats,
+  effectiveTapPower,
   effectiveComboWindowMs,
   FRESH_STOMACH_DURATION_MS,
   FRESH_STOMACH_SCORE_MULTIPLIER,
   getHeatGameplayModifiers,
   HEAT_SHIELD_DURATION_MS,
-  processHeatLimitedTap,
 } = require("../src/game/matchModifiers.ts");
 
 test("derives base stats and exactly one equipped gear modifier", () => {
@@ -32,31 +32,45 @@ test("derives base stats and exactly one equipped gear modifier", () => {
   assert.equal(deriveMatchStats("score_multiplier").tapPower, 1);
 });
 
-test("applies progressive heat slowdown and overheated combo penalty", () => {
-  assert.equal(getHeatGameplayModifiers(79.99).tapAcceptanceRate, 1);
-  assert.equal(getHeatGameplayModifiers(80).tapAcceptanceRate, 0.9);
-  assert.equal(getHeatGameplayModifiers(99).tapAcceptanceRate, 0.9);
-  assert.equal(getHeatGameplayModifiers(100).tapAcceptanceRate, 0.75);
+test("reduces tap effectiveness without rejecting input and keeps overheat penalties", () => {
+  assert.equal(getHeatGameplayModifiers(79.99).tapEffectivenessMultiplier, 1);
+  assert.equal(getHeatGameplayModifiers(80).tapEffectivenessMultiplier, 0.9);
+  assert.equal(getHeatGameplayModifiers(99).tapEffectivenessMultiplier, 0.9);
+  assert.equal(getHeatGameplayModifiers(100).tapEffectivenessMultiplier, 0.75);
   assert.equal(getHeatGameplayModifiers(100).scoreMultiplier, 0.9);
   assert.equal(effectiveComboWindowMs(700, 100), 595);
   assert.equal(effectiveComboWindowMs(875, 100), 744);
   assert.equal(effectiveComboWindowMs(700, 79), 700);
   assert.equal(getHeatGameplayModifiers(70).scoreMultiplier, 1);
 
-  function acceptedTapCount(heat) {
-    let credit = 0;
-    let accepted = 0;
-    for (let index = 0; index < 100; index += 1) {
-      const result = processHeatLimitedTap(credit, heat);
-      credit = result.credit;
-      if (result.accepted) accepted += 1;
-    }
-    return accepted;
-  }
-  assert.equal(acceptedTapCount(79), 100);
-  assert.equal(acceptedTapCount(80), 90);
-  assert.equal(acceptedTapCount(100), 75);
-  assert.deepEqual(processHeatLimitedTap(0.2, 70), { accepted: true, credit: 0 });
+  const base = deriveMatchStats(null);
+  const tapBoost = deriveMatchStats("tap_boost");
+  assert.equal(effectiveTapPower(base, 79), 1);
+  assert.equal(effectiveTapPower(base, 80), 0.9);
+  assert.equal(effectiveTapPower(base, 100), 0.75);
+  assert.equal(effectiveTapPower(tapBoost, 79), 2);
+  assert.equal(effectiveTapPower(tapBoost, 80), 1.8);
+  assert.equal(effectiveTapPower(tapBoost, 100), 1.5);
+
+  const contributions = Array.from({ length: 100 }, () => effectiveTapPower(base, 100));
+  assert.equal(contributions.length, 100);
+  assert.equal(contributions.every((value) => value > 0), true);
+});
+
+test("fractional tap contribution accumulates without per-tap rounding", () => {
+  const base = deriveMatchStats(null);
+  const accumulatedHotProgress = Array.from(
+    { length: 10 },
+    () => effectiveTapPower(base, 80),
+  ).reduce((total, contribution) => total + contribution, 0);
+  assert.ok(Math.abs(accumulatedHotProgress - 9) < 1e-9);
+
+  const tapBoost = deriveMatchStats("tap_boost");
+  const accumulatedBoostedProgress = Array.from(
+    { length: 5 },
+    () => effectiveTapPower(tapBoost, 80),
+  ).reduce((total, contribution) => total + contribution, 0);
+  assert.ok(Math.abs(accumulatedBoostedProgress - 9) < 1e-9);
 });
 
 test("antacid consumes once, uses skilled reduction, clamps, and refreshes buffs", () => {
@@ -72,6 +86,7 @@ test("antacid consumes once, uses skilled reduction, clamps, and refreshes buffs
   assert.ok(overheated);
   assert.equal(overheated.heatReduction, 30);
   assert.equal(overheated.heat, 70);
+  assert.equal(effectiveTapPower(deriveMatchStats(null), overheated.heat), 1);
 
   assert.equal(consumeAntacid(1, 20, 0).heat, 0);
   assert.equal(consumeAntacid(0, 90, 0), null);
@@ -91,7 +106,7 @@ test("scoring applies gear, fresh stomach, and overheat exactly once", () => {
   const scoreGear = deriveMatchStats("score_multiplier");
   assert.equal(calculateTapScore(10, 1, base, false, 0), 10);
   assert.equal(calculateTapScore(10, 1, scoreGear, false, 0), 15);
-  assert.equal(calculateTapScore(10, 1, scoreGear, true, 0), 17);
-  assert.equal(calculateTapScore(10, 1, base, false, 100), 9);
-  assert.equal(calculateTapScore(10, 1, scoreGear, true, 100), 15);
+  assert.equal(calculateTapScore(10, 1, scoreGear, true, 0), 16.5);
+  assert.equal(calculateTapScore(10, 1, base, false, 100), 6.75);
+  assert.ok(Math.abs(calculateTapScore(10, 1, scoreGear, true, 100) - 11.1375) < 1e-9);
 });
