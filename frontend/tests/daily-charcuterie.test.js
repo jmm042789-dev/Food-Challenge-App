@@ -36,3 +36,25 @@ test("screen uses backend eligibility, claim, animation completion, and balances
   assert.match(screen, /claim\.player\.coins/);
   assert.doesNotMatch(screen, /claimDailyReward|AsyncStorage|Math\.random\(\).*reward/);
 });
+
+test("production artwork layers resolve optionally without visual stand-ins", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  const artwork = fs.readFileSync(path.join(__dirname, "../src/assets/daily-rewards/artwork.ts"), "utf8");
+  for (const asset of [
+    "background/restaurant-table.jpg",
+    "wheel/charcuterie-wheel.png",
+    "pointer/chef-knife-pointer.png",
+    "hub/fire-feast-hub.png",
+    "decorations/grapes-top-left.png",
+    "decorations/salami-top-right.png",
+    "decorations/olives-bottom-left.png",
+    "decorations/cheese-bottom-right.png",
+    "effects/winner-glow.png",
+  ]) assert.match(artwork, new RegExp(asset.replace(/[.]/g, "\\.")));
+  assert.match(artwork, /require\.context/);
+  assert.match(screen, /styles\.invisibleArtwork/);
+  assert.match(screen, /DAILY_REWARD_ARTWORK\.wheel/);
+  assert.match(screen, /DAILY_REWARD_ARTWORK\.pointer/);
+  assert.match(screen, /DAILY_REWARD_ARTWORK\.hub/);
+  assert.doesNotMatch(screen, /🧀|🍇|🥖|🫓|🥩|🍯|🫒|🔪/);
+});
