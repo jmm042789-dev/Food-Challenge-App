@@ -3,6 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getRandomOpponent } from "./ai/OpponentDatabase";
 import { createOpponentState, updateOpponent, type OpponentState } from "./ai/OpponentAI";
 import type { Opponent } from "./ai/types";
+import {
+  authoritativeOpponentScoreAtElapsed,
+  type AuthoritativeOpponentConfig,
+} from "./authoritativeOpponent";
 import { normalizeMatchDurationSeconds } from "./contestDuration";
 import { resolveFoodHeat } from "./foodHeat";
 import {
@@ -89,6 +93,8 @@ export interface UseGameLoopOptions {
   heatMultiplier?: number;
   extraHeat?: number;
   equippedGear?: string | null;
+  opponent?: Opponent | null;
+  opponentConfig?: AuthoritativeOpponentConfig | null;
 }
 
 const COUNTDOWN_SECONDS = 3;
@@ -129,6 +135,8 @@ export function useGameLoop({
   heatMultiplier: challengeHeatMultiplier,
   extraHeat,
   equippedGear,
+  opponent: authoritativeOpponent,
+  opponentConfig,
 }: UseGameLoopOptions = {}) {
   const matchStats = useMemo(() => deriveMatchStats(equippedGear), [equippedGear]);
   const resolvedMatchDuration = normalizeMatchDurationSeconds(duration);
@@ -499,7 +507,7 @@ export function useGameLoop({
     lastWarningRenderAtRef.current = 0;
     lastCoolingRenderAtRef.current = 0;
     antacidProcessingRef.current = false;
-    currentOpponentRef.current = getRandomOpponent();
+    currentOpponentRef.current = authoritativeOpponent ?? getRandomOpponent();
     opponentStateRef.current = createOpponentState();
     setOpponentScore(0);
     setTimeRemaining(resolvedMatchDuration);
@@ -507,7 +515,7 @@ export function useGameLoop({
     setCountdownValue(3);
     setPresentationEvents([]);
     setState(initialState(antacidCountRef.current));
-  }, [resolvedMatchDuration, stopAllTimers]);
+  }, [authoritativeOpponent, resolvedMatchDuration, stopAllTimers]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -540,7 +548,13 @@ export function useGameLoop({
   const endGame = useCallback(() => {
     stopAllTimers();
     statusRef.current = "FINISHED";
-    setOpponentScore(Math.floor(opponentStateRef.current.score));
+    const finalOpponentScore = opponentConfig?.finalScore
+      ?? Math.floor(opponentStateRef.current.score);
+    opponentStateRef.current = {
+      ...opponentStateRef.current,
+      score: finalOpponentScore,
+    };
+    setOpponentScore(finalOpponentScore);
     setState((old) => ({
       ...old,
       status: "FINISHED",
@@ -553,11 +567,21 @@ export function useGameLoop({
       freshStomachRemainingMs: 0,
       freshStomachMultiplier: 1,
     }));
-  }, [stopAllTimers]);
+  }, [opponentConfig?.finalScore, stopAllTimers]);
 
   const startOpponentLoop = useCallback(() => {
     if (opponentTimerRef.current) clearInterval(opponentTimerRef.current);
     opponentTimerRef.current = setInterval(() => {
+      if (opponentConfig) {
+        const elapsedSeconds = resolvedMatchDuration - timeRemainingRef.current;
+        const score = authoritativeOpponentScoreAtElapsed(
+          opponentConfig,
+          elapsedSeconds,
+        );
+        opponentStateRef.current = { ...opponentStateRef.current, score };
+        setOpponentScore(score);
+        return;
+      }
       opponentStateRef.current = updateOpponent(
         currentOpponentRef.current,
         opponentStateRef.current,
@@ -570,7 +594,7 @@ export function useGameLoop({
       );
       setOpponentScore(Math.floor(opponentStateRef.current.score));
     }, 300);
-  }, [resolvedMatchDuration]);
+  }, [opponentConfig, resolvedMatchDuration]);
 
   const startMatchIntro = useCallback(() => {
     if (statusRef.current !== "IDLE") return;

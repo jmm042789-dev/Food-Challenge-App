@@ -13,6 +13,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 import server
+import database
 from services import match_service
 
 
@@ -41,7 +42,14 @@ def active_match(*, age_seconds=0, match_id="match-a", started_at=None):
         "starting_antacid": 3,
         "equipped_gear": None,
         "perk_modifiers": dict(match_service.BASE_PERK_MODIFIERS),
-        "challenge_config": {"prize_pool": 500},
+        "challenge_config": {"prize_pool": 500, "heat_per_tap": 5},
+        "opponent_config": {
+            "seed": 123,
+            "final_score": 50,
+            "pace_per_sec": 50 / 60,
+            "duration_sec": 60,
+            "opponent": {"id": "opponent-a"},
+        },
         "start_response": {
             "match_id": match_id,
             "contest": {"id": "nathans"},
@@ -161,11 +169,13 @@ class MatchLifecycleTests(unittest.TestCase):
         with (
             patch.object(match_service, "find_internal_player", return_value=player),
             patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "settle_player_match") as settle,
         ):
             self.assertEqual(
                 match_service.submit_result(result()),
                 {"coin_reward": 50},
             )
+        settle.assert_not_called()
 
     def test_conflicting_duplicate_result_is_rejected(self):
         player = {
@@ -305,8 +315,11 @@ class MatchLifecycleTests(unittest.TestCase):
         self.assertEqual(stored["starting_antacid"], 4)
         self.assertEqual(stored["entry_fee_charged"], 50)
         self.assertEqual(stored["allowed_duration_sec"], 60)
+        self.assertEqual(stored["opponent_config"]["opponent"]["id"], "opponent-a")
+        self.assertGreater(stored["opponent_config"]["final_score"], 0)
         self.assertEqual(response["player_tums"], 4)
         self.assertEqual(response["authoritative_duration_sec"], 60)
+        self.assertEqual(response["opponent_config"], stored["opponent_config"])
 
     def test_unknown_equipment_uses_base_authoritative_stats(self):
         gear, modifiers = match_service.authoritative_perk_config("future_item")
@@ -337,14 +350,14 @@ class MatchLifecycleTests(unittest.TestCase):
             match,
             result(
                 accepted_taps=600,
-                completed_progress=1200,
-                maximum_combo=600,
+                completed_progress=1100,
+                maximum_combo=599,
                 score=5000,
             ),
             NOW,
         )
         self.assertGreaterEqual(bounds["maximum_taps"], 600)
-        self.assertEqual(outcome, "accepted")
+        self.assertIn(outcome, {"accepted", "suspicious_but_accepted"})
 
     def test_impossible_taps_reject_and_close_match(self):
         match = active_match(age_seconds=60)
@@ -372,11 +385,127 @@ class MatchLifecycleTests(unittest.TestCase):
                     score=10000,
                     accepted_taps=1,
                     completed_progress=1,
-                    maximum_combo=1,
+                    maximum_combo=0,
                 ),
                 NOW,
             )
         self.assertEqual(raised.exception.reason, "impossible_score")
+
+    def test_zero_activity_positive_score_exploit_is_terminally_rejected(self):
+        malicious = result(
+            score=100,
+            opponent_score=0,
+            accepted_taps=0,
+            completed_progress=0,
+            maximum_combo=0,
+        )
+        match = active_match(age_seconds=60)
+        player = {
+            "device_id": "player-a",
+            "coins": 100,
+            "xp": 0,
+            "antacid": 3,
+            "active_match": match,
+        }
+        with (
+            patch.object(match_service, "find_internal_player", return_value=player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "get_contest", return_value={"id": "nathans"}),
+            patch.object(match_service, "_utc_now", return_value=NOW),
+            patch.object(match_service, "transition_player_match") as transition,
+            patch.object(match_service, "settle_player_match") as settle,
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service.submit_result(malicious)
+        self.assertEqual(raised.exception.reason, "impossible_score")
+        self.assertEqual(transition.call_args.kwargs["rejection_reason"], "impossible_score")
+        settle.assert_not_called()
+
+        rejected_player = {
+            "device_id": "player-a",
+            "last_match_lifecycle": {"match_id": "match-a", "status": "rejected"},
+        }
+        with (
+            patch.object(match_service, "find_internal_player", return_value=rejected_player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "settle_player_match") as settle,
+            self.assertRaises(match_service.MatchValidationError),
+        ):
+            match_service.submit_result(result(score=1, accepted_taps=1, completed_progress=1, maximum_combo=0))
+        settle.assert_not_called()
+
+    def test_zero_taps_cannot_report_progress(self):
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service._validate_result(
+                active_match(age_seconds=60),
+                result(score=0, accepted_taps=0, completed_progress=1, maximum_combo=0),
+                NOW,
+            )
+        self.assertEqual(raised.exception.reason, "impossible_progress")
+
+    def test_plausible_low_activity_score_is_accepted(self):
+        _, outcome = match_service._validate_result(
+            active_match(age_seconds=60),
+            result(score=1, accepted_taps=1, completed_progress=1, maximum_combo=0),
+            NOW,
+        )
+        self.assertEqual(outcome, "accepted")
+
+    def test_combo_timing_and_action_count_are_bounded(self):
+        match = active_match(age_seconds=60)
+        match["equipped_gear"] = "combo_boost"
+        match["perk_modifiers"] = dict(match_service.GEAR_PERK_MODIFIERS["combo_boost"])
+        bounds = match_service._plausibility_bounds(match, result(), 60)
+        self.assertEqual(bounds["combo_window_ms"], 875)
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service._validate_result(match, result(maximum_combo=60), NOW)
+        self.assertEqual(raised.exception.reason, "impossible_combo")
+
+    def test_fresh_stomach_score_benefit_requires_antacid_time(self):
+        match = active_match(age_seconds=60)
+        without_antacid = match_service._plausibility_bounds(match, result(tums_used=0), 60)
+        with_antacid = match_service._plausibility_bounds(match, result(tums_used=1), 60)
+        self.assertGreater(with_antacid["maximum_score"], without_antacid["maximum_score"])
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as raised,
+        ):
+            match_service._validate_result(
+                match,
+                result(score=without_antacid["maximum_score"] + 1, tums_used=0),
+                NOW,
+            )
+        self.assertEqual(raised.exception.reason, "impossible_score")
+
+    def test_heat_generation_reduces_maximum_progress_conservatively(self):
+        match = active_match(age_seconds=60)
+        match["equipped_gear"] = "tap_boost"
+        match["perk_modifiers"] = dict(match_service.GEAR_PERK_MODIFIERS["tap_boost"])
+        telemetry = result(accepted_taps=600, completed_progress=1100, maximum_combo=599)
+        bounds = match_service._plausibility_bounds(match, telemetry, 60)
+        self.assertEqual(bounds["heat_generation_multiplier"], 1.1)
+        self.assertLess(bounds["maximum_progress"], 600 * 2)
+
+    def test_client_opponent_score_cannot_choose_outcome(self):
+        match = active_match(age_seconds=60)
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as low,
+        ):
+            match_service._validate_result(match, result(opponent_score=0), NOW)
+        self.assertEqual(low.exception.reason, "impossible_opponent_result")
+        with (
+            patch.object(match_service, "transition_player_match"),
+            self.assertRaises(match_service.MatchValidationError) as high,
+        ):
+            match_service._validate_result(match, result(opponent_score=9999), NOW)
+        self.assertEqual(high.exception.reason, "impossible_opponent_result")
 
     def test_timer_result_cannot_arrive_before_plausible_completion(self):
         with (
@@ -394,7 +523,7 @@ class MatchLifecycleTests(unittest.TestCase):
         for invalid, reason in (
             (result(tums_used=4), "invalid_inventory"),
             (
-                result(accepted_taps=10, completed_progress=20, maximum_combo=10),
+                result(accepted_taps=10, completed_progress=20, maximum_combo=9),
                 "impossible_progress",
             ),
         ):
@@ -486,6 +615,53 @@ class MatchLifecycleTests(unittest.TestCase):
             match_service.submit_result(result(score=40, opponent_score=50))
         self.assertEqual(captured["last_match_result"]["response"]["coin_reward"], 10)
         self.assertEqual(captured["last_match_result"]["response"]["xp_reward"], 15)
+
+    def test_authoritative_opponent_score_controls_tie_and_response(self):
+        match = active_match(age_seconds=60)
+        player = {
+            "device_id": "player-a",
+            "coins": 100,
+            "xp": 0,
+            "antacid": 3,
+            "elo": 1000,
+            "active_match": match,
+        }
+        captured = {}
+
+        def settle(_device, _match, pipeline):
+            response = pipeline[0]["$set"]["last_match_result"]["response"]
+            captured.update(response)
+            return {"last_match_result": {"response": response}}
+
+        with (
+            patch.object(match_service, "find_internal_player", return_value=player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "_utc_now", return_value=NOW),
+            patch.object(match_service, "get_contest", return_value={"id": "nathans"}),
+            patch.object(match_service, "settle_player_match", side_effect=settle),
+        ):
+            match_service.submit_result(
+                result(score=50, opponent_score=49)
+            )
+        self.assertEqual(captured["authoritative_opponent_score"], 50)
+        self.assertEqual(captured["authoritative_outcome"], "tie")
+        self.assertFalse(captured["won"])
+        self.assertEqual(captured["coin_reward"], 10)
+
+    def test_database_settlement_is_conditioned_on_player_and_active_match(self):
+        collection = Mock()
+        collection.find_one_and_update.return_value = None
+        with patch.object(database, "_players", return_value=collection):
+            database.settle_player_match(
+                "player-a",
+                "match-a",
+                [{"$set": {"coins": 999}}],
+            )
+        query = collection.find_one_and_update.call_args.args[0]
+        self.assertEqual(
+            query,
+            {"device_id": "player-a", "active_match.id": "match-a"},
+        )
 
 
 if __name__ == "__main__":

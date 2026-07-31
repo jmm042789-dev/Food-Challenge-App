@@ -45,6 +45,11 @@ import { usePlayerBalance } from "../../src/playerBalance";
 import { stopGameplayMusic } from "../../src/audio";
 import { antacidHeatReduction } from "../../src/game/matchModifiers";
 import { useAppPreferences } from "../../src/preferences/AppPreferences";
+import {
+  parseAuthoritativeOpponent,
+  type AuthoritativeOpponentConfig,
+} from "../../src/game/authoritativeOpponent";
+import type { Opponent } from "../../src/game/ai/types";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
 
@@ -65,6 +70,8 @@ export default function ContestScreen() {
   const [resultSubmitAttempt, setResultSubmitAttempt] = useState(0);
   const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
   const [equippedGear, setEquippedGear] = useState<string | null>(null);
+  const [authoritativeOpponent, setAuthoritativeOpponent] = useState<Opponent | null>(null);
+  const [authoritativeOpponentConfig, setAuthoritativeOpponentConfig] = useState<AuthoritativeOpponentConfig | null>(null);
   const [introPlayer, setIntroPlayer] = useState({ name: "Hungry Hero", rank: beltForXp(0).name, title: undefined as string | undefined });
   const matchDurationSeconds = resolveContestDurationSeconds(contest);
   const foodProfile = useMemo(
@@ -99,6 +106,8 @@ export default function ContestScreen() {
   matchKey: matchRouteKey,
   antacidCount: playerAntacidCount,
   equippedGear,
+  opponent: authoritativeOpponent,
+  opponentConfig: authoritativeOpponentConfig,
 
   foodId: selectedContestId,
   foodName: contest?.food,
@@ -125,11 +134,20 @@ export default function ContestScreen() {
   const reducedMotion = systemReducedMotion || preferences.reducedMotion;
   const hapticsEnabled = preferences.hapticsEnabled;
   const [playerXp, setPlayerXp] = useState(0);
-  const [resultReward, setResultReward] = useState<{ coins: number; xp: number; totalXp: number; won: boolean; acceptedScore: number } | null>(null);
-  const result = state.status === "FINISHED"
-    ? state.score === opponentScore
+  const [resultReward, setResultReward] = useState<{
+    coins: number;
+    xp: number;
+    totalXp: number;
+    won: boolean;
+    acceptedScore: number;
+    opponentScore: number;
+    outcome: "win" | "loss" | "tie";
+  } | null>(null);
+  const [resultVerificationError, setResultVerificationError] = useState(false);
+  const result = state.status === "FINISHED" && resultReward
+    ? resultReward.outcome === "tie"
       ? "draw"
-      : (resultReward?.won ?? state.score > opponentScore) ? "victory" : "defeat"
+      : resultReward.outcome === "win" ? "victory" : "defeat"
     : null;
   const coins = usePlayerBalance();
   const [resultAchievements, setResultAchievements] = useState<AchievementCompletionNotification[]>([]);
@@ -299,6 +317,7 @@ export default function ContestScreen() {
     setResultAchievements([]);
     setResultTournament(null);
     setResultReward(null);
+    setResultVerificationError(false);
   }, [matchDurationSeconds, matchRouteKey]);
 
   useEffect(() => {
@@ -325,7 +344,15 @@ export default function ContestScreen() {
       completion_reason: "timer_completed",
       is_tournament: Boolean(tournamentOccurrenceId),
     }).then((response) => {
-      const reward = response as { coin_reward?: unknown; xp_reward?: unknown; new_xp?: unknown; won?: unknown; accepted_score?: unknown };
+      const reward = response as {
+        coin_reward?: unknown;
+        xp_reward?: unknown;
+        new_xp?: unknown;
+        won?: unknown;
+        accepted_score?: unknown;
+        authoritative_opponent_score?: unknown;
+        authoritative_outcome?: unknown;
+      };
       if (
         typeof reward.coin_reward !== "number"
         || !Number.isFinite(reward.coin_reward)
@@ -336,6 +363,9 @@ export default function ContestScreen() {
         || typeof reward.won !== "boolean"
         || typeof reward.accepted_score !== "number"
         || !Number.isFinite(reward.accepted_score)
+        || typeof reward.authoritative_opponent_score !== "number"
+        || !Number.isFinite(reward.authoritative_opponent_score)
+        || !["win", "loss", "tie"].includes(String(reward.authoritative_outcome))
       ) {
         throw new Error("Match reward response was invalid.");
       }
@@ -345,6 +375,8 @@ export default function ContestScreen() {
         totalXp: Math.max(0, reward.new_xp),
         won: reward.won,
         acceptedScore: Math.max(0, reward.accepted_score),
+        opponentScore: Math.max(0, reward.authoritative_opponent_score),
+        outcome: reward.authoritative_outcome as "win" | "loss" | "tie",
       });
       submittedResultKey.current = matchRouteKey;
     }).catch(() => {
@@ -356,10 +388,7 @@ export default function ContestScreen() {
           resultRetryCount.current * 1000,
         );
       } else {
-        Alert.alert(
-          "Match could not be verified",
-          "No rewards were applied. Return to the arena and start a new match.",
-        );
+        setResultVerificationError(true);
       }
     }).finally(() => {
       resultRequestInFlight.current = false;
@@ -593,6 +622,8 @@ export default function ContestScreen() {
     setMatchStartError(false);
     setContest(null);
     setEquippedGear(null);
+    setAuthoritativeOpponent(null);
+    setAuthoritativeOpponentConfig(null);
 
     async function loadContestDetails() {
       try {
@@ -632,11 +663,15 @@ export default function ContestScreen() {
         // startMatch is idempotent for the same contest and returns the original
         // opponent/start payload needed to resume without creating a new match.
         const match = await api.startMatch(selectedContestId);
+        const parsedOpponent = parseAuthoritativeOpponent(match?.opponent_config);
+        if (!parsedOpponent) throw new Error("Match opponent response was incomplete");
 
         if (active) {
           const inventory = Number(match?.player_tums);
           if (Number.isFinite(inventory)) setPlayerAntacidCount(Math.max(0, Math.floor(inventory)));
           setEquippedGear(typeof match?.equipped_gear === "string" ? match.equipped_gear : null);
+          setAuthoritativeOpponent(parsedOpponent.opponent);
+          setAuthoritativeOpponentConfig(parsedOpponent.config);
           playerBestScore.current = Math.max(0, Number(player.best_score) || 0);
           setPlayerXp(Math.max(0, Number(player.xp) || 0));
           const equippedTitleId = titleResult.status === "fulfilled" ? titleResult.value.equippedTitleId : null;
@@ -801,6 +836,21 @@ export default function ContestScreen() {
     opponentSubtitle: currentOpponent.personality,
   }), [contest?.food, contest?.name, currentOpponent.name, currentOpponent.personality, foodProfile.displayName, foodProfile.id, introPlayer.name, introPlayer.rank, introPlayer.title, tournamentOccurrenceId]);
 
+  if (resultVerificationError) {
+    return (
+      <View style={styles.container}>
+        <ArcadeBackground reducedMotion={reducedMotion} />
+        <FireEmptyState
+          icon="!"
+          title="Result Not Verified"
+          message="No match rewards or progression were applied. Return to the arena and try another match."
+          buttonLabel="RETURN TO ARENA"
+          onPress={() => router.replace("/(tabs)/contests")}
+        />
+      </View>
+    );
+  }
+
   if (matchStartError) {
     return (
       <View style={styles.container}>
@@ -862,8 +912,8 @@ export default function ContestScreen() {
           nextLevelXp={100}
           coins={coins}
           timeRemaining={timeRemaining}
-          playerScore={state.score}
-          opponentScore={opponentScore}
+          playerScore={resultReward?.acceptedScore ?? state.score}
+          opponentScore={resultReward?.opponentScore ?? opponentScore}
           combo={state.combo}
           opponentName={currentOpponent.name}
           opponentAvatar={currentOpponent.avatar}
@@ -955,8 +1005,8 @@ export default function ContestScreen() {
       {result ? (
         <VictoryOverlay
           result={result}
-          playerScore={state.score}
-          opponentScore={opponentScore}
+          playerScore={resultReward!.acceptedScore}
+          opponentScore={resultReward!.opponentScore}
           opponentName={currentOpponent.name}
           opponentAvatar={currentOpponent.avatar}
           opponentPersonality={currentOpponent.personality}

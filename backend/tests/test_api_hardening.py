@@ -95,6 +95,29 @@ class ApiHardeningTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             PlayerCreate(device_id="guest_a", auth_token="must-not-be-accepted")
 
+    def test_match_result_rejects_client_authority_fields(self):
+        telemetry = {
+            "device_id": "guest_a",
+            "match_id": "match-a",
+            "contest_id": "contest-a",
+            "opponent_id": "opponent-a",
+            "score": 1,
+            "opponent_score": 0,
+            "duration_sec": 1,
+            "accepted_taps": 1,
+            "completed_progress": 1,
+            "maximum_combo": 1,
+        }
+        for field, value in (
+            ("won", True),
+            ("coin_reward", 999_999),
+            ("xp_reward", 999_999),
+            ("score_multiplier", 99),
+            ("equipped_gear", "score_multiplier"),
+        ):
+            with self.subTest(field=field), self.assertRaises(ValidationError):
+                MatchResult(**telemetry, **{field: value})
+
     def test_oversized_authentication_inputs_fail_before_database_lookup(self):
         with self.assertRaises(HTTPException) as token_error:
             auth.authenticate_bearer("Bearer " + "x" * 513)

@@ -4,7 +4,6 @@ import random
 import uuid
 import logging
 import os
-import math
 from datetime import datetime, timedelta, timezone
 
 from data.contests import get_contest
@@ -17,6 +16,22 @@ from database import (
     start_player_match,
     transition_player_match,
 )
+from services.match_validation import (
+    BASE_PERK_MODIFIERS,
+    GEAR_PERK_MODIFIERS,
+    OPPONENT_SCORE_DIAGNOSTIC_TOLERANCE,
+    authoritative_opponent_score,
+    authoritative_perk_config,
+    build_opponent_config,
+    maximum_antacid_uses,
+    maximum_combo_for_timing,
+    maximum_heat_aware_progress,
+    maximum_score_for_telemetry,
+    maximum_taps_for_duration,
+    minimum_progress_for_taps,
+    progress_epsilon,
+    trusted_heat_per_tap,
+)
 
 
 MATCH_RECOVERY_WINDOW_SECONDS = 15 * 60
@@ -24,13 +39,7 @@ MATCHMAKING_QUEUE_TTL_SECONDS = 2 * 60
 MATCH_SUBMISSION_GRACE_SECONDS = 2 * 60
 MATCH_START_CLOCK_TOLERANCE_SECONDS = 8
 MATCH_DURATION_TOLERANCE_SECONDS = 8
-MAX_PLAUSIBLE_TAPS_PER_SECOND = 20
-TAP_BURST_ALLOWANCE = 30
-PROGRESS_ABSOLUTE_TOLERANCE = 2.0
-SCORE_BOUND_TOLERANCE = 1.35
-SCORE_ABSOLUTE_TOLERANCE = 100
-MAX_SAFE_MATCH_SCORE = 10_000_000
-MATCH_SCHEMA_VERSION = 2
+MATCH_SCHEMA_VERSION = 3
 logger = logging.getLogger(__name__)
 COIN_DEBUG_LOGGING = os.environ.get("FIRE_FEAST_ENV", "development").lower() == "development"
 
@@ -105,41 +114,6 @@ def _match_is_stale(active: dict, now: datetime | None = None) -> bool:
     if expires_at is not None:
         return current >= expires_at
     return current - started_at >= timedelta(seconds=MATCH_RECOVERY_WINDOW_SECONDS)
-
-
-BASE_PERK_MODIFIERS = {
-    "tap_power": 1.0,
-    "combo_window_ms": 700,
-    "score_multiplier": 1.0,
-    "heat_generation_multiplier": 1.0,
-}
-GEAR_PERK_MODIFIERS = {
-    "tap_boost": {
-        "tap_power": 2.0,
-        "combo_window_ms": 700,
-        "score_multiplier": 1.0,
-        "heat_generation_multiplier": 1.1,
-    },
-    "combo_boost": {
-        "tap_power": 1.0,
-        "combo_window_ms": 875,
-        "score_multiplier": 1.0,
-        "heat_generation_multiplier": 1.0,
-    },
-    "score_multiplier": {
-        "tap_power": 1.0,
-        "combo_window_ms": 700,
-        "score_multiplier": 1.5,
-        "heat_generation_multiplier": 1.15,
-    },
-}
-
-
-def authoritative_perk_config(equipped_gear) -> tuple[str | None, dict]:
-    """Resolve one persisted gear identifier; unknown gear receives base stats."""
-    if equipped_gear not in GEAR_PERK_MODIFIERS:
-        return None, dict(BASE_PERK_MODIFIERS)
-    return equipped_gear, dict(GEAR_PERK_MODIFIERS[equipped_gear])
 
 
 def _remove_player_matchmaking_state(device_id: str) -> None:
@@ -256,16 +230,6 @@ def _opponent_for(contest: dict) -> dict:
     return dict(random.choice(candidates))
 
 
-def _opponent_pace(opponent: dict, contest: dict) -> float:
-    difficulty_multiplier = {
-        "easy": 6,
-        "medium": 8,
-        "hard": 9.5,
-        "legendary": 11,
-    }.get(contest["difficulty"].lower(), 6)
-    return float(opponent.get("tap_speed", 1)) * difficulty_multiplier
-
-
 def start_match(device_id: str, contest_id: str) -> dict:
     player = find_internal_player(device_id)
     if not player:
@@ -289,6 +253,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
     entry_fee = int(contest.get("entry_fee", 0))
     new_coins = int(player.get("coins", 0)) - entry_fee
     match_id = str(uuid.uuid4())
+    opponent_seed = uuid.UUID(match_id).int & 0xFFFFFFFF
     started_at = _utc_now()
     allowed_duration = int(contest.get("duration_sec", 0))
     expires_at = started_at + timedelta(
@@ -297,11 +262,13 @@ def start_match(device_id: str, contest_id: str) -> dict:
     equipped_gear, perk_modifiers = authoritative_perk_config(
         player.get("equipped_gear")
     )
+    opponent_config = build_opponent_config(opponent, contest, opponent_seed)
     response = {
         "match_id": match_id,
         "contest": contest,
         "opponent": opponent,
-        "opp_pace_per_sec": _opponent_pace(opponent, contest),
+        "opp_pace_per_sec": opponent_config["pace_per_sec"],
+        "opponent_config": opponent_config,
         "player_tums": int(player.get("antacid", 0)),
         "player_coins": new_coins,
         "equipped_gear": equipped_gear,
@@ -327,6 +294,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
             "difficulty": contest.get("difficulty"),
             "bite_mechanic": contest.get("bite_mechanic"),
             "heartburn_per_bite": contest.get("heartburn_per_bite", 0),
+            "heat_per_tap": trusted_heat_per_tap(contest),
             "prize_pool": int(contest.get("prize_pool", 0)),
         },
         "equipped_gear": equipped_gear,
@@ -338,7 +306,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
             "xp": int(player.get("xp", 0)),
             "elo": int(player.get("elo", 1000)),
         },
-        "opponent_pace_per_sec": response["opp_pace_per_sec"],
+        "opponent_config": opponent_config,
         "start_response": response,
     }
     updated = start_player_match(device_id, entry_fee, match)
@@ -405,39 +373,49 @@ def _plausibility_bounds(active: dict, result, server_elapsed: float) -> dict:
     if not isinstance(perk, dict):
         _, perk = authoritative_perk_config(active.get("equipped_gear"))
     tap_power = float(perk.get("tap_power", 1))
+    combo_window_ms = int(perk.get("combo_window_ms", 700))
     score_multiplier = float(perk.get("score_multiplier", 1))
-    validation_duration = min(
-        duration + MATCH_DURATION_TOLERANCE_SECONDS,
-        max(float(result.duration_sec), min(server_elapsed, duration)),
+    heat_generation_multiplier = float(
+        perk.get("heat_generation_multiplier", 1)
     )
-    maximum_taps = math.ceil(
-        validation_duration * MAX_PLAUSIBLE_TAPS_PER_SECOND + TAP_BURST_ALLOWANCE
+    challenge = active.get("challenge_config") or {}
+    heat_per_tap = float(challenge.get("heat_per_tap", 0))
+    maximum_taps = maximum_taps_for_duration(duration)
+    maximum_combo = maximum_combo_for_timing(
+        result.accepted_taps,
+        duration,
+        combo_window_ms,
     )
-    maximum_progress = maximum_taps * tap_power + PROGRESS_ABSOLUTE_TOLERANCE
-
-    # This deliberately assumes perfect combos, the highest heat-tier bonus,
-    # continuous Fresh Stomach, and no overheat loss. Those assumptions make
-    # the hard bound generous enough for fast/accessibility-assisted players.
-    # The 1.35 tolerance also covers frame batching and score rounding, while
-    # still rejecting multipliers or tap rates outside Fire Feast's rules.
-    maximum_points_per_tap = (
-        3.0 * tap_power * 1.5 * score_multiplier * 1.1
+    maximum_progress = maximum_heat_aware_progress(
+        result.accepted_taps,
+        duration,
+        result.tums_used,
+        tap_power,
+        heat_per_tap,
+        heat_generation_multiplier,
     )
-    maximum_score = math.ceil(
-        maximum_taps * maximum_points_per_tap * SCORE_BOUND_TOLERANCE
-        + SCORE_ABSOLUTE_TOLERANCE
-    )
-    submitted_tap_score = math.ceil(
-        result.accepted_taps
-        * maximum_points_per_tap
-        * SCORE_BOUND_TOLERANCE
-        + SCORE_ABSOLUTE_TOLERANCE
+    minimum_progress = minimum_progress_for_taps(result.accepted_taps, tap_power)
+    maximum_score = maximum_score_for_telemetry(
+        accepted_taps=result.accepted_taps,
+        completed_progress=result.completed_progress,
+        maximum_combo=result.maximum_combo,
+        duration_sec=duration,
+        antacids_used=result.tums_used,
+        tap_power=tap_power,
+        score_multiplier=score_multiplier,
+        heat_per_tap=heat_per_tap,
+        heat_generation_multiplier=heat_generation_multiplier,
     )
     return {
         "maximum_taps": maximum_taps,
         "maximum_progress": maximum_progress,
-        "maximum_score": min(MAX_SAFE_MATCH_SCORE, maximum_score),
-        "submitted_tap_score": min(MAX_SAFE_MATCH_SCORE, submitted_tap_score),
+        "minimum_progress": minimum_progress,
+        "maximum_combo": maximum_combo,
+        "maximum_score": maximum_score,
+        "combo_window_ms": combo_window_ms,
+        "heat_per_tap": heat_per_tap,
+        "heat_generation_multiplier": heat_generation_multiplier,
+        "server_elapsed": server_elapsed,
     }
 
 
@@ -490,35 +468,48 @@ def _validate_result(active: dict, result, now: datetime) -> tuple[dict, str]:
     if (
         not isinstance(starting_antacid, int)
         or result.tums_used > starting_antacid
-        or result.tums_used > math.floor(result.duration_sec / 2) + 1
+        or result.tums_used > maximum_antacid_uses(allowed_duration)
     ):
         _reject_match(result.device_id, active, "invalid_inventory", telemetry)
 
     bounds = _plausibility_bounds(active, result, server_elapsed)
     if result.accepted_taps > bounds["maximum_taps"]:
         _reject_match(result.device_id, active, "impossible_taps", telemetry)
-    if result.maximum_combo > result.accepted_taps:
-        _reject_match(result.device_id, active, "impossible_progress", telemetry)
+    if result.maximum_combo > bounds["maximum_combo"]:
+        _reject_match(result.device_id, active, "impossible_combo", telemetry)
     trusted_tap_power = float(active["perk_modifiers"]["tap_power"])
-    submitted_progress_bound = (
-        result.accepted_taps * trusted_tap_power + PROGRESS_ABSOLUTE_TOLERANCE
-    )
+    epsilon = progress_epsilon(result.accepted_taps)
+    if result.accepted_taps == 0 and (
+        result.completed_progress > 0
+        or result.maximum_combo > 0
+        or result.score > 0
+    ):
+        reason = "impossible_score" if result.score > 0 else "impossible_progress"
+        _reject_match(result.device_id, active, reason, telemetry)
     if (
-        result.completed_progress > submitted_progress_bound
-        or result.completed_progress > bounds["maximum_progress"]
+        result.completed_progress
+        > result.accepted_taps * trusted_tap_power + epsilon
+        or result.completed_progress > bounds["maximum_progress"] + epsilon
+        or result.completed_progress + epsilon < bounds["minimum_progress"]
     ):
         _reject_match(result.device_id, active, "impossible_progress", telemetry)
-    if (
-        result.score > bounds["maximum_score"]
-        or result.score > bounds["submitted_tap_score"]
-    ):
+    if result.score > bounds["maximum_score"]:
         _reject_match(result.device_id, active, "impossible_score", telemetry)
-    if result.opponent_score > bounds["maximum_score"]:
-        _reject_match(result.device_id, active, "impossible_score", telemetry)
+    opponent_score = authoritative_opponent_score(active)
+    if opponent_score is None:
+        _reject_match(result.device_id, active, "invalid_match_state", telemetry)
+    if abs(result.opponent_score - opponent_score) > OPPONENT_SCORE_DIAGNOSTIC_TOLERANCE:
+        _reject_match(
+            result.device_id,
+            active,
+            "impossible_opponent_result",
+            telemetry,
+        )
 
     outcome = (
         "suspicious_but_accepted"
-        if result.score >= bounds["maximum_score"] * 0.8
+        if bounds["maximum_score"] > 0
+        and result.score >= bounds["maximum_score"] * 0.9
         else "accepted"
     )
     logger.info(
@@ -557,6 +548,11 @@ def submit_result(result) -> dict:
             previous.get("match_id") == requested_match_id
             and previous.get("fingerprint") == fingerprint
         ):
+            logger.info(
+                "Match validation match_id=%s player=%s outcome=already_settled",
+                requested_match_id,
+                result.device_id,
+            )
             return dict(previous["response"])
         lifecycle = player.get("last_match_lifecycle") or {}
         if (
@@ -577,7 +573,15 @@ def submit_result(result) -> dict:
     if not contest:
         _reject_match(result.device_id, active, "invalid_match_state", fingerprint)
     _, validation_outcome = _validate_result(active, result, _utc_now())
-    won = result.score > result.opponent_score
+    opponent_score = authoritative_opponent_score(active)
+    if opponent_score is None:
+        _reject_match(result.device_id, active, "invalid_match_state", fingerprint)
+    authoritative_outcome = (
+        "win"
+        if result.score > opponent_score
+        else "tie" if result.score == opponent_score else "loss"
+    )
+    won = authoritative_outcome == "win"
     coin_reward = int(active["challenge_config"].get("prize_pool", 0)) if won else 10
     xp_reward = 50 if won else 15
     old_xp = int(player.get("xp", 0))
@@ -594,6 +598,8 @@ def submit_result(result) -> dict:
             "$max": [0, {"$subtract": [{"$ifNull": ["$antacid", 0]}, result.tums_used]}]
         },
         "accepted_score": result.score,
+        "authoritative_opponent_score": opponent_score,
+        "authoritative_outcome": authoritative_outcome,
         "won": won,
         "validation_outcome": validation_outcome,
         "leveled_up": old_belt["key"] != new_belt["key"],
@@ -645,5 +651,10 @@ def submit_result(result) -> dict:
         previous.get("match_id") == requested_match_id
         and previous.get("fingerprint") == fingerprint
     ):
+        logger.info(
+            "Match validation match_id=%s player=%s outcome=already_settled",
+            requested_match_id,
+            result.device_id,
+        )
         return dict(previous["response"])
     raise MatchNotFoundError
