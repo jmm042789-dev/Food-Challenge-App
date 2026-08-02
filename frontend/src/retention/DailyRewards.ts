@@ -40,7 +40,32 @@ export function wheelStageSize(usableWidth: number) {
 export function rewardPosition(index: number, sliceCount: number, stageSize: number) {
   const wedgeAngle = ((index + 0.5) / sliceCount) * Math.PI * 2 - Math.PI / 2;
   const radius = stageSize * 0.31;
-  return { left: stageSize / 2 + Math.cos(wedgeAngle) * radius, top: stageSize / 2 + Math.sin(wedgeAngle) * radius };
+  return {
+    left: stageSize / 2 + Math.cos(wedgeAngle) * radius,
+    top: stageSize / 2 + Math.sin(wedgeAngle) * radius,
+    angle: wedgeAngle * 180 / Math.PI + 90,
+  };
+}
+
+export type ImageContentGeometry = {
+  canvasWidth: number;
+  canvasHeight: number;
+  bounds: { x: number; y: number; width: number; height: number };
+};
+
+export function centerImageContentInSquare(geometry: ImageContentGeometry, squareSize: number) {
+  const scale = squareSize / Math.max(geometry.bounds.width, geometry.bounds.height);
+  const width = geometry.canvasWidth * scale;
+  const height = geometry.canvasHeight * scale;
+  const contentCenterX = (geometry.bounds.x + geometry.bounds.width / 2) * scale;
+  const contentCenterY = (geometry.bounds.y + geometry.bounds.height / 2) * scale;
+  return {
+    height,
+    left: squareSize / 2 - contentCenterX,
+    scale,
+    top: squareSize / 2 - contentCenterY,
+    width,
+  };
 }
 
 export function serverCountdownMs(
