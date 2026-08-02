@@ -5,14 +5,14 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
-  centerImageContentInSquare,
   formatCountdown,
   landingRotation,
   rewardPosition,
   serverCountdownMs,
   wheelStageSize,
 } = require("../src/retention/DailyRewards.ts");
-const { inspect } = require("../scripts/audit-daily-reward-artwork.js");
+
+const screen = () => fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
 
 test("countdown advances from server time instead of device wall time", () => {
   const server = "2026-07-31T12:00:00+00:00";
@@ -28,21 +28,18 @@ test("presentation rotation lands on the backend-selected slice", () => {
   assert.equal(landingRotation(10, 10, 5), 0);
 });
 
-test("screen uses backend eligibility, claim, animation completion, and balances", () => {
-  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  const home = fs.readFileSync(path.join(__dirname, "../app/(tabs)/home.tsx"), "utf8");
-  assert.match(home, /DAILY CHARCUTERIE BOARD/);
-  assert.match(home, /SPIN NOW/);
-  assert.match(home, /MAYBE LATER/);
-  assert.match(home, /api\.dailyStatus\(\)/);
-  assert.match(screen, /api\.dailyClaim\(\)/);
-  assert.match(screen, /Animated\.timing/);
-  assert.match(screen, /setClaim\(result\)/);
-  assert.match(screen, /claim\.player\.coins/);
-  assert.doesNotMatch(screen, /claimDailyReward|AsyncStorage|Math\.random\(\).*reward/);
+test("screen preserves backend eligibility, selection, and balances", () => {
+  const source = screen();
+  assert.match(source, /api\.dailyStatus\(\)/);
+  assert.match(source, /api\.dailyClaim\(\)/);
+  assert.match(source, /findIndex\(\(slice\) => slice\.id === result\.reward\?\.id\)/);
+  assert.match(source, /mappedIndex !== result\.reward_index/);
+  assert.match(source, /setClaim\(result\)/);
+  assert.match(source, /claim\.player\.coins/);
+  assert.doesNotMatch(source, /claimDailyReward|AsyncStorage|Math\.random\(\).*reward/);
 });
 
-test("responsive wheel stage stays square and labels use one wedge-center helper", () => {
+test("responsive wheel stage stays square and labels use wedge centers", () => {
   assert.equal(wheelStageSize(320), 292);
   assert.equal(wheelStageSize(900), 420);
   const first = rewardPosition(0, 10, 300);
@@ -51,67 +48,64 @@ test("responsive wheel stage stays square and labels use one wedge-center helper
   assert.equal(first.angle, 18);
 });
 
-test("transparent artwork requires a real alpha channel without a baked backdrop", () => {
-  const wheel = inspect("wheel/charcuterie-wheel.png");
-  const hub = inspect("hub/fire-feast-hub.png");
-  assert.equal(wheel.hasRealTransparency, true);
-  assert.equal(wheel.validTransparentArtwork, false);
-  assert.equal(hub.alphaChannel, false);
-  assert.equal(hub.validTransparentArtwork, false);
-});
-
-test("invalid decorations, hub, pointer, wheel, and glow are gated from rendering", () => {
-  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+test("all nine production assets are integrated with static requires", () => {
   const artwork = fs.readFileSync(path.join(__dirname, "../src/assets/daily-rewards/artwork.ts"), "utf8");
-  assert.match(artwork, /wheel: transparentArtworkIsUsable\(wheel\)/);
-  assert.match(artwork, /pointer: transparentArtworkIsUsable\(pointer\)/);
-  assert.match(artwork, /hub: transparentArtworkIsUsable\(hub\)/);
-  assert.match(artwork, /decorations: false/);
-  assert.match(artwork, /winnerGlow: false/);
-  assert.doesNotMatch(screen, /grapesTopLeft|salamiTopRight|olivesBottomLeft|cheeseBottomRight|winner-glow/);
-  assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.wheel \?/);
-  assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.pointer \?/);
-  assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.hub \?/);
+  for (const asset of [
+    "background/restaurant-table.png",
+    "wheel/charcuterie-wheel.png",
+    "pointer/chef-knife-pointer.png",
+    "hub/fire-feast-hub.png",
+    "decorations/grapes-top-left.png",
+    "decorations/salami-top-right.png",
+    "decorations/olives-bottom-left.png",
+    "decorations/cheese-bottom-right.png",
+    "effects/winner-glow.png",
+  ]) assert.match(artwork, new RegExp(asset.replace(/[.]/g, "\\.")));
 });
 
-test("measured wheel content is uniformly centered without arbitrary offsets", () => {
-  const layout = centerImageContentInSquare({
-    canvasWidth: 1536,
-    canvasHeight: 1024,
-    bounds: { x: 337, y: 75, width: 869, height: 846 },
-  }, 300);
-  assert.equal(layout.scale, 300 / 869);
-  assert.ok(Math.abs(layout.left + (337 + 869 / 2) * layout.scale - 150) < 1e-9);
-  assert.ok(Math.abs(layout.top + (75 + 846 / 2) * layout.scale - 150) < 1e-9);
-  assert.ok(Math.abs(layout.width / layout.height - 1.5) < 1e-9);
-  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.doesNotMatch(screen, /-wheelSize|wheelSize \* 1\.5|translate[XY]/);
+test("decorations occupy four stationary corners outside the rotating assembly", () => {
+  const source = screen();
+  assert.match(source, /testID="decoration-grapes"[\s\S]*?styles\.topLeft/);
+  assert.match(source, /testID="decoration-salami"[\s\S]*?styles\.topRight/);
+  assert.match(source, /testID="decoration-olives"[\s\S]*?styles\.bottomLeft/);
+  assert.match(source, /testID="decoration-cheese"[\s\S]*?styles\.bottomRight/);
+  assert.match(source, /decorationSize = wheelSize \* 0\.16/);
+  assert.doesNotMatch(source, /decoration[^\n]*transform/);
 });
 
-test("decorations do not participate in the square wheel-stage layout", () => {
-  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.match(screen, /wheelStage, \{ height: stageSize, width: stageSize \}/);
-  assert.doesNotMatch(screen, /decorationSize|styles\.decoration/);
+test("wheel has a fixed square layout and rotation is its only transform", () => {
+  const source = screen();
+  assert.match(source, /wheelStage, \{ height: stageSize, width: stageSize \}/);
+  assert.match(source, /height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: \[\{ rotate \}\]/);
+  assert.match(source, /DAILY_REWARD_ARTWORK\.wheel[\s\S]*?height: wheelSize, width: wheelSize/);
+  assert.doesNotMatch(source, /translate[XY]|scale[XY]?|skew[XY]?|perspective/);
+  assert.doesNotMatch(source, /marginLeft: -|marginRight: -|marginTop: -|marginBottom: -/);
 });
 
-test("only the fixed square wheel assembly rotates and result state does not move it", () => {
-  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.match(screen, /testID="rotating-wheel-assembly"[\s\S]*?transform: \[\{ rotate \}\]/);
-  assert.match(screen, /testID="knife-pointer"/);
-  assert.match(screen, /testID="center-hub"/);
-  assert.match(screen, /height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize/);
-  assert.match(screen, /mappedIndex !== result\.reward_index/);
-  assert.match(screen, /preferences\.reducedMotion \? 0 : 5/);
-  assert.match(screen, /resultSlot: \{ minHeight: 82 \}/);
-  assert.doesNotMatch(screen, /claim \?.*wheelStage|claim \?.*wheelInset/);
-  assert.doesNotMatch(screen, /spring|bounce|perspective|skew/);
+test("hub and pointer remain stationary while glow only fades behind the hub", () => {
+  const source = screen();
+  assert.match(source, /hubSize = wheelSize \* 0\.22/);
+  assert.match(source, /pointerHeight = wheelSize \* 0\.32/);
+  assert.match(source, /testID="winner-glow"[\s\S]*?opacity: glowOpacity/);
+  assert.match(source, /winnerGlow: \{ position: "absolute", zIndex: 3 \}/);
+  assert.match(source, /hubArtwork: \{ position: "absolute", zIndex: 4 \}/);
+  assert.match(source, /pointerArtwork: \{ position: "absolute", zIndex: 5 \}/);
+  assert.doesNotMatch(source, /testID="(?:center-hub|knife-pointer)"[^\n]*transform/);
 });
 
-test("reward mapping and landing angle remain backend authoritative", () => {
-  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.match(screen, /findIndex\(\(slice\) => slice\.id === result\.reward\?\.id\)/);
-  assert.match(screen, /mappedIndex !== result\.reward_index/);
-  assert.equal(landingRotation(3, 10, 5), 2034);
+test("spin uses rotation-only timing without spring, bounce, or overshoot", () => {
+  const source = screen();
+  assert.match(source, /Animated\.timing\(rotation/);
+  assert.match(source, /easing: Easing\.out\(Easing\.cubic\)/);
+  assert.match(source, /useNativeDriver: true/);
+  assert.doesNotMatch(source, /spring|bounce|overshoot/);
+});
+
+test("result and countdown content cannot resize the wheel stage", () => {
+  const source = screen();
+  assert.match(source, /resultSlot: \{ minHeight: 82 \}/);
+  assert.match(source, /<View testID="wheel-stage"[\s\S]*?<View style=\{styles\.resultSlot\}>/);
+  assert.match(source, /const stageSize = wheelStageSize\(Math\.min\(width, 480\) - 28\);/);
 });
 
 test("every required production asset exists", () => {

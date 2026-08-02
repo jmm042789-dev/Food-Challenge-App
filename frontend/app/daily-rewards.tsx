@@ -9,9 +9,8 @@ import FireEmptyState from "../src/components/fire/FireEmptyState";
 import FireLoading from "../src/components/fire/FireLoading";
 import FirePanel from "../src/components/fire/FirePanel";
 import { useAppPreferences } from "../src/preferences/AppPreferences";
-import { DAILY_REWARD_ARTWORK, DAILY_REWARD_ARTWORK_VALIDITY } from "../src/assets/daily-rewards/artwork";
+import { DAILY_REWARD_ARTWORK } from "../src/assets/daily-rewards/artwork";
 import {
-  centerImageContentInSquare,
   formatCountdown,
   landingRotation,
   serverCountdownMs,
@@ -121,27 +120,10 @@ export default function DailyRewardsScreen() {
   const stageSize = wheelStageSize(Math.min(width, 480) - 28);
   const wheelSize = stageSize * 0.88;
   const wheelInset = (stageSize - wheelSize) / 2;
-  const hubSize = stageSize * 0.22;
+  const hubSize = wheelSize * 0.22;
   const pointerHeight = wheelSize * 0.32;
-  const wheelImageLayout = centerImageContentInSquare({
-    canvasWidth: DAILY_REWARD_ARTWORK.wheel.canvas.width,
-    canvasHeight: DAILY_REWARD_ARTWORK.wheel.canvas.height,
-    bounds: DAILY_REWARD_ARTWORK.wheel.contentBounds,
-  }, wheelSize);
-  const pointerScale = pointerHeight / DAILY_REWARD_ARTWORK.pointer.contentBounds.height;
-  const pointerArtworkWidth = DAILY_REWARD_ARTWORK.pointer.canvas.width * pointerScale;
-  const pointerArtworkHeight = DAILY_REWARD_ARTWORK.pointer.canvas.height * pointerScale;
-  const pointerLayout = {
-    height: pointerArtworkHeight,
-    left: stageSize / 2 - (DAILY_REWARD_ARTWORK.pointer.contentBounds.x + DAILY_REWARD_ARTWORK.pointer.contentBounds.width / 2) * pointerScale,
-    top: wheelInset - (DAILY_REWARD_ARTWORK.pointer.contentBounds.y + DAILY_REWARD_ARTWORK.pointer.contentBounds.height) * pointerScale,
-    width: pointerArtworkWidth,
-  };
-  const hubImageLayout = centerImageContentInSquare({
-    canvasWidth: DAILY_REWARD_ARTWORK.hub.canvas.width,
-    canvasHeight: DAILY_REWARD_ARTWORK.hub.canvas.height,
-    bounds: DAILY_REWARD_ARTWORK.hub.contentBounds,
-  }, hubSize);
+  const decorationSize = wheelSize * 0.16;
+  const glowSize = wheelSize * 0.58;
 
   return <SafeAreaView style={styles.screen}>
     <Image resizeMode="cover" source={DAILY_REWARD_ARTWORK.background} style={styles.backgroundArtwork} />
@@ -149,8 +131,12 @@ export default function DailyRewardsScreen() {
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <FirePanel accent="gold" elevated highlighted>
         <View testID="wheel-stage" style={[styles.wheelStage, { height: stageSize, width: stageSize }]}>
+          <Image testID="decoration-grapes" resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.grapesTopLeft} style={[styles.decoration, styles.topLeft, { height: decorationSize, width: decorationSize }]} />
+          <Image testID="decoration-salami" resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.salamiTopRight} style={[styles.decoration, styles.topRight, { height: decorationSize, width: decorationSize }]} />
+          <Image testID="decoration-olives" resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.olivesBottomLeft} style={[styles.decoration, styles.bottomLeft, { height: decorationSize, width: decorationSize }]} />
+          <Image testID="decoration-cheese" resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.cheeseBottomRight} style={[styles.decoration, styles.bottomRight, { height: decorationSize, width: decorationSize }]} />
           <Animated.View testID="rotating-wheel-assembly" accessibilityLabel="Charcuterie reward board" style={[styles.board, { height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: [{ rotate }] }]}>
-          {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
+          <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel} style={[styles.wheelArtwork, { height: wheelSize, width: wheelSize }]} />
           {status.reward_slices.map((slice, index) => {
             const point = rewardPosition(index, status.reward_slices.length, wheelSize);
             return <View key={slice.id} style={[styles.slice, { left: point.left - wheelSize * 0.075, top: point.top - wheelSize * 0.04, transform: [{ rotate: `${point.angle}deg` }], width: wheelSize * 0.15 }]}>
@@ -158,8 +144,9 @@ export default function DailyRewardsScreen() {
             </View>;
           })}
           </Animated.View>
-          {DAILY_REWARD_ARTWORK_VALIDITY.hub ? <Image testID="center-hub" resizeMode="contain" source={DAILY_REWARD_ARTWORK.hub.source} style={[styles.hubArtwork, hubImageLayout, { marginLeft: (stageSize - hubSize) / 2, marginTop: (stageSize - hubSize) / 2 }]} /> : null}
-          {DAILY_REWARD_ARTWORK_VALIDITY.pointer ? <Image testID="knife-pointer" resizeMode="contain" source={DAILY_REWARD_ARTWORK.pointer.source} style={[styles.pointerArtwork, pointerLayout]} /> : null}
+          {claim ? <Animated.Image testID="winner-glow" resizeMode="contain" source={DAILY_REWARD_ARTWORK.winnerGlow} style={[styles.winnerGlow, { height: glowSize, left: (stageSize - glowSize) / 2, opacity: glowOpacity, top: (stageSize - glowSize) / 2, width: glowSize }]} /> : null}
+          <Image testID="center-hub" resizeMode="contain" source={DAILY_REWARD_ARTWORK.hub} style={[styles.hubArtwork, { height: hubSize, left: (stageSize - hubSize) / 2, top: (stageSize - hubSize) / 2, width: hubSize }]} />
+          <Image testID="knife-pointer" resizeMode="contain" source={DAILY_REWARD_ARTWORK.pointer} style={[styles.pointerArtwork, { height: pointerHeight, left: (stageSize - pointerHeight) / 2, top: 0, width: pointerHeight }]} />
         </View>
 
         <View style={styles.resultSlot}>{claim ? <View accessible accessibilityLiveRegion="polite" style={styles.rewardPanel}><Text style={styles.won}>YOU WON!</Text><Text style={styles.rewardText}>{claim.reward.label}: +{claim.reward.amount} {claim.reward.kind.toUpperCase()}</Text><Text style={styles.balanceText}>Coins {claim.player.coins ?? 0} · XP {claim.player.xp ?? 0} · Antacids {claim.player.antacid ?? 0}</Text></View> : null}</View>
@@ -177,7 +164,8 @@ const styles = StyleSheet.create({
   title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6 }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1 }, content: { alignSelf: "center", maxWidth: 480, padding: 14, width: "100%" },
   wheelStage: { alignSelf: "center", position: "relative" }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { position: "absolute", top: 0 },
   slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceText: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2 },
-  pointerArtwork: { position: "absolute", zIndex: 5 }, hubArtwork: { position: "absolute", zIndex: 4 }, resultSlot: { minHeight: 82 },
+  decoration: { position: "absolute", zIndex: 1 }, topLeft: { left: 0, top: 0 }, topRight: { right: 0, top: 0 }, bottomLeft: { bottom: 0, left: 0 }, bottomRight: { bottom: 0, right: 0 },
+  pointerArtwork: { position: "absolute", zIndex: 5 }, hubArtwork: { position: "absolute", zIndex: 4 }, winnerGlow: { position: "absolute", zIndex: 3 }, resultSlot: { minHeight: 82 },
   rewardPanel: { backgroundColor: "rgba(91,39,12,0.9)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, marginBottom: 12, padding: 12 }, won: { color: "#FFD06A", fontSize: 22, fontWeight: "900", textAlign: "center" }, rewardText: { color: "#FFF0D8", fontSize: 15, fontWeight: "900", marginTop: 4, textAlign: "center" }, balanceText: { color: "#D8C5B3", fontSize: 10, marginTop: 7, textAlign: "center" },
   countdown: { alignItems: "center", marginBottom: 12 }, countdownLabel: { color: "#C89A61", fontSize: 10, fontWeight: "900" }, countdownValue: { color: "#FFF0D8", fontSize: 24, fontVariant: ["tabular-nums"], fontWeight: "900", marginTop: 3 }, error: { color: "#FFAA91", fontSize: 11, marginBottom: 10, textAlign: "center" }, streak: { color: "#A98B70", fontSize: 9, fontWeight: "800", marginTop: 9, textAlign: "center" },
 });
