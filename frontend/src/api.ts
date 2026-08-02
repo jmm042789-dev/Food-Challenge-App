@@ -1,22 +1,34 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+import { joinApiPath, resolveApiBase } from "./apiBase";
 import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance";
 import { storage } from "./utils/storage";
 
-const configuredBase = process.env.EXPO_PUBLIC_BACKEND_URL?.trim().replace(/\/$/, "") || "";
+type ExpoDevelopmentMetadata = {
+  debuggerHost?: string;
+  hostUri?: string;
+};
 
-if (!__DEV__ && (!configuredBase || !configuredBase.startsWith("https://"))) {
-  throw new Error(
-    "Fire Feast production builds require EXPO_PUBLIC_BACKEND_URL to be configured with an HTTPS URL.",
-  );
-}
-
-const BASE = configuredBase;
-const API = `${BASE}/api`;
+const expoGoConfig = Constants.expoGoConfig as ExpoDevelopmentMetadata | null;
+const classicManifest = Constants.manifest as ExpoDevelopmentMetadata | null;
+const BASE = resolveApiBase({
+  explicitUrl: process.env.EXPO_PUBLIC_BACKEND_URL,
+  isDevelopment: __DEV__,
+  expoHostUris: [
+    Constants.expoConfig?.hostUri,
+    expoGoConfig?.debuggerHost,
+    classicManifest?.hostUri,
+    classicManifest?.debuggerHost,
+    Constants.linkingUri,
+    Constants.experienceUrl,
+  ],
+});
+const API = joinApiPath(BASE, "/api");
 const REQUEST_TIMEOUT_MS = 8000;
 
 // 🔥 DEBUG LOGS (A.0 sanity check)
 if (__DEV__) {
-  console.log("Fire Feast API base:", BASE || "same-origin");
+  console.log("Fire Feast API base:", BASE);
 }
 
 const INSTALLATION_KEY = "firefeast_installation_id";
