@@ -33,6 +33,16 @@ export function landingRotation(rewardIndex: number, sliceCount: number, turns: 
   return turns * 360 + (360 - (rewardIndex + 0.5) * sliceAngle);
 }
 
+export function wheelStageSize(usableWidth: number) {
+  return Math.min(420, Math.max(240, usableWidth - 28));
+}
+
+export function rewardPosition(index: number, sliceCount: number, stageSize: number) {
+  const wedgeAngle = ((index + 0.5) / sliceCount) * Math.PI * 2 - Math.PI / 2;
+  const radius = stageSize * 0.31;
+  return { left: stageSize / 2 + Math.cos(wedgeAngle) * radius, top: stageSize / 2 + Math.sin(wedgeAngle) * radius };
+}
+
 export function serverCountdownMs(
   serverTime: string,
   nextSpin: string,

@@ -6,7 +6,9 @@ const test = require("node:test");
 const {
   formatCountdown,
   landingRotation,
+  rewardPosition,
   serverCountdownMs,
+  wheelStageSize,
 } = require("../src/retention/DailyRewards.ts");
 
 test("countdown advances from server time instead of device wall time", () => {
@@ -37,11 +39,19 @@ test("screen uses backend eligibility, claim, animation completion, and balances
   assert.doesNotMatch(screen, /claimDailyReward|AsyncStorage|Math\.random\(\).*reward/);
 });
 
-test("production artwork layers resolve optionally without visual stand-ins", () => {
+test("responsive wheel stage stays square and reward labels use wedge centers", () => {
+  assert.equal(wheelStageSize(320), 292);
+  assert.equal(wheelStageSize(900), 420);
+  const first = rewardPosition(0, 10, 300);
+  assert.ok(first.top < 70);
+  assert.ok(first.left > 150);
+});
+
+test("production artwork layers use exact static assets without fallbacks", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const artwork = fs.readFileSync(path.join(__dirname, "../src/assets/daily-rewards/artwork.ts"), "utf8");
   for (const asset of [
-    "background/restaurant-table.jpg",
+    "background/restaurant-table.png",
     "wheel/charcuterie-wheel.png",
     "pointer/chef-knife-pointer.png",
     "hub/fire-feast-hub.png",
@@ -51,10 +61,32 @@ test("production artwork layers resolve optionally without visual stand-ins", ()
     "decorations/cheese-bottom-right.png",
     "effects/winner-glow.png",
   ]) assert.match(artwork, new RegExp(asset.replace(/[.]/g, "\\.")));
-  assert.match(artwork, /require\.context/);
-  assert.match(screen, /styles\.invisibleArtwork/);
+  assert.doesNotMatch(artwork, /require\.context|optionalAsset/);
+  assert.doesNotMatch(screen, /invisibleArtwork|ArtworkImage/);
   assert.match(screen, /DAILY_REWARD_ARTWORK\.wheel/);
   assert.match(screen, /DAILY_REWARD_ARTWORK\.pointer/);
   assert.match(screen, /DAILY_REWARD_ARTWORK\.hub/);
   assert.doesNotMatch(screen, /🧀|🍇|🥖|🫓|🥩|🍯|🫒|🔪/);
+});
+
+test("only the wheel assembly rotates and settlement gates the stationary glow", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /testID="rotating-wheel-assembly"[\s\S]*?transform: \[\{ rotate \}\]/);
+  assert.match(screen, /testID="knife-pointer"/);
+  assert.match(screen, /testID="center-hub"/);
+  assert.match(screen, /\{claim \? <Animated\.Image testID="winner-glow"/);
+  assert.match(screen, /mappedIndex !== result\.reward_index/);
+  assert.match(screen, /preferences\.reducedMotion \? 0 : 5/);
+  assert.match(screen, /resultSlot: \{ minHeight: 82 \}/);
+  assert.doesNotMatch(screen, /spring|bounce|perspective|skew/);
+});
+
+test("every required production asset exists", () => {
+  for (const asset of [
+    "background/restaurant-table.png", "wheel/charcuterie-wheel.png",
+    "pointer/chef-knife-pointer.png", "hub/fire-feast-hub.png",
+    "decorations/grapes-top-left.png", "decorations/salami-top-right.png",
+    "decorations/olives-bottom-left.png", "decorations/cheese-bottom-right.png",
+    "effects/winner-glow.png",
+  ]) assert.equal(fs.existsSync(path.join(__dirname, "../src/assets/daily-rewards", asset)), true, asset);
 });
