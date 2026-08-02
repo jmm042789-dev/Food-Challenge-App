@@ -51,13 +51,20 @@ test("responsive wheel stage stays square and labels use one wedge-center helper
   assert.equal(first.angle, 18);
 });
 
-test("transparent artwork requires a real alpha channel without a baked backdrop", () => {
-  const wheel = inspect("wheel/charcuterie-wheel.png");
-  const hub = inspect("hub/fire-feast-hub.png");
-  assert.equal(wheel.hasRealTransparency, true);
-  assert.equal(wheel.validTransparentArtwork, false);
-  assert.equal(hub.alphaChannel, false);
-  assert.equal(hub.validTransparentArtwork, false);
+test("production foreground artwork has real alpha without baked backdrops", () => {
+  for (const asset of [
+    "wheel/charcuterie-wheel.png",
+    "pointer/chef-knife-pointer.png",
+    "hub/fire-feast-hub.png",
+    "decorations/grapes-top-left.png",
+    "decorations/cheese-bottom-right.png",
+    "effects/winner-glow.png",
+  ]) {
+    const artwork = inspect(asset);
+    assert.equal(artwork.alphaChannel, true, asset);
+    assert.equal(artwork.hasRealTransparency, true, asset);
+    assert.equal(artwork.validTransparentArtwork, true, asset);
+  }
 });
 
 test("invalid decorations, hub, pointer, wheel, and glow are gated from rendering", () => {
