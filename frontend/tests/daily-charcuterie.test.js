@@ -57,6 +57,8 @@ test("production foreground artwork has real alpha without baked backdrops", () 
     "pointer/chef-knife-pointer.png",
     "hub/fire-feast-hub.png",
     "decorations/grapes-top-left.png",
+    "decorations/salami-top-right.png",
+    "decorations/olives-bottom-left.png",
     "decorations/cheese-bottom-right.png",
     "effects/winner-glow.png",
   ]) {
@@ -67,38 +69,90 @@ test("production foreground artwork has real alpha without baked backdrops", () 
   }
 });
 
-test("invalid decorations, hub, pointer, wheel, and glow are gated from rendering", () => {
+test("registry exposes all nine current artwork sources and enables valid foregrounds", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const artwork = fs.readFileSync(path.join(__dirname, "../src/assets/daily-rewards/artwork.ts"), "utf8");
+  for (const source of [
+    "background/restaurant-table.png", "wheel/charcuterie-wheel.png",
+    "pointer/chef-knife-pointer.png", "hub/fire-feast-hub.png",
+    "decorations/grapes-top-left.png", "decorations/salami-top-right.png",
+    "decorations/olives-bottom-left.png", "decorations/cheese-bottom-right.png",
+    "effects/winner-glow.png",
+  ]) assert.match(artwork, new RegExp(`require\\(\\"\\./${source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\"\\)`), source);
   assert.match(artwork, /wheel: transparentArtworkIsUsable\(wheel\)/);
   assert.match(artwork, /pointer: transparentArtworkIsUsable\(pointer\)/);
   assert.match(artwork, /hub: transparentArtworkIsUsable\(hub\)/);
-  assert.match(artwork, /decorations: false/);
-  assert.match(artwork, /winnerGlow: false/);
-  assert.doesNotMatch(screen, /grapesTopLeft|salamiTopRight|olivesBottomLeft|cheeseBottomRight|winner-glow/);
+  assert.match(artwork, /decorations: true/);
+  assert.match(artwork, /winnerGlow: true/);
+  assert.doesNotMatch(artwork, /hasBakedBackground: true|decorations: \[\]|winnerGlow: null/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.wheel \?/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.pointer \?/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.hub \?/);
+  assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.decorations \?/);
+  assert.match(screen, /claim && DAILY_REWARD_ARTWORK_VALIDITY\.winnerGlow \?/);
 });
 
 test("measured wheel content is uniformly centered without arbitrary offsets", () => {
   const layout = centerImageContentInSquare({
-    canvasWidth: 1536,
-    canvasHeight: 1024,
-    bounds: { x: 337, y: 75, width: 869, height: 846 },
+    canvasWidth: 1254,
+    canvasHeight: 1254,
+    bounds: { x: 63, y: 64, width: 1129, height: 1127 },
   }, 300);
-  assert.equal(layout.scale, 300 / 869);
-  assert.ok(Math.abs(layout.left + (337 + 869 / 2) * layout.scale - 150) < 1e-9);
-  assert.ok(Math.abs(layout.top + (75 + 846 / 2) * layout.scale - 150) < 1e-9);
-  assert.ok(Math.abs(layout.width / layout.height - 1.5) < 1e-9);
+  assert.equal(layout.scale, 300 / 1129);
+  assert.ok(Math.abs(layout.left + (63 + 1129 / 2) * layout.scale - 150) < 1e-9);
+  assert.ok(Math.abs(layout.top + (64 + 1127 / 2) * layout.scale - 150) < 1e-9);
+  assert.equal(layout.width, layout.height);
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   assert.doesNotMatch(screen, /-wheelSize|wheelSize \* 1\.5|translate[XY]/);
 });
 
-test("decorations do not participate in the square wheel-stage layout", () => {
+test("stationary decorations sit outside the rotating square wheel assembly", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   assert.match(screen, /wheelStage, \{ height: stageSize, width: stageSize \}/);
-  assert.doesNotMatch(screen, /decorationSize|styles\.decoration/);
+  const assemblyStart = screen.indexOf('testID="rotating-wheel-assembly"');
+  const assemblyEnd = screen.indexOf("</Animated.View>", assemblyStart);
+  for (const id of ["grapes-top-left", "salami-top-right", "olives-bottom-left", "cheese-bottom-right"]) {
+    const position = screen.indexOf(`testID="${id}"`);
+    assert.ok(position >= 0 && position < assemblyStart, id);
+    assert.ok(position < assemblyStart || position > assemblyEnd, id);
+  }
+  assert.match(screen, /decoration: \{ opacity: 1, position: "absolute" \}/);
+});
+
+test("render order keeps the opaque table below every artwork layer", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  const orderedMarkers = [
+    'source={DAILY_REWARD_ARTWORK.background}', 'testID="food-decorations"',
+    'testID="wheel-stage"', 'testID="wheel-artwork"', "status.reward_slices.map",
+    'testID="center-hub"', 'testID="knife-pointer"', 'testID="winner-glow"',
+    'style={styles.resultSlot}',
+  ];
+  let previous = -1;
+  for (const marker of orderedMarkers) {
+    const position = screen.indexOf(marker);
+    assert.ok(position > previous, marker);
+    previous = position;
+  }
+  assert.match(screen, /backgroundArtwork: \{ \.\.\.StyleSheet\.absoluteFillObject, zIndex: 0 \}/);
+});
+
+test("wheel labels rotate together while hub, pointer, and conditional glow remain stationary", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  const assemblyStart = screen.indexOf('testID="rotating-wheel-assembly"');
+  const assemblyEnd = screen.indexOf("</Animated.View>", assemblyStart);
+  assert.ok(screen.indexOf('testID="wheel-artwork"') > assemblyStart);
+  assert.ok(screen.indexOf("status.reward_slices.map") < assemblyEnd);
+  for (const id of ["center-hub", "knife-pointer", "winner-glow"]) assert.ok(screen.indexOf(`testID="${id}"`) > assemblyEnd, id);
+  assert.match(screen, /wheelArtwork: \{ opacity: 1/);
+  assert.match(screen, /hubArtwork: \{ opacity: 1/);
+  assert.match(screen, /pointerArtwork: \{ opacity: 1/);
+  assert.match(screen, /claim && DAILY_REWARD_ARTWORK_VALIDITY\.winnerGlow/);
+  assert.match(screen, /if \(finished\) \{[\s\S]*?setClaim\(result\)/);
+  const claimFailureStart = screen.lastIndexOf("} catch {");
+  const claimFailureEnd = screen.indexOf("}, [glowOpacity", claimFailureStart);
+  const claimFailure = screen.slice(claimFailureStart, claimFailureEnd);
+  assert.match(claimFailure, /glowOpacity\.setValue\(0\)/);
+  assert.doesNotMatch(claimFailure, /setClaim\(|setStatus\([^)]*eligible: false/);
 });
 
 test("only the fixed square wheel assembly rotates and result state does not move it", () => {

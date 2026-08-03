@@ -148,9 +148,16 @@ export default function DailyRewardsScreen() {
     <View style={styles.header}><FireButton title="BACK" size="compact" variant="ghost" onPress={() => router.back()} /><View><Text accessibilityRole="header" style={styles.title}>DAILY CHARCUTERIE BOARD</Text><Text style={styles.subtitle}>ONE FREE SPIN EVERY 24 HOURS</Text></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <FirePanel accent="gold" elevated highlighted>
-        <View testID="wheel-stage" style={[styles.wheelStage, { height: stageSize, width: stageSize }]}>
+        <View testID="board-scene" style={[styles.boardScene, { height: stageSize, width: stageSize }]}>
+          {DAILY_REWARD_ARTWORK_VALIDITY.decorations ? <View pointerEvents="none" style={styles.decorationsLayer} testID="food-decorations">
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.grapesTopLeft} style={[styles.decoration, styles.grapesTopLeft]} testID="grapes-top-left" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.salamiTopRight} style={[styles.decoration, styles.salamiTopRight]} testID="salami-top-right" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.olivesBottomLeft} style={[styles.decoration, styles.olivesBottomLeft]} testID="olives-bottom-left" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.cheeseBottomRight} style={[styles.decoration, styles.cheeseBottomRight]} testID="cheese-bottom-right" />
+          </View> : null}
+          <View testID="wheel-stage" style={[styles.wheelStage, { height: stageSize, width: stageSize }]}>
           <Animated.View testID="rotating-wheel-assembly" accessibilityLabel="Charcuterie reward board" style={[styles.board, { height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: [{ rotate }] }]}>
-          {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
+          {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image testID="wheel-artwork" resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
           {status.reward_slices.map((slice, index) => {
             const point = rewardPosition(index, status.reward_slices.length, wheelSize);
             return <View key={slice.id} style={[styles.slice, { left: point.left - wheelSize * 0.075, top: point.top - wheelSize * 0.04, transform: [{ rotate: `${point.angle}deg` }], width: wheelSize * 0.15 }]}>
@@ -160,6 +167,8 @@ export default function DailyRewardsScreen() {
           </Animated.View>
           {DAILY_REWARD_ARTWORK_VALIDITY.hub ? <Image testID="center-hub" resizeMode="contain" source={DAILY_REWARD_ARTWORK.hub.source} style={[styles.hubArtwork, hubImageLayout, { marginLeft: (stageSize - hubSize) / 2, marginTop: (stageSize - hubSize) / 2 }]} /> : null}
           {DAILY_REWARD_ARTWORK_VALIDITY.pointer ? <Image testID="knife-pointer" resizeMode="contain" source={DAILY_REWARD_ARTWORK.pointer.source} style={[styles.pointerArtwork, pointerLayout]} /> : null}
+          {claim && DAILY_REWARD_ARTWORK_VALIDITY.winnerGlow ? <Animated.Image testID="winner-glow" resizeMode="contain" source={DAILY_REWARD_ARTWORK.winnerGlow} style={[styles.winnerGlow, { opacity: glowOpacity }]} /> : null}
+          </View>
         </View>
 
         <View style={styles.resultSlot}>{claim ? <View accessible accessibilityLiveRegion="polite" style={styles.rewardPanel}><Text style={styles.won}>YOU WON!</Text><Text style={styles.rewardText}>{claim.reward.label}: +{claim.reward.amount} {claim.reward.kind.toUpperCase()}</Text><Text style={styles.balanceText}>Coins {claim.player.coins ?? 0} · XP {claim.player.xp ?? 0} · Antacids {claim.player.antacid ?? 0}</Text></View> : null}</View>
@@ -173,11 +182,13 @@ export default function DailyRewardsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: "#070405", flex: 1 }, backgroundArtwork: { ...StyleSheet.absoluteFillObject }, header: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 14, paddingTop: 4 },
-  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6 }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1 }, content: { alignSelf: "center", maxWidth: 480, padding: 14, width: "100%" },
-  wheelStage: { alignSelf: "center", position: "relative" }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { position: "absolute", top: 0 },
+  screen: { backgroundColor: "#070405", flex: 1 }, backgroundArtwork: { ...StyleSheet.absoluteFillObject, zIndex: 0 }, header: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 14, paddingTop: 4, zIndex: 1 },
+  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6 }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1 }, content: { alignSelf: "center", maxWidth: 480, padding: 14, width: "100%", zIndex: 1 },
+  boardScene: { alignSelf: "center", position: "relative" }, decorationsLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+  decoration: { opacity: 1, position: "absolute" }, grapesTopLeft: { height: "31%", left: 0, top: 0, width: "22%" }, salamiTopRight: { height: "22%", right: 0, top: 0, width: "29%" }, olivesBottomLeft: { bottom: 0, height: "27%", left: 0, width: "25%" }, cheeseBottomRight: { bottom: 0, height: "22%", right: 0, width: "31%" },
+  wheelStage: { ...StyleSheet.absoluteFillObject, overflow: "visible", zIndex: 2 }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { opacity: 1, position: "absolute", top: 0 },
   slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceText: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2 },
-  pointerArtwork: { position: "absolute", zIndex: 5 }, hubArtwork: { position: "absolute", zIndex: 4 }, resultSlot: { minHeight: 82 },
+  pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, winnerGlow: { ...StyleSheet.absoluteFillObject, zIndex: 6 }, resultSlot: { minHeight: 82 },
   rewardPanel: { backgroundColor: "rgba(91,39,12,0.9)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, marginBottom: 12, padding: 12 }, won: { color: "#FFD06A", fontSize: 22, fontWeight: "900", textAlign: "center" }, rewardText: { color: "#FFF0D8", fontSize: 15, fontWeight: "900", marginTop: 4, textAlign: "center" }, balanceText: { color: "#D8C5B3", fontSize: 10, marginTop: 7, textAlign: "center" },
   countdown: { alignItems: "center", marginBottom: 12 }, countdownLabel: { color: "#C89A61", fontSize: 10, fontWeight: "900" }, countdownValue: { color: "#FFF0D8", fontSize: 24, fontVariant: ["tabular-nums"], fontWeight: "900", marginTop: 3 }, error: { color: "#FFAA91", fontSize: 11, marginBottom: 10, textAlign: "center" }, streak: { color: "#A98B70", fontSize: 9, fontWeight: "800", marginTop: 9, textAlign: "center" },
 });
