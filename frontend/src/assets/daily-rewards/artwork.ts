@@ -39,13 +39,6 @@ const hub: TransparentArtwork = {
   contentBounds: { x: 54, y: 52, width: 393, height: 396 },
 };
 
-const decorations = {
-  grapesTopLeft: require("./decorations/grapes-top-left.png"),
-  salamiTopRight: require("./decorations/salami-top-right.png"),
-  olivesBottomLeft: require("./decorations/olives-bottom-left.png"),
-  cheeseBottomRight: require("./decorations/cheese-bottom-right.png"),
-} as const;
-
 const winnerGlow = require("./effects/winner-glow.png");
 
 const transparentArtworkIsUsable = (artwork: TransparentArtwork) =>
@@ -56,7 +49,6 @@ export const DAILY_REWARD_ARTWORK = {
   wheel,
   pointer,
   hub,
-  decorations,
   winnerGlow,
 } as const;
 
@@ -64,6 +56,5 @@ export const DAILY_REWARD_ARTWORK_VALIDITY = {
   wheel: transparentArtworkIsUsable(wheel),
   pointer: transparentArtworkIsUsable(pointer),
   hub: transparentArtworkIsUsable(hub),
-  decorations: true,
   winnerGlow: true,
 } as const;

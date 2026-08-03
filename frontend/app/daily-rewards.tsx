@@ -22,10 +22,9 @@ import {
 } from "../src/retention/DailyRewards";
 
 const HEADER_TO_POINTER_GAP = 52;
+const HEADER_SIDE_GUTTER = 84;
 const STAGE_HORIZONTAL_INSET = 12;
 const WHEEL_DIAMETER_RATIO = 0.92;
-const DECORATION_DIAMETER_RATIO = 0.14;
-const DECORATION_RIM_INSET_RATIO = 0.08;
 const STAGE_TO_RESULT_GAP = 0;
 const RESULT_SLOT_MIN_HEIGHT = 68;
 
@@ -119,8 +118,6 @@ export default function DailyRewardsScreen() {
   const stageSize = wheelStageSize(Math.min(width, 480) - STAGE_HORIZONTAL_INSET);
   const wheelSize = stageSize * WHEEL_DIAMETER_RATIO;
   const wheelInset = (stageSize - wheelSize) / 2;
-  const decorationSize = wheelSize * DECORATION_DIAMETER_RATIO;
-  const decorationInset = wheelInset + wheelSize * DECORATION_RIM_INSET_RATIO;
   const hubSize = stageSize * 0.22;
   const pointerHeight = wheelSize * 0.32;
   const wheelImageLayout = centerImageContentInSquare({
@@ -146,16 +143,16 @@ export default function DailyRewardsScreen() {
 
   return <SafeAreaView style={styles.screen}>
     <Image resizeMode="cover" source={DAILY_REWARD_ARTWORK.background} style={styles.backgroundArtwork} />
-    <View style={styles.header}><FireButton title="BACK" size="compact" variant="ghost" onPress={() => router.back()} /><View><Text accessibilityRole="header" style={styles.title}>DAILY CHARCUTERIE BOARD</Text><Text style={styles.subtitle}>ONE FREE SPIN EVERY 24 HOURS</Text></View></View>
+    <View style={styles.header}>
+      <View style={styles.backButton}><FireButton title="BACK" size="compact" variant="ghost" onPress={() => router.back()} /></View>
+      <View pointerEvents="none" style={[styles.headerTitleGroup, { paddingHorizontal: HEADER_SIDE_GUTTER }]}>
+        <Text accessibilityRole="header" adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={2} style={styles.title}>DAILY CHARCUTERIE BOARD</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={2} style={styles.subtitle}>ONE FREE SPIN EVERY 24 HOURS</Text>
+      </View>
+    </View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <FirePanel accent="gold" elevated highlighted style={styles.boardPanel}>
         <View testID="board-scene" style={[styles.boardScene, { height: stageSize, marginTop: pointerTopClearance + HEADER_TO_POINTER_GAP, width: stageSize }]}>
-          {DAILY_REWARD_ARTWORK_VALIDITY.decorations ? <View pointerEvents="none" style={styles.decorationsLayer} testID="food-decorations">
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.grapesTopLeft} style={[styles.decoration, { height: decorationSize, left: decorationInset, top: decorationInset, width: decorationSize }]} testID="grapes-top-left" />
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.salamiTopRight} style={[styles.decoration, { height: decorationSize, right: decorationInset, top: decorationInset, width: decorationSize }]} testID="salami-top-right" />
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.olivesBottomLeft} style={[styles.decoration, { bottom: decorationInset, height: decorationSize, left: decorationInset, width: decorationSize }]} testID="olives-bottom-left" />
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.cheeseBottomRight} style={[styles.decoration, { bottom: decorationInset, height: decorationSize, right: decorationInset, width: decorationSize }]} testID="cheese-bottom-right" />
-          </View> : null}
           <View testID="wheel-stage" style={[styles.wheelStage, { height: stageSize, width: stageSize }]}>
           <Animated.View testID="rotating-wheel-assembly" accessibilityLabel="Charcuterie reward board" style={[styles.board, { height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: [{ rotate }] }]}>
           {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image testID="wheel-artwork" resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
@@ -184,10 +181,9 @@ export default function DailyRewardsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: "#070405", flex: 1 }, backgroundArtwork: { ...StyleSheet.absoluteFillObject, zIndex: 0 }, header: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 14, paddingTop: 4, zIndex: 1 },
-  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6 }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1 }, content: { alignSelf: "center", maxWidth: 480, paddingHorizontal: 4, paddingVertical: 14, width: "100%", zIndex: 1 },
-  boardPanel: { paddingHorizontal: 0 }, boardScene: { alignSelf: "center", position: "relative" }, decorationsLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
-  decoration: { opacity: 1, position: "absolute" },
+  screen: { backgroundColor: "#070405", flex: 1 }, backgroundArtwork: { ...StyleSheet.absoluteFillObject, zIndex: 0 }, header: { justifyContent: "center", minHeight: 70, position: "relative", width: "100%", zIndex: 1 }, backButton: { left: 14, position: "absolute", top: 4, zIndex: 2 }, headerTitleGroup: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6, textAlign: "center" }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1, textAlign: "center" }, content: { alignSelf: "center", maxWidth: 480, paddingHorizontal: 4, paddingVertical: 14, width: "100%", zIndex: 1 },
+  boardPanel: { paddingHorizontal: 0 }, boardScene: { alignSelf: "center", position: "relative" },
   wheelStage: { ...StyleSheet.absoluteFillObject, overflow: "visible", zIndex: 2 }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { opacity: 1, position: "absolute", top: 0 },
   slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceText: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2 },
   pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, controls: { paddingHorizontal: 20 }, resultSlot: { marginTop: STAGE_TO_RESULT_GAP, minHeight: RESULT_SLOT_MIN_HEIGHT },

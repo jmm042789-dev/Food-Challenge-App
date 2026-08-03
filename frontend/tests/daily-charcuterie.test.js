@@ -69,26 +69,22 @@ test("production foreground artwork has real alpha without baked backdrops", () 
   }
 });
 
-test("registry keeps all nine current artwork sources available", () => {
+test("registry excludes screen-specific decorations while retaining core artwork", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const artwork = fs.readFileSync(path.join(__dirname, "../src/assets/daily-rewards/artwork.ts"), "utf8");
   for (const source of [
     "background/restaurant-table.png", "wheel/charcuterie-wheel.png",
     "pointer/chef-knife-pointer.png", "hub/fire-feast-hub.png",
-    "decorations/grapes-top-left.png", "decorations/salami-top-right.png",
-    "decorations/olives-bottom-left.png", "decorations/cheese-bottom-right.png",
     "effects/winner-glow.png",
   ]) assert.match(artwork, new RegExp(`require\\(\\"\\./${source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\"\\)`), source);
   assert.match(artwork, /wheel: transparentArtworkIsUsable\(wheel\)/);
   assert.match(artwork, /pointer: transparentArtworkIsUsable\(pointer\)/);
   assert.match(artwork, /hub: transparentArtworkIsUsable\(hub\)/);
-  assert.match(artwork, /decorations: true/);
   assert.match(artwork, /winnerGlow: true/);
-  assert.doesNotMatch(artwork, /hasBakedBackground: true|decorations: \[\]|winnerGlow: null/);
+  assert.doesNotMatch(artwork, /hasBakedBackground: true|decorations|grapesTopLeft|salamiTopRight|olivesBottomLeft|cheeseBottomRight|winnerGlow: null/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.wheel \?/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.pointer \?/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.hub \?/);
-  assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.decorations \?/);
   assert.doesNotMatch(screen, /winnerGlow|winner-glow/);
 });
 
@@ -106,29 +102,18 @@ test("measured wheel content is uniformly centered without arbitrary offsets", (
   assert.doesNotMatch(screen, /-wheelSize|wheelSize \* 1\.5|translate[XY]/);
 });
 
-test("stationary decorations sit outside the rotating square wheel assembly", () => {
+test("food decorations are absent and do not participate in stage geometry", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   assert.match(screen, /wheelStage, \{ height: stageSize, width: stageSize \}/);
-  const assemblyStart = screen.indexOf('testID="rotating-wheel-assembly"');
-  const assemblyEnd = screen.indexOf("</Animated.View>", assemblyStart);
-  for (const id of ["grapes-top-left", "salami-top-right", "olives-bottom-left", "cheese-bottom-right"]) {
-    const position = screen.indexOf(`testID="${id}"`);
-    assert.ok(position >= 0 && position < assemblyStart, id);
-    assert.ok(position < assemblyStart || position > assemblyEnd, id);
-  }
-  assert.match(screen, /decoration: \{ opacity: 1, position: "absolute" \}/);
-  assert.match(screen, /const DECORATION_DIAMETER_RATIO = 0\.14/);
-  assert.match(screen, /const DECORATION_RIM_INSET_RATIO = 0\.08/);
-  assert.match(screen, /const decorationSize = wheelSize \* DECORATION_DIAMETER_RATIO/);
-  assert.match(screen, /const decorationInset = wheelInset \+ wheelSize \* DECORATION_RIM_INSET_RATIO/);
-  assert.doesNotMatch(screen, /grapesTopLeft: \{|salamiTopRight: \{|olivesBottomLeft: \{|cheeseBottomRight: \{/);
+  assert.doesNotMatch(screen, /food-decorations|grapes-top-left|salami-top-right|olives-bottom-left|cheese-bottom-right/);
+  assert.doesNotMatch(screen, /decorationsLayer|decorationSize|decorationInset|DECORATION_|\.decorations/);
 });
 
 test("render order keeps the opaque table below the board artwork", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const orderedMarkers = [
-    'source={DAILY_REWARD_ARTWORK.background}', 'testID="food-decorations"',
-    'testID="wheel-stage"', 'testID="wheel-artwork"', "status.reward_slices.map",
+    'source={DAILY_REWARD_ARTWORK.background}', 'testID="wheel-stage"',
+    'testID="wheel-artwork"', "status.reward_slices.map",
     'testID="center-hub"', 'testID="knife-pointer"', 'style={styles.resultSlot}',
   ];
   let previous = -1;
@@ -138,6 +123,34 @@ test("render order keeps the opaque table below the board artwork", () => {
     previous = position;
   }
   assert.match(screen, /backgroundArtwork: \{ \.\.\.StyleSheet\.absoluteFillObject, zIndex: 0 \}/);
+});
+
+test("full-width header centers title independently from the Back button", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const HEADER_SIDE_GUTTER = 84/);
+  assert.match(screen, /<View style=\{styles\.header\}>[\s\S]*?<View style=\{styles\.backButton\}>[\s\S]*?<View pointerEvents="none" style=\{\[styles\.headerTitleGroup, \{ paddingHorizontal: HEADER_SIDE_GUTTER \}\]\}>/);
+  assert.match(screen, /header: \{ justifyContent: "center", minHeight: 70, position: "relative", width: "100%"/);
+  assert.match(screen, /backButton: \{ left: 14, position: "absolute"/);
+  assert.match(screen, /headerTitleGroup: \{ \.\.\.StyleSheet\.absoluteFillObject, alignItems: "center", justifyContent: "center" \}/);
+  assert.match(screen, /title: \{[^}]*textAlign: "center"/);
+  assert.match(screen, /subtitle: \{[^}]*textAlign: "center"/);
+  assert.doesNotMatch(screen, /header: \{[^}]*flexDirection: "row"/);
+});
+
+test("small-screen header preserves wording with symmetric scaling space", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /adjustsFontSizeToFit minimumFontScale=\{0\.72\} numberOfLines=\{2\}[^>]*>DAILY CHARCUTERIE BOARD/);
+  assert.match(screen, /adjustsFontSizeToFit minimumFontScale=\{0\.8\} numberOfLines=\{2\}[^>]*>ONE FREE SPIN EVERY 24 HOURS/);
+  assert.doesNotMatch(screen, /ellipsizeMode|numberOfLines=\{1\}/);
+});
+
+test("heading, wheel, hub, and pointer share the stage center axis", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /headerTitleGroup: \{ \.\.\.StyleSheet\.absoluteFillObject, alignItems: "center"/);
+  assert.match(screen, /boardScene: \{ alignSelf: "center"/);
+  assert.match(screen, /left: stageSize \/ 2 - \(DAILY_REWARD_ARTWORK\.pointer\.contentBounds\.x/);
+  assert.match(screen, /marginLeft: \(stageSize - hubSize\) \/ 2/);
+  assert.match(screen, /height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize/);
 });
 
 test("wheel labels rotate together while hub and pointer remain stationary", () => {
