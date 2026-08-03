@@ -6,10 +6,11 @@ const test = require("node:test");
 
 const {
   centerImageContentInSquare,
+  DAILY_REWARD_SLICE_COUNT,
+  dailyRewardAnchors,
   formatCountdown,
   landingRotation,
-  normalizeRewardOrientation,
-  rewardAnchors,
+  rewardLabelLines,
   REWARD_LABEL_HEIGHT_RATIO,
   REWARD_LABEL_RADIUS_RATIO,
   REWARD_LABEL_WIDTH_RATIO,
@@ -27,9 +28,9 @@ test("countdown advances from server time instead of device wall time", () => {
 });
 
 test("presentation rotation lands on the backend-selected slice", () => {
-  assert.equal(landingRotation(0, 10, 5), 2142);
-  assert.equal(landingRotation(9, 10, 5), 1818);
-  assert.equal(landingRotation(10, 10, 5), 0);
+  assert.equal(landingRotation(0, 12, 5), 2145);
+  assert.equal(landingRotation(11, 12, 5), 1815);
+  assert.equal(landingRotation(12, 12, 5), 0);
 });
 
 test("screen uses backend eligibility, claim, animation completion, and balances", () => {
@@ -49,23 +50,18 @@ test("screen uses backend eligibility, claim, animation completion, and balances
 test("responsive wheel stage stays square and labels use one wedge-center helper", () => {
   assert.equal(wheelStageSize(320), 320);
   assert.equal(wheelStageSize(900), 468);
-  const [first] = rewardAnchors(10, 300);
-  assert.equal(first.sliceCenter, -72);
-  assert.equal(first.rotation, 18);
+  const [first] = dailyRewardAnchors(300);
+  assert.equal(first.sliceCenter, -75);
+  assert.equal(first.rotation, 0);
   assert.ok(first.centerY < 70);
   assert.ok(first.centerX > 150);
 });
 
-test("production foreground artwork has real alpha without baked backdrops", () => {
+test("rendered foreground artwork has real alpha without baked backdrops", () => {
   for (const asset of [
     "wheel/charcuterie-wheel.png",
     "pointer/chef-knife-pointer.png",
     "hub/fire-feast-hub.png",
-    "decorations/grapes-top-left.png",
-    "decorations/salami-top-right.png",
-    "decorations/olives-bottom-left.png",
-    "decorations/cheese-bottom-right.png",
-    "effects/winner-glow.png",
   ]) {
     const artwork = inspect(asset);
     assert.equal(artwork.alphaChannel, true, asset);
@@ -213,10 +209,11 @@ test("pointer lowers the complete audited image ten percent into the wheel witho
   assert.equal(pointerTip - rimTop, 36);
 });
 
-test("ten equal wedges use one centered polar anchor geometry", () => {
-  const anchors = rewardAnchors(10, 360);
-  assert.equal(anchors.length, 10);
-  assert.deepEqual(anchors.map(({ sliceCenter }) => sliceCenter), [-72, -36, 0, 36, 72, 108, 144, 180, 216, 252]);
+test("twelve equal painted panels use one centered thirty-degree anchor geometry", () => {
+  const anchors = dailyRewardAnchors(360);
+  assert.equal(DAILY_REWARD_SLICE_COUNT, 12);
+  assert.equal(anchors.length, 12);
+  assert.deepEqual(anchors.map(({ sliceCenter }) => sliceCenter), [-75, -45, -15, 15, 45, 75, 105, 135, 165, 195, 225, 255]);
   assert.ok(anchors.every(({ radius }) => radius === 360 * REWARD_LABEL_RADIUS_RATIO));
   assert.ok(anchors.every(({ width }) => width === 360 * REWARD_LABEL_WIDTH_RATIO));
   assert.ok(anchors.every(({ height }) => height === 360 * REWARD_LABEL_HEIGHT_RATIO));
@@ -230,29 +227,39 @@ test("uniform reward boxes clear the hub, rim, and divider centerlines", () => {
   const hubRadiusRatio = (0.22 / 0.92) / 2;
   const innerEdge = REWARD_LABEL_RADIUS_RATIO - REWARD_LABEL_HEIGHT_RATIO / 2;
   const outerEdge = REWARD_LABEL_RADIUS_RATIO + REWARD_LABEL_HEIGHT_RATIO / 2;
-  const dividerHalfWidthAtRadius = REWARD_LABEL_RADIUS_RATIO * Math.sin(Math.PI / 10);
+  const dividerHalfWidthAtRadius = REWARD_LABEL_RADIUS_RATIO * Math.sin(Math.PI / 12);
   assert.ok(innerEdge > hubRadiusRatio);
   assert.ok(outerEdge < 0.5);
   assert.ok(REWARD_LABEL_WIDTH_RATIO / 2 < dividerHalfWidthAtRadius);
 });
 
-test("reward orientation is normalized consistently and has no per-slice nudges", () => {
-  const anchors = rewardAnchors(10, 360);
-  assert.ok(anchors.every(({ rotation }) => rotation >= -90 && rotation <= 90));
-  assert.deepEqual(anchors.map(({ sliceCenter }) => normalizeRewardOrientation(sliceCenter + 90)), anchors.map(({ rotation }) => rotation));
+test("all twelve reward labels stay upright with no per-slice nudges", () => {
+  const anchors = dailyRewardAnchors(360);
+  assert.ok(anchors.every(({ rotation }) => rotation === 0));
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.match(screen, /const anchors = rewardAnchors\(status\.reward_slices\.length, wheelSize\)/);
+  assert.match(screen, /const anchors = dailyRewardAnchors\(wheelSize\)/);
   assert.match(screen, /alignItems: "center", justifyContent: "center"/);
   assert.match(screen, /height: anchor\.height, left: anchor\.left, top: anchor\.top/);
   assert.doesNotMatch(screen, /rewardOffsets|sliceOffsets|nudges|index ===|switch \(index\)/);
 });
 
 test("backend-selected wedge center still lands beneath the lowered twelve-o-clock pointer", () => {
-  for (let index = 0; index < 10; index += 1) {
-    const anchor = rewardAnchors(10, 360)[index];
-    const finalCenter = ((anchor.sliceCenter + landingRotation(index, 10, 5)) % 360 + 360) % 360;
+  for (let index = 0; index < 12; index += 1) {
+    const anchor = dailyRewardAnchors(360)[index];
+    const finalCenter = ((anchor.sliceCenter + landingRotation(index, 12, 5)) % 360 + 360) % 360;
     assert.equal(finalCenter, 270);
   }
+});
+
+test("new backend reward IDs render concise twelve-panel labels", () => {
+  const backend = fs.readFileSync(path.join(__dirname, "../../backend/services/daily_reward_service.py"), "utf8");
+  assert.match(backend, /"id": "large_xp_bonus"[^\n]*"kind": "xp"[^\n]*"amount": 1000/);
+  assert.match(backend, /"id": "antacid_bundle"[^\n]*"kind": "antacid"[^\n]*"amount": 3/);
+  assert.deepEqual(rewardLabelLines({ amount: 1000, kind: "xp" }), { amount: "1000", kind: "XP" });
+  assert.deepEqual(rewardLabelLines({ amount: 3, kind: "antacid" }), { amount: "3", kind: "ANTACIDS" });
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const label = rewardLabelLines\(slice\)/);
+  assert.doesNotMatch(screen, /large_xp_bonus|antacid_bundle/);
 });
 
 test("stage grows within the viewport and keeps equal horizontal spacing", () => {
@@ -298,7 +305,7 @@ test("reward mapping and landing angle remain backend authoritative", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   assert.match(screen, /findIndex\(\(slice\) => slice\.id === result\.reward\?\.id\)/);
   assert.match(screen, /mappedIndex !== result\.reward_index/);
-  assert.equal(landingRotation(3, 10, 5), 2034);
+  assert.equal(landingRotation(3, 12, 5), 2055);
 });
 
 test("every required production asset exists", () => {

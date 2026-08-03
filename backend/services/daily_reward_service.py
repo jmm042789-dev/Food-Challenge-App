@@ -13,14 +13,16 @@ STREAK_GRACE = timedelta(hours=48)
 # Weights are relative and intentionally centralized so beta balance can be
 # adjusted without changing claim or persistence behavior.
 DAILY_REWARD_TABLE = (
-    {"id": "small_coins", "label": "Small Coins", "kind": "coins", "amount": 100, "weight": 28},
-    {"id": "medium_coins", "label": "Medium Coins", "kind": "coins", "amount": 250, "weight": 18},
-    {"id": "large_coins", "label": "Large Coins", "kind": "coins", "amount": 500, "weight": 9},
-    {"id": "small_xp", "label": "Small XP", "kind": "xp", "amount": 75, "weight": 18},
-    {"id": "medium_xp", "label": "Medium XP", "kind": "xp", "amount": 150, "weight": 12},
+    {"id": "small_coins", "label": "Small Coins", "kind": "coins", "amount": 100, "weight": 25},
+    {"id": "medium_coins", "label": "Medium Coins", "kind": "coins", "amount": 250, "weight": 17},
+    {"id": "large_coins", "label": "Large Coins", "kind": "coins", "amount": 500, "weight": 8},
+    {"id": "small_xp", "label": "Small XP", "kind": "xp", "amount": 75, "weight": 17},
+    {"id": "medium_xp", "label": "Medium XP", "kind": "xp", "amount": 150, "weight": 11},
     {"id": "large_xp", "label": "Large XP", "kind": "xp", "amount": 300, "weight": 6},
+    {"id": "large_xp_bonus", "label": "Large XP Bonus", "kind": "xp", "amount": 1000, "weight": 4},
     {"id": "one_antacid", "label": "1 Antacid", "kind": "antacid", "amount": 1, "weight": 5},
-    {"id": "two_antacids", "label": "2 Antacids", "kind": "antacid", "amount": 2, "weight": 2},
+    {"id": "two_antacids", "label": "2 Antacids", "kind": "antacid", "amount": 2, "weight": 3},
+    {"id": "antacid_bundle", "label": "Antacid Bundle", "kind": "antacid", "amount": 3, "weight": 2},
     {"id": "jackpot_coins", "label": "Jackpot Coins", "kind": "coins", "amount": 1500, "weight": 1},
     {"id": "jackpot_xp", "label": "Jackpot XP", "kind": "xp", "amount": 750, "weight": 1},
 )

@@ -37,18 +37,12 @@ export function wheelStageSize(usableWidth: number) {
   return Math.min(468, Math.max(240, usableWidth));
 }
 
+export const DAILY_REWARD_SLICE_COUNT = 12;
 export const REWARD_LABEL_RADIUS_RATIO = 0.32;
-export const REWARD_LABEL_WIDTH_RATIO = 0.16;
-export const REWARD_LABEL_HEIGHT_RATIO = 0.11;
+export const REWARD_LABEL_WIDTH_RATIO = 0.13;
+export const REWARD_LABEL_HEIGHT_RATIO = 0.1;
 
 const REWARD_SLICE_START_ANGLE = -90;
-
-export function normalizeRewardOrientation(angle: number) {
-  let normalized = ((angle + 180) % 360 + 360) % 360 - 180;
-  if (normalized > 90) normalized -= 180;
-  if (normalized < -90) normalized += 180;
-  return normalized;
-}
 
 export function rewardAnchors(sliceCount: number, wheelDiameter: number) {
   if (sliceCount < 1 || wheelDiameter <= 0) return [];
@@ -70,10 +64,21 @@ export function rewardAnchors(sliceCount: number, wheelDiameter: number) {
       radius,
       sliceCenter,
       top: centerY - height / 2,
-      rotation: normalizeRewardOrientation(sliceCenter + 90),
+      rotation: 0,
       width,
     };
   });
+}
+
+export function dailyRewardAnchors(wheelDiameter: number) {
+  return rewardAnchors(DAILY_REWARD_SLICE_COUNT, wheelDiameter);
+}
+
+export function rewardLabelLines(reward: Pick<DailyRewardSlice, "amount" | "kind">) {
+  return {
+    amount: String(reward.amount),
+    kind: reward.kind === "antacid" ? "ANTACIDS" : reward.kind.toUpperCase(),
+  };
 }
 
 export type ImageContentGeometry = {

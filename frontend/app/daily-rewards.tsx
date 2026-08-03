@@ -15,7 +15,8 @@ import {
   formatCountdown,
   landingRotation,
   serverCountdownMs,
-  rewardAnchors,
+  dailyRewardAnchors,
+  rewardLabelLines,
   wheelStageSize,
   type DailySpinClaim,
   type DailySpinStatus,
@@ -138,7 +139,7 @@ export default function DailyRewardsScreen() {
     width: pointerArtworkWidth,
   };
   const pointerTopClearance = Math.max(0, -pointerRimTop);
-  const anchors = rewardAnchors(status.reward_slices.length, wheelSize);
+  const anchors = dailyRewardAnchors(wheelSize);
   const hubImageLayout = centerImageContentInSquare({
     canvasWidth: DAILY_REWARD_ARTWORK.hub.canvas.width,
     canvasHeight: DAILY_REWARD_ARTWORK.hub.canvas.height,
@@ -162,9 +163,10 @@ export default function DailyRewardsScreen() {
           {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image testID="wheel-artwork" resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
           {status.reward_slices.map((slice, index) => {
             const anchor = anchors[index];
+            const label = rewardLabelLines(slice);
             return <View key={slice.id} style={[styles.slice, { height: anchor.height, left: anchor.left, top: anchor.top, transform: [{ rotate: `${anchor.rotation}deg` }], width: anchor.width }]}>
-              <Text numberOfLines={1} style={styles.sliceAmount}>{slice.amount}</Text>
-              <Text numberOfLines={1} style={styles.sliceKind}>{slice.kind === "antacid" ? "ANTACID" : slice.kind.toUpperCase()}</Text>
+              <Text numberOfLines={1} style={styles.sliceAmount}>{label.amount}</Text>
+              <Text numberOfLines={1} style={styles.sliceKind}>{label.kind}</Text>
             </View>;
           })}
           </Animated.View>
