@@ -43,8 +43,8 @@ test("screen uses backend eligibility, claim, animation completion, and balances
 });
 
 test("responsive wheel stage stays square and labels use one wedge-center helper", () => {
-  assert.equal(wheelStageSize(320), 292);
-  assert.equal(wheelStageSize(900), 420);
+  assert.equal(wheelStageSize(320), 320);
+  assert.equal(wheelStageSize(900), 468);
   const first = rewardPosition(0, 10, 300);
   assert.ok(first.top < 70);
   assert.ok(first.left > 150);
@@ -117,6 +117,11 @@ test("stationary decorations sit outside the rotating square wheel assembly", ()
     assert.ok(position < assemblyStart || position > assemblyEnd, id);
   }
   assert.match(screen, /decoration: \{ opacity: 1, position: "absolute" \}/);
+  assert.match(screen, /const DECORATION_DIAMETER_RATIO = 0\.14/);
+  assert.match(screen, /const DECORATION_RIM_INSET_RATIO = 0\.08/);
+  assert.match(screen, /const decorationSize = wheelSize \* DECORATION_DIAMETER_RATIO/);
+  assert.match(screen, /const decorationInset = wheelInset \+ wheelSize \* DECORATION_RIM_INSET_RATIO/);
+  assert.doesNotMatch(screen, /grapesTopLeft: \{|salamiTopRight: \{|olivesBottomLeft: \{|cheeseBottomRight: \{/);
 });
 
 test("render order keeps the opaque table below the board artwork", () => {
@@ -154,7 +159,10 @@ test("wheel labels rotate together while hub and pointer remain stationary", () 
 
 test("the complete square stage reserves pointer clearance below the flow-laid-out header", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.match(screen, /const HEADER_TO_POINTER_GAP = 16/);
+  assert.match(screen, /const HEADER_TO_POINTER_GAP = 52/);
+  assert.match(screen, /const STAGE_HORIZONTAL_INSET = 12/);
+  assert.match(screen, /const WHEEL_DIAMETER_RATIO = 0\.92/);
+  assert.match(screen, /wheelStageSize\(Math\.min\(width, 480\) - STAGE_HORIZONTAL_INSET\)/);
   assert.match(screen, /const pointerTopClearance = Math\.max\(0, -pointerLayout\.top\)/);
   assert.match(screen, /height: stageSize, marginTop: pointerTopClearance \+ HEADER_TO_POINTER_GAP, width: stageSize/);
   assert.match(screen, /boardScene: \{ alignSelf: "center", position: "relative" \}/);
@@ -162,13 +170,33 @@ test("the complete square stage reserves pointer clearance below the flow-laid-o
   assert.doesNotMatch(screen, /marginTop: -|marginBottom: -|translateY/);
 
   const stageSize = 420;
-  const wheelSize = stageSize * 0.88;
+  const wheelSize = stageSize * 0.92;
   const wheelInset = (stageSize - wheelSize) / 2;
   const pointerHeight = wheelSize * 0.32;
   const pointerScale = pointerHeight / 467;
   const pointerTop = wheelInset - (16 + 467) * pointerScale;
-  const pointerTopInPanel = Math.max(0, -pointerTop) + 16 + pointerTop;
-  assert.ok(Math.abs(pointerTopInPanel - 16) < 1e-9);
+  const pointerTopInPanel = Math.max(0, -pointerTop) + 52 + pointerTop;
+  assert.ok(Math.abs(pointerTopInPanel - 52) < 1e-9);
+});
+
+test("stage grows within the viewport and keeps equal horizontal spacing", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  const previousSmallPhoneStage = 320 - 28 - 28;
+  const currentSmallPhoneStage = wheelStageSize(320 - 12);
+  assert.ok(currentSmallPhoneStage / previousSmallPhoneStage >= 1.15);
+  assert.ok(currentSmallPhoneStage <= 320 - 12);
+  assert.match(screen, /content: \{ alignSelf: "center", maxWidth: 480, paddingHorizontal: 4/);
+  assert.match(screen, /boardPanel: \{ paddingHorizontal: 0 \}/);
+  assert.match(screen, /boardScene: \{ alignSelf: "center"/);
+});
+
+test("result reservation is compact and cannot reposition the preceding stage", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const STAGE_TO_RESULT_GAP = 0/);
+  assert.match(screen, /const RESULT_SLOT_MIN_HEIGHT = 68/);
+  assert.match(screen, /resultSlot: \{ marginTop: STAGE_TO_RESULT_GAP, minHeight: RESULT_SLOT_MIN_HEIGHT \}/);
+  assert.ok(screen.indexOf('testID="board-scene"') < screen.indexOf('style={styles.resultSlot}'));
+  assert.doesNotMatch(screen, /claim \?.*stageSize|claim \?.*boardScene/);
 });
 
 test("winner glow presentation and animation are absent", () => {
@@ -185,7 +213,7 @@ test("only the fixed square wheel assembly rotates and result state does not mov
   assert.match(screen, /height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize/);
   assert.match(screen, /mappedIndex !== result\.reward_index/);
   assert.match(screen, /preferences\.reducedMotion \? 0 : 5/);
-  assert.match(screen, /resultSlot: \{ minHeight: 82 \}/);
+  assert.match(screen, /resultSlot: \{ marginTop: STAGE_TO_RESULT_GAP, minHeight: RESULT_SLOT_MIN_HEIGHT \}/);
   assert.doesNotMatch(screen, /claim \?.*wheelStage|claim \?.*wheelInset/);
   assert.doesNotMatch(screen, /spring|bounce|perspective|skew/);
 });

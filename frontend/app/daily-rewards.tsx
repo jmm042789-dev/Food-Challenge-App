@@ -21,7 +21,13 @@ import {
   type DailySpinStatus,
 } from "../src/retention/DailyRewards";
 
-const HEADER_TO_POINTER_GAP = 16;
+const HEADER_TO_POINTER_GAP = 52;
+const STAGE_HORIZONTAL_INSET = 12;
+const WHEEL_DIAMETER_RATIO = 0.92;
+const DECORATION_DIAMETER_RATIO = 0.14;
+const DECORATION_RIM_INSET_RATIO = 0.08;
+const STAGE_TO_RESULT_GAP = 0;
+const RESULT_SLOT_MIN_HEIGHT = 68;
 
 export default function DailyRewardsScreen() {
   const router = useRouter();
@@ -110,9 +116,11 @@ export default function DailyRewardsScreen() {
   if (loading && !status) return <View style={styles.screen}><FireLoading title="Preparing the Board..." subtitle="Checking today's free spin." /></View>;
   if (!status) return <View style={styles.screen}><FireEmptyState icon="!" title="Board Unavailable" message={error ?? "Please try again."} buttonLabel="RETRY" onPress={() => { void refresh(); }} /></View>;
 
-  const stageSize = wheelStageSize(Math.min(width, 480) - 28);
-  const wheelSize = stageSize * 0.88;
+  const stageSize = wheelStageSize(Math.min(width, 480) - STAGE_HORIZONTAL_INSET);
+  const wheelSize = stageSize * WHEEL_DIAMETER_RATIO;
   const wheelInset = (stageSize - wheelSize) / 2;
+  const decorationSize = wheelSize * DECORATION_DIAMETER_RATIO;
+  const decorationInset = wheelInset + wheelSize * DECORATION_RIM_INSET_RATIO;
   const hubSize = stageSize * 0.22;
   const pointerHeight = wheelSize * 0.32;
   const wheelImageLayout = centerImageContentInSquare({
@@ -140,13 +148,13 @@ export default function DailyRewardsScreen() {
     <Image resizeMode="cover" source={DAILY_REWARD_ARTWORK.background} style={styles.backgroundArtwork} />
     <View style={styles.header}><FireButton title="BACK" size="compact" variant="ghost" onPress={() => router.back()} /><View><Text accessibilityRole="header" style={styles.title}>DAILY CHARCUTERIE BOARD</Text><Text style={styles.subtitle}>ONE FREE SPIN EVERY 24 HOURS</Text></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <FirePanel accent="gold" elevated highlighted>
+      <FirePanel accent="gold" elevated highlighted style={styles.boardPanel}>
         <View testID="board-scene" style={[styles.boardScene, { height: stageSize, marginTop: pointerTopClearance + HEADER_TO_POINTER_GAP, width: stageSize }]}>
           {DAILY_REWARD_ARTWORK_VALIDITY.decorations ? <View pointerEvents="none" style={styles.decorationsLayer} testID="food-decorations">
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.grapesTopLeft} style={[styles.decoration, styles.grapesTopLeft]} testID="grapes-top-left" />
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.salamiTopRight} style={[styles.decoration, styles.salamiTopRight]} testID="salami-top-right" />
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.olivesBottomLeft} style={[styles.decoration, styles.olivesBottomLeft]} testID="olives-bottom-left" />
-            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.cheeseBottomRight} style={[styles.decoration, styles.cheeseBottomRight]} testID="cheese-bottom-right" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.grapesTopLeft} style={[styles.decoration, { height: decorationSize, left: decorationInset, top: decorationInset, width: decorationSize }]} testID="grapes-top-left" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.salamiTopRight} style={[styles.decoration, { height: decorationSize, right: decorationInset, top: decorationInset, width: decorationSize }]} testID="salami-top-right" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.olivesBottomLeft} style={[styles.decoration, { bottom: decorationInset, height: decorationSize, left: decorationInset, width: decorationSize }]} testID="olives-bottom-left" />
+            <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.cheeseBottomRight} style={[styles.decoration, { bottom: decorationInset, height: decorationSize, right: decorationInset, width: decorationSize }]} testID="cheese-bottom-right" />
           </View> : null}
           <View testID="wheel-stage" style={[styles.wheelStage, { height: stageSize, width: stageSize }]}>
           <Animated.View testID="rotating-wheel-assembly" accessibilityLabel="Charcuterie reward board" style={[styles.board, { height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: [{ rotate }] }]}>
@@ -163,11 +171,13 @@ export default function DailyRewardsScreen() {
           </View>
         </View>
 
-        <View style={styles.resultSlot}>{claim ? <View accessible accessibilityLiveRegion="polite" style={styles.rewardPanel}><Text style={styles.won}>YOU WON!</Text><Text style={styles.rewardText}>{claim.reward.label}: +{claim.reward.amount} {claim.reward.kind.toUpperCase()}</Text><Text style={styles.balanceText}>Coins {claim.player.coins ?? 0} · XP {claim.player.xp ?? 0} · Antacids {claim.player.antacid ?? 0}</Text></View> : null}</View>
-        {!status.eligible ? <View style={styles.countdown}><Text style={styles.countdownLabel}>NEXT FREE SPIN:</Text><Text style={styles.countdownValue}>{countdown}</Text></View> : null}
-        {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-        <FireButton disabled={!status.eligible || spinning} fullWidth title={spinning ? "SERVING YOUR REWARD..." : status.eligible ? "SPIN NOW" : "FREE SPIN REDEEMED"} variant="gold" onPress={() => { void spin(); }} />
-        <Text style={styles.streak}>DAILY STREAK: {status.daily_spin_streak} · Closed Beta free spin</Text>
+        <View style={styles.controls}>
+          <View style={styles.resultSlot}>{claim ? <View accessible accessibilityLiveRegion="polite" style={styles.rewardPanel}><Text style={styles.won}>YOU WON!</Text><Text style={styles.rewardText}>{claim.reward.label}: +{claim.reward.amount} {claim.reward.kind.toUpperCase()}</Text><Text style={styles.balanceText}>Coins {claim.player.coins ?? 0} · XP {claim.player.xp ?? 0} · Antacids {claim.player.antacid ?? 0}</Text></View> : null}</View>
+          {!status.eligible ? <View style={styles.countdown}><Text style={styles.countdownLabel}>NEXT FREE SPIN:</Text><Text style={styles.countdownValue}>{countdown}</Text></View> : null}
+          {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
+          <FireButton disabled={!status.eligible || spinning} fullWidth title={spinning ? "SERVING YOUR REWARD..." : status.eligible ? "SPIN NOW" : "FREE SPIN REDEEMED"} variant="gold" onPress={() => { void spin(); }} />
+          <Text style={styles.streak}>DAILY STREAK: {status.daily_spin_streak} · Closed Beta free spin</Text>
+        </View>
       </FirePanel>
     </ScrollView>
   </SafeAreaView>;
@@ -175,12 +185,12 @@ export default function DailyRewardsScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 }, backgroundArtwork: { ...StyleSheet.absoluteFillObject, zIndex: 0 }, header: { alignItems: "center", flexDirection: "row", gap: 12, paddingHorizontal: 14, paddingTop: 4, zIndex: 1 },
-  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6 }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1 }, content: { alignSelf: "center", maxWidth: 480, padding: 14, width: "100%", zIndex: 1 },
-  boardScene: { alignSelf: "center", position: "relative" }, decorationsLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
-  decoration: { opacity: 1, position: "absolute" }, grapesTopLeft: { height: "31%", left: 0, top: 0, width: "22%" }, salamiTopRight: { height: "22%", right: 0, top: 0, width: "29%" }, olivesBottomLeft: { bottom: 0, height: "27%", left: 0, width: "25%" }, cheeseBottomRight: { bottom: 0, height: "22%", right: 0, width: "31%" },
+  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6 }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1 }, content: { alignSelf: "center", maxWidth: 480, paddingHorizontal: 4, paddingVertical: 14, width: "100%", zIndex: 1 },
+  boardPanel: { paddingHorizontal: 0 }, boardScene: { alignSelf: "center", position: "relative" }, decorationsLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+  decoration: { opacity: 1, position: "absolute" },
   wheelStage: { ...StyleSheet.absoluteFillObject, overflow: "visible", zIndex: 2 }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { opacity: 1, position: "absolute", top: 0 },
   slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceText: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2 },
-  pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, resultSlot: { minHeight: 82 },
+  pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, controls: { paddingHorizontal: 20 }, resultSlot: { marginTop: STAGE_TO_RESULT_GAP, minHeight: RESULT_SLOT_MIN_HEIGHT },
   rewardPanel: { backgroundColor: "rgba(91,39,12,0.9)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, marginBottom: 12, padding: 12 }, won: { color: "#FFD06A", fontSize: 22, fontWeight: "900", textAlign: "center" }, rewardText: { color: "#FFF0D8", fontSize: 15, fontWeight: "900", marginTop: 4, textAlign: "center" }, balanceText: { color: "#D8C5B3", fontSize: 10, marginTop: 7, textAlign: "center" },
   countdown: { alignItems: "center", marginBottom: 12 }, countdownLabel: { color: "#C89A61", fontSize: 10, fontWeight: "900" }, countdownValue: { color: "#FFF0D8", fontSize: 24, fontVariant: ["tabular-nums"], fontWeight: "900", marginTop: 3 }, error: { color: "#FFAA91", fontSize: 11, marginBottom: 10, textAlign: "center" }, streak: { color: "#A98B70", fontSize: 9, fontWeight: "800", marginTop: 9, textAlign: "center" },
 });

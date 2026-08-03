@@ -34,7 +34,7 @@ export function landingRotation(rewardIndex: number, sliceCount: number, turns: 
 }
 
 export function wheelStageSize(usableWidth: number) {
-  return Math.min(420, Math.max(240, usableWidth - 28));
+  return Math.min(468, Math.max(240, usableWidth));
 }
 
 export function rewardPosition(index: number, sliceCount: number, stageSize: number) {
