@@ -21,12 +21,13 @@ import {
   type DailySpinStatus,
 } from "../src/retention/DailyRewards";
 
+const HEADER_TO_POINTER_GAP = 16;
+
 export default function DailyRewardsScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { preferences } = useAppPreferences();
   const rotation = useRef(new Animated.Value(0)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
   const responseReceivedAt = useRef(Date.now());
   const [status, setStatus] = useState<DailySpinStatus | null>(null);
   const [claim, setClaim] = useState<DailySpinClaim | null>(null);
@@ -56,7 +57,7 @@ export default function DailyRewardsScreen() {
     const timer = setInterval(() => setElapsed(Date.now() - responseReceivedAt.current), 1000);
     return () => clearInterval(timer);
   }, [status]);
-  useEffect(() => () => { rotation.stopAnimation(); glowOpacity.stopAnimation(); }, [glowOpacity, rotation]);
+  useEffect(() => () => rotation.stopAnimation(), [rotation]);
 
   const countdown = useMemo(() => status
     ? formatCountdown(serverCountdownMs(status.server_time, status.next_daily_spin, elapsed))
@@ -84,14 +85,6 @@ export default function DailyRewardsScreen() {
       }).start(({ finished }) => {
         if (finished) {
           setClaim(result);
-          if (preferences.reducedMotion) Animated.sequence([
-            Animated.timing(glowOpacity, { toValue: 0.7, duration: 100, useNativeDriver: true }),
-            Animated.timing(glowOpacity, { toValue: 0, delay: 350, duration: 150, useNativeDriver: true }),
-          ]).start();
-          else Animated.sequence([
-            Animated.timing(glowOpacity, { toValue: 0.82, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-            Animated.timing(glowOpacity, { toValue: 0, delay: 700, duration: 420, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-          ]).start();
           responseReceivedAt.current = Date.now();
           setElapsed(0);
           setStatus((current) => current ? {
@@ -106,12 +99,11 @@ export default function DailyRewardsScreen() {
         setSpinning(false);
       });
     } catch {
-      glowOpacity.setValue(0);
       setSpinning(false);
       setError("This spin could not be completed. Your availability and balances remain server controlled.");
       void refresh();
     }
-  }, [glowOpacity, preferences.reducedMotion, refresh, rotation, spinning, status]);
+  }, [preferences.reducedMotion, refresh, rotation, spinning, status]);
 
   const rotate = rotation.interpolate({ inputRange: [0, 360], outputRange: ["0deg", "360deg"] });
 
@@ -137,6 +129,7 @@ export default function DailyRewardsScreen() {
     top: wheelInset - (DAILY_REWARD_ARTWORK.pointer.contentBounds.y + DAILY_REWARD_ARTWORK.pointer.contentBounds.height) * pointerScale,
     width: pointerArtworkWidth,
   };
+  const pointerTopClearance = Math.max(0, -pointerLayout.top);
   const hubImageLayout = centerImageContentInSquare({
     canvasWidth: DAILY_REWARD_ARTWORK.hub.canvas.width,
     canvasHeight: DAILY_REWARD_ARTWORK.hub.canvas.height,
@@ -148,7 +141,7 @@ export default function DailyRewardsScreen() {
     <View style={styles.header}><FireButton title="BACK" size="compact" variant="ghost" onPress={() => router.back()} /><View><Text accessibilityRole="header" style={styles.title}>DAILY CHARCUTERIE BOARD</Text><Text style={styles.subtitle}>ONE FREE SPIN EVERY 24 HOURS</Text></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <FirePanel accent="gold" elevated highlighted>
-        <View testID="board-scene" style={[styles.boardScene, { height: stageSize, width: stageSize }]}>
+        <View testID="board-scene" style={[styles.boardScene, { height: stageSize, marginTop: pointerTopClearance + HEADER_TO_POINTER_GAP, width: stageSize }]}>
           {DAILY_REWARD_ARTWORK_VALIDITY.decorations ? <View pointerEvents="none" style={styles.decorationsLayer} testID="food-decorations">
             <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.grapesTopLeft} style={[styles.decoration, styles.grapesTopLeft]} testID="grapes-top-left" />
             <Image resizeMode="contain" source={DAILY_REWARD_ARTWORK.decorations.salamiTopRight} style={[styles.decoration, styles.salamiTopRight]} testID="salami-top-right" />
@@ -167,7 +160,6 @@ export default function DailyRewardsScreen() {
           </Animated.View>
           {DAILY_REWARD_ARTWORK_VALIDITY.hub ? <Image testID="center-hub" resizeMode="contain" source={DAILY_REWARD_ARTWORK.hub.source} style={[styles.hubArtwork, hubImageLayout, { marginLeft: (stageSize - hubSize) / 2, marginTop: (stageSize - hubSize) / 2 }]} /> : null}
           {DAILY_REWARD_ARTWORK_VALIDITY.pointer ? <Image testID="knife-pointer" resizeMode="contain" source={DAILY_REWARD_ARTWORK.pointer.source} style={[styles.pointerArtwork, pointerLayout]} /> : null}
-          {claim && DAILY_REWARD_ARTWORK_VALIDITY.winnerGlow ? <Animated.Image testID="winner-glow" resizeMode="contain" source={DAILY_REWARD_ARTWORK.winnerGlow} style={[styles.winnerGlow, { opacity: glowOpacity }]} /> : null}
           </View>
         </View>
 
@@ -188,7 +180,7 @@ const styles = StyleSheet.create({
   decoration: { opacity: 1, position: "absolute" }, grapesTopLeft: { height: "31%", left: 0, top: 0, width: "22%" }, salamiTopRight: { height: "22%", right: 0, top: 0, width: "29%" }, olivesBottomLeft: { bottom: 0, height: "27%", left: 0, width: "25%" }, cheeseBottomRight: { bottom: 0, height: "22%", right: 0, width: "31%" },
   wheelStage: { ...StyleSheet.absoluteFillObject, overflow: "visible", zIndex: 2 }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { opacity: 1, position: "absolute", top: 0 },
   slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceText: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2 },
-  pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, winnerGlow: { ...StyleSheet.absoluteFillObject, zIndex: 6 }, resultSlot: { minHeight: 82 },
+  pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, resultSlot: { minHeight: 82 },
   rewardPanel: { backgroundColor: "rgba(91,39,12,0.9)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, marginBottom: 12, padding: 12 }, won: { color: "#FFD06A", fontSize: 22, fontWeight: "900", textAlign: "center" }, rewardText: { color: "#FFF0D8", fontSize: 15, fontWeight: "900", marginTop: 4, textAlign: "center" }, balanceText: { color: "#D8C5B3", fontSize: 10, marginTop: 7, textAlign: "center" },
   countdown: { alignItems: "center", marginBottom: 12 }, countdownLabel: { color: "#C89A61", fontSize: 10, fontWeight: "900" }, countdownValue: { color: "#FFF0D8", fontSize: 24, fontVariant: ["tabular-nums"], fontWeight: "900", marginTop: 3 }, error: { color: "#FFAA91", fontSize: 11, marginBottom: 10, textAlign: "center" }, streak: { color: "#A98B70", fontSize: 9, fontWeight: "800", marginTop: 9, textAlign: "center" },
 });

@@ -69,7 +69,7 @@ test("production foreground artwork has real alpha without baked backdrops", () 
   }
 });
 
-test("registry exposes all nine current artwork sources and enables valid foregrounds", () => {
+test("registry keeps all nine current artwork sources available", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const artwork = fs.readFileSync(path.join(__dirname, "../src/assets/daily-rewards/artwork.ts"), "utf8");
   for (const source of [
@@ -89,7 +89,7 @@ test("registry exposes all nine current artwork sources and enables valid foregr
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.pointer \?/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.hub \?/);
   assert.match(screen, /DAILY_REWARD_ARTWORK_VALIDITY\.decorations \?/);
-  assert.match(screen, /claim && DAILY_REWARD_ARTWORK_VALIDITY\.winnerGlow \?/);
+  assert.doesNotMatch(screen, /winnerGlow|winner-glow/);
 });
 
 test("measured wheel content is uniformly centered without arbitrary offsets", () => {
@@ -119,13 +119,12 @@ test("stationary decorations sit outside the rotating square wheel assembly", ()
   assert.match(screen, /decoration: \{ opacity: 1, position: "absolute" \}/);
 });
 
-test("render order keeps the opaque table below every artwork layer", () => {
+test("render order keeps the opaque table below the board artwork", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const orderedMarkers = [
     'source={DAILY_REWARD_ARTWORK.background}', 'testID="food-decorations"',
     'testID="wheel-stage"', 'testID="wheel-artwork"', "status.reward_slices.map",
-    'testID="center-hub"', 'testID="knife-pointer"', 'testID="winner-glow"',
-    'style={styles.resultSlot}',
+    'testID="center-hub"', 'testID="knife-pointer"', 'style={styles.resultSlot}',
   ];
   let previous = -1;
   for (const marker of orderedMarkers) {
@@ -136,23 +135,46 @@ test("render order keeps the opaque table below every artwork layer", () => {
   assert.match(screen, /backgroundArtwork: \{ \.\.\.StyleSheet\.absoluteFillObject, zIndex: 0 \}/);
 });
 
-test("wheel labels rotate together while hub, pointer, and conditional glow remain stationary", () => {
+test("wheel labels rotate together while hub and pointer remain stationary", () => {
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   const assemblyStart = screen.indexOf('testID="rotating-wheel-assembly"');
   const assemblyEnd = screen.indexOf("</Animated.View>", assemblyStart);
   assert.ok(screen.indexOf('testID="wheel-artwork"') > assemblyStart);
   assert.ok(screen.indexOf("status.reward_slices.map") < assemblyEnd);
-  for (const id of ["center-hub", "knife-pointer", "winner-glow"]) assert.ok(screen.indexOf(`testID="${id}"`) > assemblyEnd, id);
+  for (const id of ["center-hub", "knife-pointer"]) assert.ok(screen.indexOf(`testID="${id}"`) > assemblyEnd, id);
   assert.match(screen, /wheelArtwork: \{ opacity: 1/);
   assert.match(screen, /hubArtwork: \{ opacity: 1/);
   assert.match(screen, /pointerArtwork: \{ opacity: 1/);
-  assert.match(screen, /claim && DAILY_REWARD_ARTWORK_VALIDITY\.winnerGlow/);
   assert.match(screen, /if \(finished\) \{[\s\S]*?setClaim\(result\)/);
   const claimFailureStart = screen.lastIndexOf("} catch {");
-  const claimFailureEnd = screen.indexOf("}, [glowOpacity", claimFailureStart);
+  const claimFailureEnd = screen.indexOf("}, [preferences.reducedMotion", claimFailureStart);
   const claimFailure = screen.slice(claimFailureStart, claimFailureEnd);
-  assert.match(claimFailure, /glowOpacity\.setValue\(0\)/);
   assert.doesNotMatch(claimFailure, /setClaim\(|setStatus\([^)]*eligible: false/);
+});
+
+test("the complete square stage reserves pointer clearance below the flow-laid-out header", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const HEADER_TO_POINTER_GAP = 16/);
+  assert.match(screen, /const pointerTopClearance = Math\.max\(0, -pointerLayout\.top\)/);
+  assert.match(screen, /height: stageSize, marginTop: pointerTopClearance \+ HEADER_TO_POINTER_GAP, width: stageSize/);
+  assert.match(screen, /boardScene: \{ alignSelf: "center", position: "relative" \}/);
+  assert.match(screen, /wheelStage: \{ \.\.\.StyleSheet\.absoluteFillObject, overflow: "visible"/);
+  assert.doesNotMatch(screen, /marginTop: -|marginBottom: -|translateY/);
+
+  const stageSize = 420;
+  const wheelSize = stageSize * 0.88;
+  const wheelInset = (stageSize - wheelSize) / 2;
+  const pointerHeight = wheelSize * 0.32;
+  const pointerScale = pointerHeight / 467;
+  const pointerTop = wheelInset - (16 + 467) * pointerScale;
+  const pointerTopInPanel = Math.max(0, -pointerTop) + 16 + pointerTop;
+  assert.ok(Math.abs(pointerTopInPanel - 16) < 1e-9);
+});
+
+test("winner glow presentation and animation are absent", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.doesNotMatch(screen, /winnerGlow|winner-glow|glowOpacity/);
+  assert.doesNotMatch(screen, /Animated\.sequence|toValue: 0\.82|toValue: 0\.7/);
 });
 
 test("only the fixed square wheel assembly rotates and result state does not move it", () => {
