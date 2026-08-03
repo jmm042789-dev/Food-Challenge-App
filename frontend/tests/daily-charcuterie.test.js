@@ -8,7 +8,11 @@ const {
   centerImageContentInSquare,
   formatCountdown,
   landingRotation,
-  rewardPosition,
+  normalizeRewardOrientation,
+  rewardAnchors,
+  REWARD_LABEL_HEIGHT_RATIO,
+  REWARD_LABEL_RADIUS_RATIO,
+  REWARD_LABEL_WIDTH_RATIO,
   serverCountdownMs,
   wheelStageSize,
 } = require("../src/retention/DailyRewards.ts");
@@ -45,10 +49,11 @@ test("screen uses backend eligibility, claim, animation completion, and balances
 test("responsive wheel stage stays square and labels use one wedge-center helper", () => {
   assert.equal(wheelStageSize(320), 320);
   assert.equal(wheelStageSize(900), 468);
-  const first = rewardPosition(0, 10, 300);
-  assert.ok(first.top < 70);
-  assert.ok(first.left > 150);
-  assert.equal(first.angle, 18);
+  const [first] = rewardAnchors(10, 300);
+  assert.equal(first.sliceCenter, -72);
+  assert.equal(first.rotation, 18);
+  assert.ok(first.centerY < 70);
+  assert.ok(first.centerX > 150);
 });
 
 test("production foreground artwork has real alpha without baked backdrops", () => {
@@ -141,7 +146,7 @@ test("small-screen header preserves wording with symmetric scaling space", () =>
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   assert.match(screen, /adjustsFontSizeToFit minimumFontScale=\{0\.72\} numberOfLines=\{2\}[^>]*>DAILY CHARCUTERIE BOARD/);
   assert.match(screen, /adjustsFontSizeToFit minimumFontScale=\{0\.8\} numberOfLines=\{2\}[^>]*>ONE FREE SPIN EVERY 24 HOURS/);
-  assert.doesNotMatch(screen, /ellipsizeMode|numberOfLines=\{1\}/);
+  assert.doesNotMatch(screen, /ellipsizeMode/);
 });
 
 test("heading, wheel, hub, and pointer share the stage center axis", () => {
@@ -159,6 +164,7 @@ test("wheel labels rotate together while hub and pointer remain stationary", () 
   const assemblyEnd = screen.indexOf("</Animated.View>", assemblyStart);
   assert.ok(screen.indexOf('testID="wheel-artwork"') > assemblyStart);
   assert.ok(screen.indexOf("status.reward_slices.map") < assemblyEnd);
+  assert.ok(screen.indexOf("const anchor = anchors[index]") < assemblyEnd);
   for (const id of ["center-hub", "knife-pointer"]) assert.ok(screen.indexOf(`testID="${id}"`) > assemblyEnd, id);
   assert.match(screen, /wheelArtwork: \{ opacity: 1/);
   assert.match(screen, /hubArtwork: \{ opacity: 1/);
@@ -176,7 +182,7 @@ test("the complete square stage reserves pointer clearance below the flow-laid-o
   assert.match(screen, /const STAGE_HORIZONTAL_INSET = 12/);
   assert.match(screen, /const WHEEL_DIAMETER_RATIO = 0\.92/);
   assert.match(screen, /wheelStageSize\(Math\.min\(width, 480\) - STAGE_HORIZONTAL_INSET\)/);
-  assert.match(screen, /const pointerTopClearance = Math\.max\(0, -pointerLayout\.top\)/);
+  assert.match(screen, /const pointerTopClearance = Math\.max\(0, -pointerRimTop\)/);
   assert.match(screen, /height: stageSize, marginTop: pointerTopClearance \+ HEADER_TO_POINTER_GAP, width: stageSize/);
   assert.match(screen, /boardScene: \{ alignSelf: "center", position: "relative" \}/);
   assert.match(screen, /wheelStage: \{ \.\.\.StyleSheet\.absoluteFillObject, overflow: "visible"/);
@@ -190,6 +196,63 @@ test("the complete square stage reserves pointer clearance below the flow-laid-o
   const pointerTop = wheelInset - (16 + 467) * pointerScale;
   const pointerTopInPanel = Math.max(0, -pointerTop) + 52 + pointerTop;
   assert.ok(Math.abs(pointerTopInPanel - 52) < 1e-9);
+});
+
+test("pointer lowers the complete audited image ten percent into the wheel without moving the stage", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const POINTER_WEDGE_DEPTH_RATIO = 0\.1/);
+  assert.match(screen, /const pointerWedgeDepth = wheelSize \* POINTER_WEDGE_DEPTH_RATIO/);
+  assert.match(screen, /top: pointerRimTop \+ pointerWedgeDepth/);
+  assert.match(screen, /left: stageSize \/ 2 - \(DAILY_REWARD_ARTWORK\.pointer\.contentBounds\.x/);
+  assert.match(screen, /marginTop: pointerTopClearance \+ HEADER_TO_POINTER_GAP/);
+  assert.doesNotMatch(screen, /marginTop: pointerTopClearance -|pointer.*translateY|pointer.*Animated/);
+
+  const wheelDiameter = 360;
+  const rimTop = 14;
+  const pointerTip = rimTop + wheelDiameter * 0.1;
+  assert.equal(pointerTip - rimTop, 36);
+});
+
+test("ten equal wedges use one centered polar anchor geometry", () => {
+  const anchors = rewardAnchors(10, 360);
+  assert.equal(anchors.length, 10);
+  assert.deepEqual(anchors.map(({ sliceCenter }) => sliceCenter), [-72, -36, 0, 36, 72, 108, 144, 180, 216, 252]);
+  assert.ok(anchors.every(({ radius }) => radius === 360 * REWARD_LABEL_RADIUS_RATIO));
+  assert.ok(anchors.every(({ width }) => width === 360 * REWARD_LABEL_WIDTH_RATIO));
+  assert.ok(anchors.every(({ height }) => height === 360 * REWARD_LABEL_HEIGHT_RATIO));
+  for (const anchor of anchors) {
+    assert.ok(Math.abs(anchor.left + anchor.width / 2 - anchor.centerX) < 1e-9);
+    assert.ok(Math.abs(anchor.top + anchor.height / 2 - anchor.centerY) < 1e-9);
+  }
+});
+
+test("uniform reward boxes clear the hub, rim, and divider centerlines", () => {
+  const hubRadiusRatio = (0.22 / 0.92) / 2;
+  const innerEdge = REWARD_LABEL_RADIUS_RATIO - REWARD_LABEL_HEIGHT_RATIO / 2;
+  const outerEdge = REWARD_LABEL_RADIUS_RATIO + REWARD_LABEL_HEIGHT_RATIO / 2;
+  const dividerHalfWidthAtRadius = REWARD_LABEL_RADIUS_RATIO * Math.sin(Math.PI / 10);
+  assert.ok(innerEdge > hubRadiusRatio);
+  assert.ok(outerEdge < 0.5);
+  assert.ok(REWARD_LABEL_WIDTH_RATIO / 2 < dividerHalfWidthAtRadius);
+});
+
+test("reward orientation is normalized consistently and has no per-slice nudges", () => {
+  const anchors = rewardAnchors(10, 360);
+  assert.ok(anchors.every(({ rotation }) => rotation >= -90 && rotation <= 90));
+  assert.deepEqual(anchors.map(({ sliceCenter }) => normalizeRewardOrientation(sliceCenter + 90)), anchors.map(({ rotation }) => rotation));
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const anchors = rewardAnchors\(status\.reward_slices\.length, wheelSize\)/);
+  assert.match(screen, /alignItems: "center", justifyContent: "center"/);
+  assert.match(screen, /height: anchor\.height, left: anchor\.left, top: anchor\.top/);
+  assert.doesNotMatch(screen, /rewardOffsets|sliceOffsets|nudges|index ===|switch \(index\)/);
+});
+
+test("backend-selected wedge center still lands beneath the lowered twelve-o-clock pointer", () => {
+  for (let index = 0; index < 10; index += 1) {
+    const anchor = rewardAnchors(10, 360)[index];
+    const finalCenter = ((anchor.sliceCenter + landingRotation(index, 10, 5)) % 360 + 360) % 360;
+    assert.equal(finalCenter, 270);
+  }
 });
 
 test("stage grows within the viewport and keeps equal horizontal spacing", () => {

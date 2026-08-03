@@ -37,14 +37,43 @@ export function wheelStageSize(usableWidth: number) {
   return Math.min(468, Math.max(240, usableWidth));
 }
 
-export function rewardPosition(index: number, sliceCount: number, stageSize: number) {
-  const wedgeAngle = ((index + 0.5) / sliceCount) * Math.PI * 2 - Math.PI / 2;
-  const radius = stageSize * 0.31;
-  return {
-    left: stageSize / 2 + Math.cos(wedgeAngle) * radius,
-    top: stageSize / 2 + Math.sin(wedgeAngle) * radius,
-    angle: wedgeAngle * 180 / Math.PI + 90,
-  };
+export const REWARD_LABEL_RADIUS_RATIO = 0.32;
+export const REWARD_LABEL_WIDTH_RATIO = 0.16;
+export const REWARD_LABEL_HEIGHT_RATIO = 0.11;
+
+const REWARD_SLICE_START_ANGLE = -90;
+
+export function normalizeRewardOrientation(angle: number) {
+  let normalized = ((angle + 180) % 360 + 360) % 360 - 180;
+  if (normalized > 90) normalized -= 180;
+  if (normalized < -90) normalized += 180;
+  return normalized;
+}
+
+export function rewardAnchors(sliceCount: number, wheelDiameter: number) {
+  if (sliceCount < 1 || wheelDiameter <= 0) return [];
+  const sliceAngle = 360 / sliceCount;
+  const radius = wheelDiameter * REWARD_LABEL_RADIUS_RATIO;
+  const width = wheelDiameter * REWARD_LABEL_WIDTH_RATIO;
+  const height = wheelDiameter * REWARD_LABEL_HEIGHT_RATIO;
+  return Array.from({ length: sliceCount }, (_, index) => {
+    const sliceCenter = REWARD_SLICE_START_ANGLE + (index + 0.5) * sliceAngle;
+    const radians = sliceCenter * Math.PI / 180;
+    const centerX = wheelDiameter / 2 + Math.cos(radians) * radius;
+    const centerY = wheelDiameter / 2 + Math.sin(radians) * radius;
+    return {
+      centerX,
+      centerY,
+      height,
+      index,
+      left: centerX - width / 2,
+      radius,
+      sliceCenter,
+      top: centerY - height / 2,
+      rotation: normalizeRewardOrientation(sliceCenter + 90),
+      width,
+    };
+  });
 }
 
 export type ImageContentGeometry = {

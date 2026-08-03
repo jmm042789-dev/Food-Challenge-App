@@ -15,7 +15,7 @@ import {
   formatCountdown,
   landingRotation,
   serverCountdownMs,
-  rewardPosition,
+  rewardAnchors,
   wheelStageSize,
   type DailySpinClaim,
   type DailySpinStatus,
@@ -27,6 +27,7 @@ const STAGE_HORIZONTAL_INSET = 12;
 const WHEEL_DIAMETER_RATIO = 0.92;
 const STAGE_TO_RESULT_GAP = 0;
 const RESULT_SLOT_MIN_HEIGHT = 68;
+const POINTER_WEDGE_DEPTH_RATIO = 0.1;
 
 export default function DailyRewardsScreen() {
   const router = useRouter();
@@ -128,13 +129,16 @@ export default function DailyRewardsScreen() {
   const pointerScale = pointerHeight / DAILY_REWARD_ARTWORK.pointer.contentBounds.height;
   const pointerArtworkWidth = DAILY_REWARD_ARTWORK.pointer.canvas.width * pointerScale;
   const pointerArtworkHeight = DAILY_REWARD_ARTWORK.pointer.canvas.height * pointerScale;
+  const pointerRimTop = wheelInset - (DAILY_REWARD_ARTWORK.pointer.contentBounds.y + DAILY_REWARD_ARTWORK.pointer.contentBounds.height) * pointerScale;
+  const pointerWedgeDepth = wheelSize * POINTER_WEDGE_DEPTH_RATIO;
   const pointerLayout = {
     height: pointerArtworkHeight,
     left: stageSize / 2 - (DAILY_REWARD_ARTWORK.pointer.contentBounds.x + DAILY_REWARD_ARTWORK.pointer.contentBounds.width / 2) * pointerScale,
-    top: wheelInset - (DAILY_REWARD_ARTWORK.pointer.contentBounds.y + DAILY_REWARD_ARTWORK.pointer.contentBounds.height) * pointerScale,
+    top: pointerRimTop + pointerWedgeDepth,
     width: pointerArtworkWidth,
   };
-  const pointerTopClearance = Math.max(0, -pointerLayout.top);
+  const pointerTopClearance = Math.max(0, -pointerRimTop);
+  const anchors = rewardAnchors(status.reward_slices.length, wheelSize);
   const hubImageLayout = centerImageContentInSquare({
     canvasWidth: DAILY_REWARD_ARTWORK.hub.canvas.width,
     canvasHeight: DAILY_REWARD_ARTWORK.hub.canvas.height,
@@ -157,9 +161,10 @@ export default function DailyRewardsScreen() {
           <Animated.View testID="rotating-wheel-assembly" accessibilityLabel="Charcuterie reward board" style={[styles.board, { height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: [{ rotate }] }]}>
           {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image testID="wheel-artwork" resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
           {status.reward_slices.map((slice, index) => {
-            const point = rewardPosition(index, status.reward_slices.length, wheelSize);
-            return <View key={slice.id} style={[styles.slice, { left: point.left - wheelSize * 0.075, top: point.top - wheelSize * 0.04, transform: [{ rotate: `${point.angle}deg` }], width: wheelSize * 0.15 }]}>
-              <Text numberOfLines={2} style={styles.sliceText}>{slice.amount}{"\n"}{slice.kind === "antacid" ? "ANTACID" : slice.kind.toUpperCase()}</Text>
+            const anchor = anchors[index];
+            return <View key={slice.id} style={[styles.slice, { height: anchor.height, left: anchor.left, top: anchor.top, transform: [{ rotate: `${anchor.rotation}deg` }], width: anchor.width }]}>
+              <Text numberOfLines={1} style={styles.sliceAmount}>{slice.amount}</Text>
+              <Text numberOfLines={1} style={styles.sliceKind}>{slice.kind === "antacid" ? "ANTACID" : slice.kind.toUpperCase()}</Text>
             </View>;
           })}
           </Animated.View>
@@ -185,7 +190,7 @@ const styles = StyleSheet.create({
   title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6, textAlign: "center" }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1, textAlign: "center" }, content: { alignSelf: "center", maxWidth: 480, paddingHorizontal: 4, paddingVertical: 14, width: "100%", zIndex: 1 },
   boardPanel: { paddingHorizontal: 0 }, boardScene: { alignSelf: "center", position: "relative" },
   wheelStage: { ...StyleSheet.absoluteFillObject, overflow: "visible", zIndex: 2 }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { opacity: 1, position: "absolute", top: 0 },
-  slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceText: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2 },
+  slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceAmount: { color: "#FFF0D2", fontSize: 9, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2, width: "100%" }, sliceKind: { color: "#FFF0D2", fontSize: 7, fontWeight: "900", lineHeight: 8, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2, width: "100%" },
   pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, controls: { paddingHorizontal: 20 }, resultSlot: { marginTop: STAGE_TO_RESULT_GAP, minHeight: RESULT_SLOT_MIN_HEIGHT },
   rewardPanel: { backgroundColor: "rgba(91,39,12,0.9)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, marginBottom: 12, padding: 12 }, won: { color: "#FFD06A", fontSize: 22, fontWeight: "900", textAlign: "center" }, rewardText: { color: "#FFF0D8", fontSize: 15, fontWeight: "900", marginTop: 4, textAlign: "center" }, balanceText: { color: "#D8C5B3", fontSize: 10, marginTop: 7, textAlign: "center" },
   countdown: { alignItems: "center", marginBottom: 12 }, countdownLabel: { color: "#C89A61", fontSize: 10, fontWeight: "900" }, countdownValue: { color: "#FFF0D8", fontSize: 24, fontVariant: ["tabular-nums"], fontWeight: "900", marginTop: 3 }, error: { color: "#FFAA91", fontSize: 11, marginBottom: 10, textAlign: "center" }, streak: { color: "#A98B70", fontSize: 9, fontWeight: "800", marginTop: 9, textAlign: "center" },
