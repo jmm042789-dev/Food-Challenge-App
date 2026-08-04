@@ -19,6 +19,7 @@ import {
   rewardLabelLines,
   wheelStageSize,
   type DailySpinClaim,
+  type DailyRewardSlice,
   type DailySpinStatus,
 } from "../src/retention/DailyRewards";
 
@@ -29,6 +30,19 @@ const WHEEL_DIAMETER_RATIO = 0.92;
 const STAGE_TO_RESULT_GAP = 0;
 const RESULT_SLOT_MIN_HEIGHT = 68;
 const POINTER_WEDGE_DEPTH_RATIO = 0.1;
+
+type RewardSliceLabelProps = {
+  anchor: ReturnType<typeof dailyRewardAnchors>[number];
+  reward: DailyRewardSlice;
+};
+
+function RewardSliceLabel({ anchor, reward }: RewardSliceLabelProps) {
+  const label = rewardLabelLines(reward);
+  return <View style={[styles.slice, { height: anchor.height, left: anchor.left, top: anchor.top, width: anchor.width }]}>
+    <Text numberOfLines={1} style={styles.sliceAmount}>{label.amount}</Text>
+    <Text numberOfLines={1} style={styles.sliceKind}>{label.kind}</Text>
+  </View>;
+}
 
 export default function DailyRewardsScreen() {
   const router = useRouter();
@@ -161,14 +175,7 @@ export default function DailyRewardsScreen() {
           <View testID="wheel-stage" style={[styles.wheelStage, { height: stageSize, width: stageSize }]}>
           <Animated.View testID="rotating-wheel-assembly" accessibilityLabel="Charcuterie reward board" style={[styles.board, { height: wheelSize, left: wheelInset, top: wheelInset, width: wheelSize, transform: [{ rotate }] }]}>
           {DAILY_REWARD_ARTWORK_VALIDITY.wheel ? <Image testID="wheel-artwork" resizeMode="contain" source={DAILY_REWARD_ARTWORK.wheel.source} style={[styles.wheelArtwork, wheelImageLayout]} /> : null}
-          {status.reward_slices.map((slice, index) => {
-            const anchor = anchors[index];
-            const label = rewardLabelLines(slice);
-            return <View key={slice.id} style={[styles.slice, { height: anchor.height, left: anchor.left, top: anchor.top, transform: [{ rotate: `${anchor.rotation}deg` }], width: anchor.width }]}>
-              <Text numberOfLines={1} style={styles.sliceAmount}>{label.amount}</Text>
-              <Text numberOfLines={1} style={styles.sliceKind}>{label.kind}</Text>
-            </View>;
-          })}
+          {status.reward_slices.map((slice, index) => <RewardSliceLabel anchor={anchors[index]} key={slice.id} reward={slice} />)}
           </Animated.View>
           {DAILY_REWARD_ARTWORK_VALIDITY.hub ? <Image testID="center-hub" resizeMode="contain" source={DAILY_REWARD_ARTWORK.hub.source} style={[styles.hubArtwork, hubImageLayout, { marginLeft: (stageSize - hubSize) / 2, marginTop: (stageSize - hubSize) / 2 }]} /> : null}
           {DAILY_REWARD_ARTWORK_VALIDITY.pointer ? <Image testID="knife-pointer" resizeMode="contain" source={DAILY_REWARD_ARTWORK.pointer.source} style={[styles.pointerArtwork, pointerLayout]} /> : null}
@@ -189,10 +196,10 @@ export default function DailyRewardsScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 }, backgroundArtwork: { ...StyleSheet.absoluteFillObject, zIndex: 0 }, header: { justifyContent: "center", minHeight: 70, position: "relative", width: "100%", zIndex: 1 }, backButton: { left: 14, position: "absolute", top: 4, zIndex: 2 }, headerTitleGroup: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
-  title: { color: "#FFD06A", fontSize: 19, fontWeight: "900", letterSpacing: 0.6, textAlign: "center" }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1, textAlign: "center" }, content: { alignSelf: "center", maxWidth: 480, paddingHorizontal: 4, paddingVertical: 14, width: "100%", zIndex: 1 },
+  title: { color: "#FFD06A", fontSize: 18, fontWeight: "900", letterSpacing: 0.6, lineHeight: 20, textAlign: "center" }, subtitle: { color: "#B88D61", fontSize: 9, fontWeight: "900", letterSpacing: 1, lineHeight: 11, marginTop: 4, textAlign: "center" }, content: { alignSelf: "center", maxWidth: 480, paddingHorizontal: 4, paddingVertical: 14, width: "100%", zIndex: 1 },
   boardPanel: { paddingHorizontal: 0 }, boardScene: { alignSelf: "center", position: "relative" },
   wheelStage: { ...StyleSheet.absoluteFillObject, overflow: "visible", zIndex: 2 }, board: { overflow: "visible", position: "absolute", zIndex: 2 }, wheelArtwork: { opacity: 1, position: "absolute", top: 0 },
-  slice: { alignItems: "center", justifyContent: "center", position: "absolute" }, sliceAmount: { color: "#FFF0D2", fontSize: 9, fontWeight: "900", lineHeight: 10, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2, width: "100%" }, sliceKind: { color: "#FFF0D2", fontSize: 7, fontWeight: "900", lineHeight: 8, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2, width: "100%" },
+  slice: { alignItems: "center", justifyContent: "center", padding: 0, position: "absolute" }, sliceAmount: { color: "#FFF0D2", fontSize: 10, fontWeight: "900", includeFontPadding: false, lineHeight: 11, padding: 0, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2, width: "100%" }, sliceKind: { color: "#FFF0D2", fontSize: 8, fontWeight: "900", includeFontPadding: false, lineHeight: 9, padding: 0, textAlign: "center", textShadowColor: "#210C03", textShadowOffset: { height: 1, width: 0 }, textShadowRadius: 2, width: "100%" },
   pointerArtwork: { opacity: 1, position: "absolute", zIndex: 5 }, hubArtwork: { opacity: 1, position: "absolute", zIndex: 4 }, controls: { paddingHorizontal: 20 }, resultSlot: { marginTop: STAGE_TO_RESULT_GAP, minHeight: RESULT_SLOT_MIN_HEIGHT },
   rewardPanel: { backgroundColor: "rgba(91,39,12,0.9)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, marginBottom: 12, padding: 12 }, won: { color: "#FFD06A", fontSize: 22, fontWeight: "900", textAlign: "center" }, rewardText: { color: "#FFF0D8", fontSize: 15, fontWeight: "900", marginTop: 4, textAlign: "center" }, balanceText: { color: "#D8C5B3", fontSize: 10, marginTop: 7, textAlign: "center" },
   countdown: { alignItems: "center", marginBottom: 12 }, countdownLabel: { color: "#C89A61", fontSize: 10, fontWeight: "900" }, countdownValue: { color: "#FFF0D8", fontSize: 24, fontVariant: ["tabular-nums"], fontWeight: "900", marginTop: 3 }, error: { color: "#FFAA91", fontSize: 11, marginBottom: 10, textAlign: "center" }, streak: { color: "#A98B70", fontSize: 9, fontWeight: "800", marginTop: 9, textAlign: "center" },

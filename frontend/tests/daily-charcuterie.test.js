@@ -52,7 +52,7 @@ test("responsive wheel stage stays square and labels use one wedge-center helper
   assert.equal(wheelStageSize(900), 468);
   const [first] = dailyRewardAnchors(300);
   assert.equal(first.sliceCenter, -75);
-  assert.equal(first.rotation, 0);
+  assert.equal("rotation" in first, false);
   assert.ok(first.centerY < 70);
   assert.ok(first.centerX > 150);
 });
@@ -160,7 +160,7 @@ test("wheel labels rotate together while hub and pointer remain stationary", () 
   const assemblyEnd = screen.indexOf("</Animated.View>", assemblyStart);
   assert.ok(screen.indexOf('testID="wheel-artwork"') > assemblyStart);
   assert.ok(screen.indexOf("status.reward_slices.map") < assemblyEnd);
-  assert.ok(screen.indexOf("const anchor = anchors[index]") < assemblyEnd);
+  assert.ok(screen.indexOf("<RewardSliceLabel anchor={anchors[index]}") < assemblyEnd);
   for (const id of ["center-hub", "knife-pointer"]) assert.ok(screen.indexOf(`testID="${id}"`) > assemblyEnd, id);
   assert.match(screen, /wheelArtwork: \{ opacity: 1/);
   assert.match(screen, /hubArtwork: \{ opacity: 1/);
@@ -228,19 +228,35 @@ test("uniform reward boxes clear the hub, rim, and divider centerlines", () => {
   const innerEdge = REWARD_LABEL_RADIUS_RATIO - REWARD_LABEL_HEIGHT_RATIO / 2;
   const outerEdge = REWARD_LABEL_RADIUS_RATIO + REWARD_LABEL_HEIGHT_RATIO / 2;
   const dividerHalfWidthAtRadius = REWARD_LABEL_RADIUS_RATIO * Math.sin(Math.PI / 12);
+  const maximumHalfBoxProjection = Math.hypot(REWARD_LABEL_WIDTH_RATIO / 2, REWARD_LABEL_HEIGHT_RATIO / 2);
   assert.ok(innerEdge > hubRadiusRatio);
   assert.ok(outerEdge < 0.5);
-  assert.ok(REWARD_LABEL_WIDTH_RATIO / 2 < dividerHalfWidthAtRadius);
+  assert.ok(maximumHalfBoxProjection < dividerHalfWidthAtRadius);
 });
 
 test("all twelve reward labels stay upright with no per-slice nudges", () => {
   const anchors = dailyRewardAnchors(360);
-  assert.ok(anchors.every(({ rotation }) => rotation === 0));
+  assert.ok(anchors.every((anchor) => !("rotation" in anchor)));
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
   assert.match(screen, /const anchors = dailyRewardAnchors\(wheelSize\)/);
   assert.match(screen, /alignItems: "center", justifyContent: "center"/);
-  assert.match(screen, /height: anchor\.height, left: anchor\.left, top: anchor\.top/);
+  assert.match(screen, /height: anchor\.height, left: anchor\.left, top: anchor\.top, width: anchor\.width/);
   assert.doesNotMatch(screen, /rewardOffsets|sliceOffsets|nudges|index ===|switch \(index\)/);
+});
+
+test("all rewards use one shared two-line centered label component", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  const componentStart = screen.indexOf("function RewardSliceLabel");
+  const componentEnd = screen.indexOf("export default function", componentStart);
+  const component = screen.slice(componentStart, componentEnd);
+  assert.match(component, /const label = rewardLabelLines\(reward\)/);
+  assert.match(component, /styles\.sliceAmount[^>]*>\{label\.amount\}/);
+  assert.match(component, /styles\.sliceKind[^>]*>\{label\.kind\}/);
+  assert.doesNotMatch(component, /transform|rotate|paddingTop|paddingBottom|margin/);
+  assert.match(screen, /status\.reward_slices\.map\(\(slice, index\) => <RewardSliceLabel/);
+  assert.match(screen, /slice: \{ alignItems: "center", justifyContent: "center", padding: 0/);
+  assert.match(screen, /sliceAmount: \{[^}]*fontSize: 10[^}]*includeFontPadding: false[^}]*lineHeight: 11[^}]*padding: 0[^}]*textAlign: "center"/);
+  assert.match(screen, /sliceKind: \{[^}]*fontSize: 8[^}]*includeFontPadding: false[^}]*lineHeight: 9[^}]*padding: 0[^}]*textAlign: "center"/);
 });
 
 test("backend-selected wedge center still lands beneath the lowered twelve-o-clock pointer", () => {
@@ -256,10 +272,19 @@ test("new backend reward IDs render concise twelve-panel labels", () => {
   assert.match(backend, /"id": "large_xp_bonus"[^\n]*"kind": "xp"[^\n]*"amount": 1000/);
   assert.match(backend, /"id": "antacid_bundle"[^\n]*"kind": "antacid"[^\n]*"amount": 3/);
   assert.deepEqual(rewardLabelLines({ amount: 1000, kind: "xp" }), { amount: "1000", kind: "XP" });
+  assert.deepEqual(rewardLabelLines({ amount: 1, kind: "antacid" }), { amount: "1", kind: "ANTACID" });
   assert.deepEqual(rewardLabelLines({ amount: 3, kind: "antacid" }), { amount: "3", kind: "ANTACIDS" });
   const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
-  assert.match(screen, /const label = rewardLabelLines\(slice\)/);
+  assert.match(screen, /const label = rewardLabelLines\(reward\)/);
   assert.doesNotMatch(screen, /large_xp_bonus|antacid_bundle/);
+});
+
+test("header typography gains breathing room without changing header or stage height", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /header: \{ justifyContent: "center", minHeight: 70/);
+  assert.match(screen, /title: \{[^}]*fontSize: 18[^}]*lineHeight: 20[^}]*textAlign: "center"/);
+  assert.match(screen, /subtitle: \{[^}]*fontSize: 9[^}]*lineHeight: 11[^}]*marginTop: 4[^}]*textAlign: "center"/);
+  assert.match(screen, /height: stageSize, marginTop: pointerTopClearance \+ HEADER_TO_POINTER_GAP, width: stageSize/);
 });
 
 test("stage grows within the viewport and keeps equal horizontal spacing", () => {

@@ -39,8 +39,8 @@ export function wheelStageSize(usableWidth: number) {
 
 export const DAILY_REWARD_SLICE_COUNT = 12;
 export const REWARD_LABEL_RADIUS_RATIO = 0.32;
-export const REWARD_LABEL_WIDTH_RATIO = 0.13;
-export const REWARD_LABEL_HEIGHT_RATIO = 0.1;
+export const REWARD_LABEL_WIDTH_RATIO = 0.14;
+export const REWARD_LABEL_HEIGHT_RATIO = 0.08;
 
 const REWARD_SLICE_START_ANGLE = -90;
 
@@ -64,7 +64,6 @@ export function rewardAnchors(sliceCount: number, wheelDiameter: number) {
       radius,
       sliceCenter,
       top: centerY - height / 2,
-      rotation: 0,
       width,
     };
   });
@@ -77,7 +76,9 @@ export function dailyRewardAnchors(wheelDiameter: number) {
 export function rewardLabelLines(reward: Pick<DailyRewardSlice, "amount" | "kind">) {
   return {
     amount: String(reward.amount),
-    kind: reward.kind === "antacid" ? "ANTACIDS" : reward.kind.toUpperCase(),
+    kind: reward.kind === "antacid"
+      ? reward.amount === 1 ? "ANTACID" : "ANTACIDS"
+      : reward.kind.toUpperCase(),
   };
 }
 
