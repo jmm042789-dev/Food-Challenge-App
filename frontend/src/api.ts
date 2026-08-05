@@ -3,7 +3,14 @@ import Constants from "expo-constants";
 import { uuid } from "expo-modules-core";
 import { joinApiPath, resolveApiBase } from "./apiBase";
 import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance";
+import {
+  ApiRequestError,
+  readResponseRequestId,
+  requestIdForError,
+} from "./requestDiagnostics";
 import { storage } from "./utils/storage";
+
+export { ApiRequestError, readResponseRequestId } from "./requestDiagnostics";
 
 type ExpoDevelopmentMetadata = {
   debuggerHost?: string;
@@ -86,26 +93,17 @@ type PendingRecoveryToken = {
 
 export class AuthenticationError extends Error {
   localCredentialsCleared: boolean;
+  requestId: string | null;
 
   constructor(
     message = "Guest authentication failed.",
     localCredentialsCleared = false,
+    requestId: string | null = null,
   ) {
     super(message);
     this.name = "AuthenticationError";
     this.localCredentialsCleared = localCredentialsCleared;
-  }
-}
-
-class ApiRequestError extends Error {
-  status: number;
-  code: string | null;
-
-  constructor(status: number, message: string, code: string | null = null) {
-    super(message);
-    this.name = "ApiRequestError";
-    this.status = status;
-    this.code = code;
+    this.requestId = requestId;
   }
 }
 
@@ -216,11 +214,13 @@ export function parseContests(response: ContestResponse | Contest[]): Contest[] 
     return response.data;
   }
 
-  console.error("Contest response had an unexpected shape", {
-    url: `${API}/contests`,
-    status: 200,
-    responseBody: response,
-  });
+  if (__DEV__) {
+    console.error("Contest response had an unexpected shape", {
+      path: "/contests",
+      status: 200,
+      error: "unexpected response shape",
+    });
+  }
   return [];
 }
 
@@ -612,6 +612,8 @@ async function recoverCredentialsAfterUnauthorized(
       clearTimeout(timeoutId);
     }
 
+    const requestId = readResponseRequestId(response);
+
     if (response.ok) {
       const data = await response.json() as {
         player_id?: unknown;
@@ -619,7 +621,11 @@ async function recoverCredentialsAfterUnauthorized(
       };
       const playerId = typeof data.player_id === "string" ? data.player_id.trim() : "";
       if (!playerId) {
-        throw new AuthenticationError("The authentication recovery response was invalid.");
+        throw new AuthenticationError(
+          "The authentication recovery response was invalid.",
+          false,
+          requestId,
+        );
       }
       const recovered = { playerId, authToken: rejected.authToken };
       await storeCredentials(recovered);
@@ -636,6 +642,8 @@ async function recoverCredentialsAfterUnauthorized(
     if (response.status !== 401) {
       throw new AuthenticationError(
         `Authentication recovery was unavailable (HTTP ${response.status}).`,
+        false,
+        requestId,
       );
     }
 
@@ -665,7 +673,7 @@ async function req(
   let url = `${API}${path}`;
   let requestPath = path;
   let status: number | "not received" = "not received";
-  let responseBody: unknown = "No response received";
+  let requestId: string | null = null;
 
   try {
     const credentials = authenticated ? await ensureGuestCredentials() : null;
@@ -688,6 +696,7 @@ async function req(
     });
 
     status = res.status;
+    requestId = readResponseRequestId(res);
     const text = await res.text();
     let data;
 
@@ -696,8 +705,6 @@ async function req(
     } catch {
       data = text;
     }
-    responseBody = data;
-
     if (!res.ok) {
       if (res.status === 401) {
         const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();
@@ -716,6 +723,7 @@ async function req(
             ? "The deleted guest account was cleared from this device. Restart to create a new guest."
             : "This guest account could not be authenticated. Retry without clearing local app data.",
           recoveredDeletion,
+          requestId,
         );
       }
       const detail = data && typeof data === "object"
@@ -724,7 +732,12 @@ async function req(
       const code = detail && typeof detail === "object" && typeof (detail as { code?: unknown }).code === "string"
         ? (detail as { code: string }).code
         : null;
-      throw new ApiRequestError(res.status, `HTTP ${res.status}: ${JSON.stringify(data)}`, code);
+      throw new ApiRequestError(
+        res.status,
+        `HTTP ${res.status}: ${JSON.stringify(data)}`,
+        code,
+        requestId,
+      );
     }
 
     if (authenticated && requestPath !== "/player/account") {
@@ -760,29 +773,30 @@ async function req(
     return data;
   } catch (err: any) {
     const diagnosticPath = diagnosticRequestPath(requestPath);
-    if (__DEV__ && requestPath === "/contests") {
-      console.error("Contest request failed", {
-        url,
-        status,
-        responseBody,
-      });
-    }
 
     if (err?.name === "AbortError") {
       const timeoutError = new Error(
         `Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${diagnosticPath}`
       );
-      console.error(`API timeout: ${diagnosticPath}`);
+      if (__DEV__) {
+        console.error("API request timed out", {
+          method,
+          path: diagnosticPath,
+          requestId: null,
+        });
+      }
       throw timeoutError;
     }
 
-    console.error("API request failed", {
-      url: `${API}${diagnosticPath}`,
-      path: diagnosticPath,
-      status,
-      responseBody,
-      error: err instanceof AuthenticationError ? err.name : "request error",
-    });
+    if (__DEV__) {
+      console.error("API request failed", {
+        method,
+        path: diagnosticPath,
+        status,
+        requestId: requestIdForError(err, requestId),
+        error: err instanceof AuthenticationError ? err.name : "request error",
+      });
+    }
     throw err;
   } finally {
     clearTimeout(timeoutId);

@@ -6,6 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from starlette.requests import Request
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +39,25 @@ def _json_body(response):
     return json.loads(response.body.decode("utf-8"))
 
 
+def _request(path):
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": path,
+            "raw_path": path.encode("ascii"),
+            "query_string": b"",
+            "headers": [],
+            "scheme": "http",
+            "server": ("test", 80),
+            "client": ("127.0.0.1", 1),
+            "root_path": "",
+        }
+    )
+    request.state.request_id = "a" * 32
+    return request
+
+
 class HealthEndpointTests(unittest.TestCase):
     def tearDown(self):
         database.mongo_client = None
@@ -56,7 +76,7 @@ class HealthEndpointTests(unittest.TestCase):
     def test_readiness_returns_200_after_read_only_bounded_ping(self):
         client = _Client()
         database.mongo_client = client
-        self.assertEqual(server.health_ready(), {"status": "ready"})
+        self.assertEqual(server.health_ready(_request("/api/health/ready")), {"status": "ready"})
         self.assertEqual(
             client.admin.commands,
             [("ping", {"maxTimeMS": database.DATABASE_READINESS_TIMEOUT_MS})],
@@ -64,7 +84,7 @@ class HealthEndpointTests(unittest.TestCase):
 
     def test_readiness_returns_503_when_client_is_unavailable(self):
         database.mongo_client = None
-        response = server.health_ready()
+        response = server.health_ready(_request("/api/health/ready"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(_json_body(response), {"status": "unavailable"})
 
@@ -72,7 +92,7 @@ class HealthEndpointTests(unittest.TestCase):
         secret = "mongodb://user:password@secret-host/private_database"
         database.mongo_client = _Client(RuntimeError(secret))
         with self.assertLogs(server.logger, level=logging.WARNING) as captured:
-            response = server.health_ready()
+            response = server.health_ready(_request("/api/health/ready"))
         response_text = response.body.decode("utf-8")
         log_text = " ".join(captured.output)
         self.assertEqual(response.status_code, 503)
@@ -82,19 +102,20 @@ class HealthEndpointTests(unittest.TestCase):
         self.assertIn("category=driver_error", log_text)
         self.assertIn("exception=RuntimeError", log_text)
         self.assertIn("endpoint=/api/health/ready", log_text)
+        self.assertIn(f"request_id={'a' * 32}", log_text)
 
     def test_readiness_returns_503_on_timeout(self):
         database.mongo_client = _Client(TimeoutError("mongodb://secret"))
-        response = server.health_ready()
+        response = server.health_ready(_request("/api/health/ready"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(_json_body(response), {"status": "unavailable"})
         self.assertEqual(database.database_readiness().category, "timeout")
 
     def test_compatibility_health_uses_readiness_semantics(self):
         database.mongo_client = _Client()
-        self.assertEqual(server.health(), {"status": "ok"})
+        self.assertEqual(server.health(_request("/api/health")), {"status": "ok"})
         database.mongo_client = None
-        response = server.health()
+        response = server.health(_request("/api/health"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(_json_body(response), {"status": "unavailable"})
 

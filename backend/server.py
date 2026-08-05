@@ -1,4 +1,5 @@
 import logging
+from time import perf_counter
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,6 +75,13 @@ from models import (
 )
 from auth import authenticated_bearer_player, authenticated_player
 from rate_limit import rate_limit
+from observability import (
+    REQUEST_ID_HEADER,
+    request_id_for,
+    request_id_from,
+    response_outcome,
+    safe_request_route,
+)
 
 from services.contest_service import featured, categories
 
@@ -101,6 +109,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[REQUEST_ID_HEADER],
 )
 logger = logging.getLogger(__name__)
 
@@ -138,12 +147,46 @@ async def reject_oversized_requests(request: Request, call_next):
     return await call_next(request)
 
 
+@app.middleware("http")
+async def observe_request(request: Request, call_next):
+    request_id = request_id_for(request.headers.get(REQUEST_ID_HEADER))
+    request.state.request_id = request_id
+    started = perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as error:
+        response = await unexpected_error_handler(request, error)
+
+    response.headers[REQUEST_ID_HEADER] = request_id
+    duration_ms = (perf_counter() - started) * 1000
+    route = safe_request_route(request)
+    log = logger.debug if route.startswith("/api/health") else logger.info
+    log(
+        "Request complete request_id=%s method=%s route=%s status=%s duration_ms=%.2f outcome=%s",
+        request_id,
+        request.method,
+        route,
+        response.status_code,
+        duration_ms,
+        response_outcome(response.status_code),
+    )
+    return response
+
+
 @app.exception_handler(Exception)
-async def unexpected_error_handler(_request: Request, error: Exception):
-    logger.error("Unhandled API error (%s)", type(error).__name__)
+async def unexpected_error_handler(request: Request, error: Exception):
+    request_id = request_id_from(request)
+    logger.error(
+        "Request failure request_id=%s method=%s route=%s category=unexpected_error exception=%s",
+        request_id,
+        request.method,
+        safe_request_route(request),
+        type(error).__name__,
+    )
     return JSONResponse(
         status_code=500,
         content={"detail": "internal server error"},
+        headers={REQUEST_ID_HEADER: request_id},
     )
 
 
@@ -181,12 +224,18 @@ def shutdown_database():
     logger.info("Backend shutdown complete")
 
 
-def _readiness_response(endpoint_name: str, *, compatibility: bool = False):
+def _readiness_response(
+    endpoint_name: str,
+    request: Request | None = None,
+    *,
+    compatibility: bool = False,
+):
     result = database_readiness()
     if result.ready:
         return {"status": "ok" if compatibility else "ready"}
     logger.warning(
-        "Health endpoint failure (endpoint=%s category=%s exception=%s)",
+        "Health endpoint failure request_id=%s endpoint=%s category=%s exception=%s",
+        request_id_from(request) if request is not None else "unavailable",
         endpoint_name,
         result.category,
         result.exception_type or "none",
@@ -201,15 +250,15 @@ def health_live():
 
 
 @app.get("/api/health/ready")
-def health_ready():
+def health_ready(request: Request):
     """Report whether required dependencies can serve application traffic."""
-    return _readiness_response("/api/health/ready")
+    return _readiness_response("/api/health/ready", request)
 
 
 @app.get("/api/health")
-def health():
+def health(request: Request):
     """Compatibility health endpoint with readiness semantics."""
-    return _readiness_response("/api/health", compatibility=True)
+    return _readiness_response("/api/health", request, compatibility=True)
 
 # =========================
 # DATABASE
@@ -614,12 +663,16 @@ def debug():
 # =========================
 
 @app.get("/api/contests")
-def contests():
+def contests(request: Request):
     """Return the local contest catalog without any external dependencies."""
     try:
         return {"contests": CONTESTS}
     except Exception as exc:
-        logger.exception("Unable to load the contest catalog")
+        logger.error(
+            "Contest catalog failure request_id=%s exception=%s",
+            request_id_from(request),
+            type(exc).__name__,
+        )
         raise HTTPException(
             status_code=500,
             detail="Unable to load the contest catalog",

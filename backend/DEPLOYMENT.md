@@ -44,6 +44,27 @@ The checked-in Render descriptor uses `/api/health/ready`, so Render receives
 HTTP 200 only when the application can serve MongoDB-backed traffic. Liveness
 remains available separately for diagnostics.
 
+## Request correlation and logging
+
+All API responses include `X-Request-ID`. Incoming values are preserved only
+when they contain 16–64 lowercase hexadecimal characters; malformed or missing
+values are replaced with a cryptographically random 32-character hexadecimal
+ID. Search Render logs for `request_id=<value>` to correlate a tester report
+with its completion and, for unexpected failures, sanitized error entry.
+
+Completion logs contain request ID, method, safe route template or redacted
+path, HTTP status, monotonic duration in milliseconds, and outcome category.
+Health completions use debug level to limit noise. Unexpected errors record only
+the request ID, method, safe route, category, and exception class. Logs exclude
+headers, credentials, nonces, request/response bodies, cookies, arbitrary query
+strings, database URLs, and raw exception messages.
+
+During beta operations, manually count 5xx responses, readiness failures,
+guest-bootstrap/recovery failures, match-settlement failures, daily-claim
+failures, purchase failures, authentication failures, and high-latency requests.
+The root README contains suggested review thresholds. They are not automated
+alerts or dashboards.
+
 Production mode disables OpenAPI/Swagger documentation and diagnostic routes.
 The checked-in Render descriptor sets production mode and requires `MONGO_URL`
 to be supplied as a secret.

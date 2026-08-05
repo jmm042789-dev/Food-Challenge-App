@@ -68,6 +68,45 @@ For a Closed Beta candidate:
    and require `INTEGRATION VALIDATION PASS` rather than `SKIPPED`.
 3. Run the platform release/export checks required for the target build.
 
+## Closed Beta request diagnostics
+
+Every backend response includes `X-Request-ID`. The backend accepts an incoming
+ID only when it is 16–64 lowercase hexadecimal characters; otherwise it creates
+a cryptographically random 32-character hexadecimal ID. The frontend retains a
+safe response ID on API errors for future support details and includes it in
+development-only failure metadata. It is not prominently shown to players.
+
+When a technical beta tester can capture an affected response or development
+log, they should send support the request ID and approximate event time. A
+support operator can search the Render service logs for `request_id=<value>` to
+find the matching completion or sanitized error record.
+
+Request logs contain only correlation ID, HTTP method, route template or
+redacted path, status, duration, and outcome category. They never intentionally
+contain authorization headers, bearer credentials, bootstrap/recovery secrets,
+request or response bodies, cookies, arbitrary query strings, or database
+connection details.
+
+### Minimum operational review
+
+Before and during Closed Beta, manually review Render logs for:
+
+- HTTP 5xx responses;
+- readiness failures;
+- guest bootstrap and recovery failures;
+- match-settlement failures;
+- daily-reward claim failures;
+- purchase failures;
+- authentication failures; and
+- high-latency requests.
+
+No automated dashboard or alerting is currently configured. Practical manual
+investigation thresholds are: any repeated readiness failure, any burst of five
+5xx responses in ten minutes, a 5xx rate near one percent over fifteen minutes,
+five repeated failures for one sensitive route in ten minutes, or normal API
+requests repeatedly exceeding one second. These are review guidelines, not
+configured alerts.
+
 ## Troubleshooting
 
 - If Python or pytest cannot be found, create the documented backend virtual
