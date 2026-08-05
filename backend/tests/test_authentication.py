@@ -32,7 +32,10 @@ class GuestAuthenticationTests(unittest.TestCase):
             patch.object(player_service, "installation_has_guest", return_value=False),
             patch.object(player_service, "create_guest_player", side_effect=capture),
         ):
-            response = player_service.bootstrap_guest("installation_" + "a" * 32)
+            response = player_service.bootstrap_guest(
+                "installation_" + "a" * 32,
+                "recovery_" + "r" * 32,
+            )
 
         self.assertTrue(response["auth_token"])
         self.assertEqual(response["player_id"], response["player"]["player_id"])
@@ -64,6 +67,8 @@ class GuestAuthenticationTests(unittest.TestCase):
         self.assertNotIn("installation_id_hash", profile)
         self.assertNotIn("token_created_at", profile)
         self.assertNotIn("token_version", profile)
+        self.assertNotIn("bootstrap_recovery_nonce_hash", profile)
+        self.assertNotIn("bootstrap_recovery_expires_at", profile)
 
     def test_missing_token_returns_401(self):
         with self.assertRaises(HTTPException) as raised:
@@ -156,7 +161,10 @@ class GuestAuthenticationTests(unittest.TestCase):
             patch.object(player_service, "create_guest_player") as create,
             self.assertRaises(player_service.BootstrapAlreadyCompletedError),
         ):
-            player_service.bootstrap_guest("installation_" + "b" * 32)
+            player_service.bootstrap_guest(
+                "installation_" + "b" * 32,
+                "recovery_" + "r" * 32,
+            )
         create.assert_not_called()
 
     def test_legacy_public_id_alone_cannot_migrate_or_authenticate(self):

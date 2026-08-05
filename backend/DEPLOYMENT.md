@@ -14,6 +14,8 @@ Optional:
 
 - `FIRE_FEAST_CORS_ORIGINS`: comma-separated browser origins. Production
   origins must use HTTPS. Native mobile API calls do not require CORS origins.
+- `FIRE_FEAST_GUEST_RECOVERY_WINDOW_SECONDS`: bootstrap credential-recovery
+  window from 60 to 3600 seconds. Defaults to 600 seconds.
 
 Do not place credentials in source files, `.env.example`, logs, or command
 arguments. Configure `MONGO_URL` through the hosting provider's secret store.

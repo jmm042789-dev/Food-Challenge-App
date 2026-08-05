@@ -92,6 +92,21 @@ class ConfigurationTests(unittest.TestCase):
             config.cors_origins,
             ("https://app.example.com", "https://admin.example.com"),
         )
+        self.assertEqual(config.guest_recovery_window_seconds, 600)
+
+    def test_guest_recovery_window_is_configurable_and_bounded(self):
+        configured = load_config(
+            dict(VALID_VALUES, FIRE_FEAST_GUEST_RECOVERY_WINDOW_SECONDS="900")
+        )
+        self.assertEqual(configured.guest_recovery_window_seconds, 900)
+        for invalid in ("59", "3601", "not-a-number"):
+            with self.subTest(invalid=invalid), self.assertRaises(ConfigurationError):
+                load_config(
+                    dict(
+                        VALID_VALUES,
+                        FIRE_FEAST_GUEST_RECOVERY_WINDOW_SECONDS=invalid,
+                    )
+                )
 
     def test_production_rejects_loopback_mongo_and_insecure_cors(self):
         loopback = dict(VALID_VALUES, FIRE_FEAST_ENV="production")

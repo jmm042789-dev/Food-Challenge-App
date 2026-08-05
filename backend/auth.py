@@ -30,6 +30,10 @@ def hash_installation_id(installation_id: str) -> str:
     return hashlib.sha256(installation_id.encode("utf-8")).hexdigest()
 
 
+def hash_recovery_nonce(recovery_nonce: str) -> str:
+    return hashlib.sha256(recovery_nonce.encode("utf-8")).hexdigest()
+
+
 def _unauthorized() -> HTTPException:
     return HTTPException(
         status_code=401,

@@ -33,6 +33,8 @@ def _public_document(document: Optional[dict]) -> Optional[dict]:
     result.pop("token_created_at", None)
     result.pop("token_version", None)
     result.pop("legacy_auth_migrated_at", None)
+    result.pop("bootstrap_recovery_nonce_hash", None)
+    result.pop("bootstrap_recovery_expires_at", None)
     return result
 
 
@@ -150,6 +152,58 @@ def installation_has_guest(installation_id_hash: str) -> bool:
             limit=1,
         )
         > 0
+    )
+
+
+def find_internal_player_by_installation_hash(
+    installation_id_hash: str,
+) -> Optional[dict]:
+    return _players().find_one({"installation_id_hash": installation_id_hash})
+
+
+def recover_guest_credentials(
+    installation_id_hash: str,
+    recovery_nonce_hash: str,
+    current_time: str,
+    new_auth_token_hash: str,
+    token_created_at: str,
+) -> Optional[dict]:
+    """Atomically consume one live recovery nonce and rotate the bearer hash."""
+    return _players().find_one_and_update(
+        {
+            "installation_id_hash": installation_id_hash,
+            "bootstrap_recovery_nonce_hash": recovery_nonce_hash,
+            "bootstrap_recovery_expires_at": {"$gt": current_time},
+        },
+        {
+            "$set": {
+                "auth_token_hash": new_auth_token_hash,
+                "token_created_at": token_created_at,
+            },
+            "$inc": {"token_version": 1},
+            "$unset": {
+                "bootstrap_recovery_nonce_hash": "",
+                "bootstrap_recovery_expires_at": "",
+            },
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+def complete_guest_bootstrap(
+    device_id: str,
+    auth_token_hash: str,
+) -> Optional[dict]:
+    """Remove unused bootstrap recovery state after credentials are durable."""
+    return _players().find_one_and_update(
+        {"device_id": device_id, "auth_token_hash": auth_token_hash},
+        {
+            "$unset": {
+                "bootstrap_recovery_nonce_hash": "",
+                "bootstrap_recovery_expires_at": "",
+            }
+        },
+        return_document=ReturnDocument.AFTER,
     )
 
 

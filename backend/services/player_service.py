@@ -9,13 +9,18 @@ Eventually server.py should only call these functions.
 import uuid
 import logging
 import os
-from datetime import datetime, timezone
+import hmac
+from datetime import datetime, timedelta, timezone
 
 from database import (
     create_guest_player,
     create_or_get_player,
+    complete_guest_bootstrap,
+    find_internal_player_by_installation_hash,
     find_player_document,
     installation_has_guest,
+    public_player_document,
+    recover_guest_credentials,
     update_player_document,
 )
 from auth import (
@@ -23,8 +28,9 @@ from auth import (
     generate_auth_token,
     hash_auth_token,
     hash_installation_id,
+    hash_recovery_nonce,
 )
-from config import DEFAULT_STARTING_COINS
+from config import DEFAULT_GUEST_RECOVERY_WINDOW_SECONDS, DEFAULT_STARTING_COINS
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +48,20 @@ class BootstrapAlreadyCompletedError(Exception):
     pass
 
 
-def bootstrap_guest(installation_id: str) -> dict:
+class BootstrapRecoveryError(Exception):
+    def __init__(self, code: str, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(message)
+
+
+def bootstrap_guest(
+    installation_id: str,
+    recovery_nonce: str,
+    *,
+    now: datetime | None = None,
+    recovery_window_seconds: int = DEFAULT_GUEST_RECOVERY_WINDOW_SECONDS,
+) -> dict:
     """Create one authenticated guest for an installation.
 
     A repeated unauthenticated bootstrap never returns or rotates credentials.
@@ -54,15 +73,20 @@ def bootstrap_guest(installation_id: str) -> dict:
 
     player_id = f"guest_{uuid.uuid4().hex}"
     auth_token = generate_auth_token()
-    now = datetime.now(timezone.utc).isoformat()
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    created_at = current.isoformat()
     document = _new_player(player_id)
     document.update(
         {
             "player_id": player_id,
             "auth_token_hash": hash_auth_token(auth_token),
             "installation_id_hash": installation_hash,
-            "token_created_at": now,
+            "token_created_at": created_at,
             "token_version": AUTH_TOKEN_VERSION,
+            "bootstrap_recovery_nonce_hash": hash_recovery_nonce(recovery_nonce),
+            "bootstrap_recovery_expires_at": (
+                current + timedelta(seconds=recovery_window_seconds)
+            ).isoformat(),
         }
     )
     player = create_guest_player(document)
@@ -79,7 +103,77 @@ def bootstrap_guest(installation_id: str) -> dict:
         "player_id": player_id,
         "auth_token": auth_token,
         "migrated": False,
+        "recovery_expires_at": document["bootstrap_recovery_expires_at"],
     }
+
+
+def recover_guest_bootstrap(
+    installation_id: str,
+    recovery_nonce: str,
+    new_auth_token: str,
+    *,
+    now: datetime | None = None,
+) -> dict:
+    """Consume a recovery nonce and atomically rotate to a client-held bearer."""
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    installation_hash = hash_installation_id(installation_id)
+    nonce_hash = hash_recovery_nonce(recovery_nonce)
+    rotated = recover_guest_credentials(
+        installation_hash,
+        nonce_hash,
+        current.isoformat(),
+        hash_auth_token(new_auth_token),
+        current.isoformat(),
+    )
+    if rotated:
+        player_id = rotated.get("player_id") or rotated["device_id"]
+        return {
+            "player": public_player_document(rotated),
+            "player_id": player_id,
+            "recovered": True,
+        }
+
+    existing = find_internal_player_by_installation_hash(installation_hash)
+    if not existing:
+        raise BootstrapRecoveryError(
+            "GUEST_RECOVERY_NOT_FOUND",
+            "No recoverable guest account was found for this installation.",
+        )
+    expected_nonce_hash = existing.get("bootstrap_recovery_nonce_hash")
+    if not isinstance(expected_nonce_hash, str):
+        raise BootstrapRecoveryError(
+            "GUEST_RECOVERY_USED",
+            "Guest recovery has already been used or completed.",
+        )
+    if not hmac.compare_digest(expected_nonce_hash, nonce_hash):
+        raise BootstrapRecoveryError(
+            "GUEST_RECOVERY_INVALID",
+            "The guest recovery credential is invalid.",
+        )
+    expires_at = existing.get("bootstrap_recovery_expires_at")
+    try:
+        expiration = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00"))
+        expiration = expiration.astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        expiration = current
+    if current >= expiration:
+        raise BootstrapRecoveryError(
+            "GUEST_RECOVERY_EXPIRED",
+            "Guest recovery has expired. Clear the app's local data to create a new guest account.",
+        )
+    raise BootstrapRecoveryError(
+        "GUEST_RECOVERY_CONFLICT",
+        "Guest recovery could not be completed. Retry with the pending recovery credential.",
+    )
+
+
+def finish_guest_bootstrap(player: dict) -> dict:
+    """Clear recovery state only after bearer-authenticated client confirmation."""
+    completed = complete_guest_bootstrap(
+        player["device_id"],
+        player["auth_token_hash"],
+    )
+    return {"completed": completed is not None}
 class TutorialIncompleteError(Exception):
     pass
 

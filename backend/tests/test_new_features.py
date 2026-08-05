@@ -5,12 +5,14 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
+BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "").rstrip("/")
 API = f"{BASE_URL}/api"
 
 
 @pytest.fixture(scope="module")
 def session():
+    if not BASE_URL:
+        pytest.skip("EXPO_PUBLIC_BACKEND_URL is required for live API tests")
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})
     return s

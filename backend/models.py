@@ -15,6 +15,16 @@ Identifier = Annotated[
     ),
 ]
 
+RecoverySecret = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=32,
+        max_length=512,
+        pattern=r"^[A-Za-z0-9_-]+$",
+    ),
+]
+
 
 class RequestModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -45,6 +55,13 @@ class PlayerCreate(RequestModel):
 
 class GuestBootstrapRequest(RequestModel):
     installation_id: Identifier = Field(min_length=16, max_length=128)
+    recovery_nonce: RecoverySecret
+
+
+class GuestRecoveryRequest(RequestModel):
+    installation_id: Identifier = Field(min_length=16, max_length=128)
+    recovery_nonce: RecoverySecret
+    new_auth_token: RecoverySecret
 
 
 class PlayerProfileUpdate(RequestModel):

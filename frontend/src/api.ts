@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { uuid } from "expo-modules-core";
 import { joinApiPath, resolveApiBase } from "./apiBase";
 import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance";
 import { storage } from "./utils/storage";
@@ -33,6 +34,9 @@ if (__DEV__) {
 
 const INSTALLATION_KEY = "firefeast_installation_id";
 const CREDENTIALS_KEY = "firefeast_guest_credentials_v1";
+const BOOTSTRAP_RECOVERY_NONCE_KEY = "firefeast_bootstrap_recovery_nonce_v1";
+const BOOTSTRAP_RECOVERY_TOKEN_KEY = "firefeast_bootstrap_recovery_token_v1";
+const BOOTSTRAP_COMPLETION_PENDING_KEY = "firefeast_bootstrap_completion_pending_v1";
 const PLAYER_ID_KEY = "firefeast_player_id";
 const AUTH_TOKEN_KEY = "firefeast_auth_token";
 const LEGACY_PLAYER_ID_KEY = "chompchamps_device_id";
@@ -69,6 +73,17 @@ type GuestBootstrapResponse = {
   migrated: boolean;
 };
 
+type GuestRecoveryResponse = {
+  player: unknown;
+  player_id: string;
+  recovered: true;
+};
+
+type PendingRecoveryToken = {
+  version: 1;
+  auth_token: string;
+};
+
 export class AuthenticationError extends Error {
   localCredentialsCleared: boolean;
 
@@ -84,11 +99,13 @@ export class AuthenticationError extends Error {
 
 class ApiRequestError extends Error {
   status: number;
+  code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = "ApiRequestError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -120,9 +137,12 @@ async function clearLocalGuestData(): Promise<void> {
       AUTH_TOKEN_KEY,
       LEGACY_PLAYER_ID_KEY,
       DELETION_PENDING_KEY,
+      BOOTSTRAP_RECOVERY_NONCE_KEY,
+      BOOTSTRAP_COMPLETION_PENDING_KEY,
       ...PLAYER_DATA_KEYS,
     ]),
   ]);
+  await storage.secureRemove(BOOTSTRAP_RECOVERY_TOKEN_KEY);
   bootstrapPlayerCache = undefined;
   credentialsCache = null;
   clearPlayerBalance();
@@ -220,6 +240,60 @@ async function getInstallationId(): Promise<string> {
   return id;
 }
 
+function cryptographicSecret(): string {
+  try {
+    return `${uuid.v4()}${uuid.v4()}`.replace(/-/g, "");
+  } catch {
+    throw new AuthenticationError("Secure guest credential generation is unavailable on this device.");
+  }
+}
+
+async function readPendingRecoveryToken(): Promise<string | null> {
+  const stored = await storage.secureGet(BOOTSTRAP_RECOVERY_TOKEN_KEY, null);
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as Partial<PendingRecoveryToken>;
+    return parsed.version === 1 && typeof parsed.auth_token === "string" && parsed.auth_token
+      ? parsed.auth_token
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getOrCreateBootstrapRecovery(): Promise<{ nonce: string; authToken: string }> {
+  let nonce = await AsyncStorage.getItem(BOOTSTRAP_RECOVERY_NONCE_KEY);
+  let authToken = await readPendingRecoveryToken();
+  if (!nonce) {
+    nonce = cryptographicSecret();
+    await AsyncStorage.setItem(BOOTSTRAP_RECOVERY_NONCE_KEY, nonce);
+    if (authToken) {
+      await storage.secureRemove(BOOTSTRAP_RECOVERY_TOKEN_KEY);
+      authToken = null;
+    }
+  }
+  if (!authToken) {
+    authToken = cryptographicSecret();
+    const stored = await storage.secureSet(
+      BOOTSTRAP_RECOVERY_TOKEN_KEY,
+      JSON.stringify({ version: 1, auth_token: authToken } satisfies PendingRecoveryToken),
+    );
+    if (!stored) {
+      throw new AuthenticationError(
+        "Guest recovery credentials could not be stored securely. No account was created; retry when secure storage is available.",
+      );
+    }
+  }
+  return { nonce, authToken };
+}
+
+async function clearBootstrapRecoveryState(): Promise<void> {
+  await Promise.all([
+    AsyncStorage.removeItem(BOOTSTRAP_RECOVERY_NONCE_KEY),
+    storage.secureRemove(BOOTSTRAP_RECOVERY_TOKEN_KEY),
+  ]);
+}
+
 async function readStoredCredentials(): Promise<GuestCredentials | null> {
   if (credentialsCache) return credentialsCache;
 
@@ -276,9 +350,58 @@ async function storeCredentials(credentials: GuestCredentials): Promise<void> {
   credentialsCache = credentials;
 }
 
+async function finishBootstrapRecovery(credentials: GuestCredentials): Promise<void> {
+  try {
+    await req("/auth/guest/complete", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${credentials.authToken}` },
+    }, false, false);
+    await AsyncStorage.removeItem(BOOTSTRAP_COMPLETION_PENDING_KEY);
+  } catch {
+    // Durable bearer credentials remain valid. Retry server cleanup next launch.
+  }
+}
+
+async function persistRecoveredCredentials(
+  playerId: string,
+  authToken: string,
+  player: unknown,
+): Promise<GuestCredentials> {
+  const credentials = { playerId: playerId.trim(), authToken: authToken.trim() };
+  if (!credentials.playerId || !credentials.authToken) {
+    throw new AuthenticationError("The guest account response was invalid.");
+  }
+  await storeCredentials(credentials);
+  await AsyncStorage.setItem(BOOTSTRAP_COMPLETION_PENDING_KEY, "true");
+  await clearBootstrapRecoveryState();
+  cacheBootstrapPlayer(player);
+  await finishBootstrapRecovery(credentials);
+  return credentials;
+}
+
+async function resolvePendingRecoverySession(authToken: string): Promise<GuestCredentials | null> {
+  try {
+    const response = await req("/auth/session", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    }, false, false) as { player_id?: unknown; player?: unknown };
+    if (typeof response.player_id !== "string" || !response.player_id.trim()) {
+      throw new AuthenticationError("The guest recovery session response was invalid.");
+    }
+    return persistRecoveredCredentials(response.player_id, authToken, response.player);
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 401) return null;
+    throw error;
+  }
+}
+
 async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
   const stored = await readStoredCredentials();
-  if (stored) return stored;
+  if (stored) {
+    if (await AsyncStorage.getItem(BOOTSTRAP_COMPLETION_PENDING_KEY)) {
+      await finishBootstrapRecovery(stored);
+    }
+    return stored;
+  }
   const legacyPlayerId = await AsyncStorage.getItem(LEGACY_PLAYER_ID_KEY);
   if (legacyPlayerId) {
     throw new AuthenticationError(
@@ -287,12 +410,18 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
   }
 
   const installationId = await getInstallationId();
+  const recovery = await getOrCreateBootstrapRecovery();
+  const recoveredSession = await resolvePendingRecoverySession(recovery.authToken);
+  if (recoveredSession) return recoveredSession;
   try {
     const response = await req(
       "/auth/guest",
       {
         method: "POST",
-        body: JSON.stringify({ installation_id: installationId }),
+        body: JSON.stringify({
+          installation_id: installationId,
+          recovery_nonce: recovery.nonce,
+        }),
       },
       false,
     ) as GuestBootstrapResponse;
@@ -310,28 +439,56 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
     ) {
       throw new AuthenticationError("The guest account response was invalid.");
     }
-    const credentials = {
-      playerId: response.player_id.trim(),
-      authToken: response.auth_token.trim(),
-    };
-    if (!credentials.playerId || !credentials.authToken) {
-      throw new AuthenticationError("The guest account response was invalid.");
-    }
-    await storeCredentials(credentials);
+    const credentials = await persistRecoveredCredentials(
+      response.player_id,
+      response.auth_token,
+      response.player,
+    );
     if (__DEV__) {
       console.info("Fire Feast guest credentials created", {
         playerId: credentials.playerId,
         tokenLength: credentials.authToken.length,
       });
     }
-    cacheBootstrapPlayer(response.player);
     return credentials;
   } catch (error) {
     if (error instanceof AuthenticationError) throw error;
-    if (error instanceof ApiRequestError && error.status === 409) {
-      throw new AuthenticationError(
-        "Guest credentials were already issued but are not available on this installation.",
-      );
+    if (error instanceof ApiRequestError && error.code === "GUEST_BOOTSTRAP_EXISTS") {
+      try {
+        const recovered = await req("/auth/guest/recover", {
+          method: "POST",
+          body: JSON.stringify({
+            installation_id: installationId,
+            recovery_nonce: recovery.nonce,
+            new_auth_token: recovery.authToken,
+          }),
+        }, false, false) as GuestRecoveryResponse;
+        if (typeof recovered.player_id !== "string" || !recovered.player_id.trim()) {
+          throw new AuthenticationError("The guest recovery response was invalid.");
+        }
+        return persistRecoveredCredentials(
+          recovered.player_id,
+          recovery.authToken,
+          recovered.player,
+        );
+      } catch (recoveryError) {
+        if (
+          recoveryError instanceof ApiRequestError
+          && recoveryError.code === "GUEST_RECOVERY_EXPIRED"
+        ) {
+          throw new AuthenticationError(
+            "Guest account recovery expired before credentials were saved. Clear Fire Feast app data to create a new guest account, or contact support if progress must be preserved.",
+          );
+        }
+        if (
+          recoveryError instanceof ApiRequestError
+          && recoveryError.code === "GUEST_RECOVERY_USED"
+        ) {
+          const recoveredAfterLostResponse = await resolvePendingRecoverySession(recovery.authToken);
+          if (recoveredAfterLostResponse) return recoveredAfterLostResponse;
+        }
+        throw recoveryError;
+      }
     }
     throw error;
   }
@@ -561,10 +718,13 @@ async function req(
           recoveredDeletion,
         );
       }
-      throw new ApiRequestError(
-        res.status,
-        `HTTP ${res.status}: ${JSON.stringify(data)}`,
-      );
+      const detail = data && typeof data === "object"
+        ? (data as { detail?: unknown }).detail
+        : null;
+      const code = detail && typeof detail === "object" && typeof (detail as { code?: unknown }).code === "string"
+        ? (detail as { code: string }).code
+        : null;
+      throw new ApiRequestError(res.status, `HTTP ${res.status}: ${JSON.stringify(data)}`, code);
     }
 
     if (authenticated && requestPath !== "/player/account") {

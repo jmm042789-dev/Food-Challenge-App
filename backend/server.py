@@ -19,11 +19,14 @@ from config import ConfigurationError, load_config
 
 from services.player_service import (
     bootstrap_guest,
+    finish_guest_bootstrap,
+    recover_guest_bootstrap,
     find_player,
     mark_tutorial_done,
     claim_welcome_reward,
     update_player_profile,
     BootstrapAlreadyCompletedError,
+    BootstrapRecoveryError,
     TutorialIncompleteError,
     WelcomeRewardUnavailableError,
 )
@@ -61,6 +64,7 @@ from models import (
     EquipRequest,
     AccountDeletionRequest,
     GuestBootstrapRequest,
+    GuestRecoveryRequest,
     MatchResult,
     MatchStart,
     PlayerCreate,
@@ -212,12 +216,42 @@ def test():
 @app.post("/api/auth/guest", dependencies=[Depends(bootstrap_limit)])
 def guest_bootstrap_endpoint(data: GuestBootstrapRequest):
     try:
-        return bootstrap_guest(data.installation_id)
+        return bootstrap_guest(
+            data.installation_id,
+            data.recovery_nonce,
+            recovery_window_seconds=app_config.guest_recovery_window_seconds,
+        )
     except BootstrapAlreadyCompletedError:
         raise HTTPException(
             status_code=409,
-            detail="guest credentials were already issued for this installation",
+            detail={
+                "code": "GUEST_BOOTSTRAP_EXISTS",
+                "message": "Guest credentials were already issued for this installation.",
+            },
         )
+
+
+@app.post("/api/auth/guest/recover", dependencies=[Depends(bootstrap_limit)])
+def guest_recovery_endpoint(data: GuestRecoveryRequest):
+    try:
+        return recover_guest_bootstrap(
+            data.installation_id,
+            data.recovery_nonce,
+            data.new_auth_token,
+        )
+    except BootstrapRecoveryError as error:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": error.code, "message": error.message},
+        )
+
+
+@app.post("/api/auth/guest/complete")
+def guest_bootstrap_complete_endpoint(
+    authorization: str | None = Header(default=None),
+):
+    player = authenticated_bearer_player(authorization)
+    return finish_guest_bootstrap(player)
 
 
 @app.get("/api/auth/session")

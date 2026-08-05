@@ -130,6 +130,7 @@ class ApiHardeningTests(unittest.TestCase):
     def test_sensitive_routes_have_rate_limit_dependencies(self):
         protected_paths = {
             "/api/auth/guest",
+            "/api/auth/guest/recover",
             "/api/player/tutorial_done",
             "/api/player/welcome_reward",
             "/api/daily/claim",

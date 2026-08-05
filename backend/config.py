@@ -16,6 +16,9 @@ load_dotenv(dotenv_path=Path(__file__).with_name(".env"), override=False)
 VALID_ENVIRONMENTS = {"development", "preview", "production", "test"}
 DB_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 DEFAULT_STARTING_COINS = 500
+DEFAULT_GUEST_RECOVERY_WINDOW_SECONDS = 10 * 60
+MIN_GUEST_RECOVERY_WINDOW_SECONDS = 60
+MAX_GUEST_RECOVERY_WINDOW_SECONDS = 60 * 60
 
 
 class ConfigurationError(RuntimeError):
@@ -28,6 +31,7 @@ class BackendConfig:
     mongo_url: str
     db_name: str
     cors_origins: tuple[str, ...]
+    guest_recovery_window_seconds: int = DEFAULT_GUEST_RECOVERY_WINDOW_SECONDS
 
     @property
     def is_production(self) -> bool:
@@ -60,6 +64,22 @@ def _parse_origins(value: str, *, is_production: bool) -> tuple[str, ...]:
         if is_production and parsed.scheme != "https":
             raise ConfigurationError("production CORS origins must use HTTPS")
     return origins
+
+
+def _parse_recovery_window(value: str) -> int:
+    if not value.strip():
+        return DEFAULT_GUEST_RECOVERY_WINDOW_SECONDS
+    try:
+        seconds = int(value)
+    except ValueError as error:
+        raise ConfigurationError(
+            "FIRE_FEAST_GUEST_RECOVERY_WINDOW_SECONDS must be an integer"
+        ) from error
+    if not MIN_GUEST_RECOVERY_WINDOW_SECONDS <= seconds <= MAX_GUEST_RECOVERY_WINDOW_SECONDS:
+        raise ConfigurationError(
+            "FIRE_FEAST_GUEST_RECOVERY_WINDOW_SECONDS must be between 60 and 3600"
+        )
+    return seconds
 
 
 def load_config(
@@ -107,9 +127,13 @@ def load_config(
         values.get("FIRE_FEAST_CORS_ORIGINS", ""),
         is_production=environment == "production",
     )
+    recovery_window = _parse_recovery_window(
+        values.get("FIRE_FEAST_GUEST_RECOVERY_WINDOW_SECONDS", "")
+    )
     return BackendConfig(
         environment=environment,
         mongo_url=mongo_url,
         db_name=db_name,
         cors_origins=origins,
+        guest_recovery_window_seconds=recovery_window,
     )
