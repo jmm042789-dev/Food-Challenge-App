@@ -1,6 +1,6 @@
-# Welcome to your Expo app 👋
+# Fire Feast
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Fire Feast is an arcade food challenge game built with Expo Router and React Native.
 
 ## Get started
 
@@ -25,15 +25,14 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## Android releases
 
-When you're ready, run:
+Android production builds use the `production` EAS profile and produce an Android App Bundle for Google Play testing. Release preparation, environment requirements, versioning, validation, and testing checklists are maintained in [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-```bash
-npm run reset-project
-```
+Public release references:
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- Privacy policy: https://firefeastgame.com/privacy
+- Support: support@firefeastgame.com
 
 ## Learn more
 
