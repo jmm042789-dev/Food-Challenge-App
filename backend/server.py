@@ -9,6 +9,7 @@ from database import (
     active_matches,
     close_database,
     database_connected,
+    database_readiness,
     delete_guest_player,
     initialize_database,
     player_count,
@@ -180,10 +181,35 @@ def shutdown_database():
     logger.info("Backend shutdown complete")
 
 
+def _readiness_response(endpoint_name: str, *, compatibility: bool = False):
+    result = database_readiness()
+    if result.ready:
+        return {"status": "ok" if compatibility else "ready"}
+    logger.warning(
+        "Health endpoint failure (endpoint=%s category=%s exception=%s)",
+        endpoint_name,
+        result.category,
+        result.exception_type or "none",
+    )
+    return JSONResponse(status_code=503, content={"status": "unavailable"})
+
+
+@app.get("/api/health/live")
+def health_live():
+    """Process liveness only; intentionally independent of MongoDB."""
+    return {"status": "alive", "service": "fire-feast-api"}
+
+
+@app.get("/api/health/ready")
+def health_ready():
+    """Report whether required dependencies can serve application traffic."""
+    return _readiness_response("/api/health/ready")
+
+
 @app.get("/api/health")
 def health():
-    """Lightweight process health check for hosting platforms."""
-    return {"status": "ok" if database_connected() else "degraded"}
+    """Compatibility health endpoint with readiness semantics."""
+    return _readiness_response("/api/health", compatibility=True)
 
 # =========================
 # DATABASE

@@ -27,8 +27,8 @@ class _Admin:
     def __init__(self):
         self.commands = []
 
-    def command(self, command):
-        self.commands.append(command)
+    def command(self, command, **options):
+        self.commands.append((command, options))
         return {"ok": 1}
 
 
@@ -130,7 +130,7 @@ class ConfigurationTests(unittest.TestCase):
         with patch.object(database, "MongoClient", return_value=client):
             database.initialize_database(config)
 
-        self.assertEqual(client.admin.commands, ["ping"])
+        self.assertEqual(client.admin.commands, [("ping", {})])
         players = client.databases[config.db_name].collections["players"]
         self.assertEqual(
             {options["name"] for _fields, options in players.indexes},

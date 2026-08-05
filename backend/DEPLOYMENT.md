@@ -27,7 +27,22 @@ required unique indexes, and ensures the global settings document exists. Any
 failure stops startup with a sanitized operational log.
 
 Shutdown closes the MongoDB client and clears process-local matchmaking state.
-The `/api/health` endpoint reports `ok` only while MongoDB responds.
+
+## Health checks
+
+- `GET /api/health/live` is process liveness. It does not access MongoDB and
+  returns HTTP 200 with `status: alive` while FastAPI is running.
+- `GET /api/health/ready` is deployment readiness. It performs a bounded,
+  read-only MongoDB ping and returns HTTP 200 with `status: ready` only when
+  MongoDB is usable. An uninitialized, timed-out, or unhealthy database returns
+  HTTP 503 with `status: unavailable`.
+- `GET /api/health` remains available for compatibility. Its healthy response
+  remains `status: ok`, but it now follows readiness semantics and returns HTTP
+  503 while MongoDB is unavailable.
+
+The checked-in Render descriptor uses `/api/health/ready`, so Render receives
+HTTP 200 only when the application can serve MongoDB-backed traffic. Liveness
+remains available separately for diagnostics.
 
 Production mode disables OpenAPI/Swagger documentation and diagnostic routes.
 The checked-in Render descriptor sets production mode and requires `MONGO_URL`

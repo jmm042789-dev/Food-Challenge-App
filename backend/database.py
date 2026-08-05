@@ -1,6 +1,7 @@
 """MongoDB persistence and ephemeral matchmaking state for Fire Feast."""
 
-from typing import Dict, List, Optional
+from dataclasses import dataclass
+from typing import Dict, List, Literal, Optional
 
 from pymongo import ASCENDING, MongoClient, ReturnDocument
 from pymongo.collection import Collection
@@ -12,6 +13,15 @@ from config import BackendConfig
 mongo_client: Optional[MongoClient] = None
 player_collection: Optional[Collection] = None
 settings_collection: Optional[Collection] = None
+
+DATABASE_READINESS_TIMEOUT_MS = 3_000
+
+
+@dataclass(frozen=True)
+class DatabaseReadiness:
+    ready: bool
+    category: Literal["ready", "uninitialized", "timeout", "driver_error"]
+    exception_type: Optional[str] = None
 
 
 DEFAULT_SETTINGS = {
@@ -58,7 +68,10 @@ def initialize_database(config: BackendConfig) -> None:
     """Verify MongoDB and create the indexes/default documents we rely on."""
     global mongo_client, player_collection, settings_collection
     close_database()
-    client = MongoClient(config.mongo_url, serverSelectionTimeoutMS=3000)
+    client = MongoClient(
+        config.mongo_url,
+        serverSelectionTimeoutMS=DATABASE_READINESS_TIMEOUT_MS,
+    )
     try:
         client.admin.command("ping")
         database = client[config.db_name]
@@ -112,14 +125,25 @@ def close_database() -> None:
 
 
 def database_connected() -> bool:
+    """Compatibility wrapper for callers that only need a boolean."""
+    return database_readiness().ready
+
+
+def database_readiness() -> DatabaseReadiness:
+    """Run a bounded, read-only ping against the shared MongoDB client."""
     client = mongo_client
     if client is None:
-        return False
+        return DatabaseReadiness(False, "uninitialized")
     try:
-        client.admin.command("ping")
-        return True
-    except PyMongoError:
-        return False
+        client.admin.command("ping", maxTimeMS=DATABASE_READINESS_TIMEOUT_MS)
+        return DatabaseReadiness(True, "ready")
+    except TimeoutError as error:
+        return DatabaseReadiness(False, "timeout", type(error).__name__)
+    except PyMongoError as error:
+        category = "timeout" if getattr(error, "timeout", False) else "driver_error"
+        return DatabaseReadiness(False, category, type(error).__name__)
+    except Exception as error:
+        return DatabaseReadiness(False, "driver_error", type(error).__name__)
 
 
 def create_or_get_player(defaults: dict) -> dict:
