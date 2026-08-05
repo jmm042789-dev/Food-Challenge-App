@@ -10,6 +10,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "node --test",
     "test:swipe": "node --test tests/swipe-validation.test.js"
   },
   "dependencies": {

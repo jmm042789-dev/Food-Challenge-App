@@ -48,6 +48,14 @@ Production mode disables OpenAPI/Swagger documentation and diagnostic routes.
 The checked-in Render descriptor sets production mode and requires `MONGO_URL`
 to be supplied as a secret.
 
+## Validation
+
+Run `scripts/validate.ps1` from the repository root for deterministic backend
+and frontend validation. It does not contact MongoDB or a deployed API. Live API
+and authenticated-session checks are isolated behind
+`scripts/validate-integration.ps1`; configuration and expected skip behavior are
+documented in the root README.
+
 ## Frontend
 
 Set `EXPO_PUBLIC_BACKEND_URL` to the deployed API origin. Production Expo
