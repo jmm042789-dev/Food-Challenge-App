@@ -1,7 +1,7 @@
 # Fire Feast Privacy Policy
 
-**Effective Date:** TODO
-**Last Updated:** TODO
+**Effective Date:** 2026-08-04
+**Last Updated:** 2026-08-04
 
 ## 1. Introduction
 
@@ -32,6 +32,10 @@ Fire Feast stores information needed to save and operate your game, which may in
 - antacid balance and use;
 - owned and equipped inventory or gear; and
 - leaderboard position and related public gameplay information.
+
+### Virtual purchases and rewards
+
+The current Game allows players to use virtual coins to enter contests and obtain virtual items, gear, cosmetics, or Antacid. It also provides virtual rewards such as coins, XP, daily rewards, welcome rewards, and match rewards. We process and store the balances, inventory, eligibility status, claim status, and transaction results needed to provide these features and prevent duplicate claims. The current Game does not offer real-money purchases and does not collect payment-card information.
 
 ### Information stored on your device
 
@@ -87,7 +91,7 @@ When you complete the in-app account deletion process, Fire Feast also attempts 
 
 ## 6. Backend Services
 
-Fire Feast uses supporting backend and hosting services to authenticate guest accounts and store the server-side information needed for profiles, gameplay progress, balances, inventory, active matches, settings, and leaderboards.
+Fire Feast uses supporting backend, database, and hosting services to authenticate guest accounts and store the server-side information needed for profiles, gameplay progress, virtual purchases and rewards, balances, inventory, active matches, settings, and leaderboards.
 
 These service providers may process information on our behalf only as needed to host, secure, maintain, and deliver Fire Feast. Their handling of information is also subject to their applicable service terms and privacy practices.
 
@@ -118,7 +122,13 @@ We retain server-side guest account and gameplay information for as long as reas
 
 Information stored locally remains on the device until the Game removes it, you use the in-app deletion process, or you remove or clear the Game's storage. Operational records maintained by service providers may be retained for limited periods under their security, backup, and legal requirements.
 
-## 10. Account Deletion
+## 10. Your Choices and Requests
+
+You can use the Game's profile and settings controls to update supported profile information and device preferences. You can also request deletion of the current guest account through the in-app account-deletion control.
+
+For questions or requests concerning your information, contact us using the information in Section 14. We may need information sufficient to identify the relevant guest account and verify that a request relates to it. Because Fire Feast uses guest accounts without email or password login, we may be unable to recover or identify an account if its device credentials are no longer available.
+
+## 11. Account Deletion
 
 Fire Feast provides an account-deletion control in the Profile screen under **Account & Data**. The Game requires confirmation before submitting the deletion request.
 
@@ -126,9 +136,9 @@ When an authenticated deletion request succeeds, Fire Feast online services dele
 
 Account deletion is permanent. J&B Forge Studios may not be able to restore a deleted guest account or its progress.
 
-If you cannot access the in-app deletion control, contact us using the information in Section 13.
+If you cannot access the in-app deletion control, contact us using the information in Section 14.
 
-## 11. Children's Privacy
+## 12. Children's Privacy
 
 Fire Feast is a general-audience game. The current Game does not ask users to provide an email address, password, payment-card information, chat messages, or user-uploaded media.
 
@@ -136,18 +146,18 @@ We do not knowingly collect personal information from children in violation of a
 
 Parents and guardians should supervise children's use of online games and help them choose a gamer name that does not reveal personal information.
 
-## 12. Changes to This Policy
+## 13. Changes to This Policy
 
 We may update this Privacy Policy when Fire Feast, our data practices, or applicable requirements change. We will update the **Last Updated** date when we publish a revised policy. If a change is material, we will provide notice through the Game or another appropriate method.
 
-## 13. Contact Information
+## 14. Contact Information
 
 If you have questions, privacy requests, or concerns about this Privacy Policy or Fire Feast, contact:
 
 **J&B Forge Studios**
 
-**Email:** TODO Support Email
+**Email:** support@firefeastgame.com
 
-**Website:** TODO Website
+**Website:** https://firefeastgame.com
 
 Response times may vary.

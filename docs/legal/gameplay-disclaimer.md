@@ -1,7 +1,7 @@
 # Fire Feast Gameplay & Health Disclaimer
 
-**Effective Date:** TODO
-**Last Updated:** TODO
+**Effective Date:** 2026-08-04
+**Last Updated:** 2026-08-04
 
 **Operator:** J&B Forge Studios
 
@@ -10,6 +10,10 @@
 Fire Feast is a fictional, arcade-style game created for entertainment. Its gameplay, characters, restaurants, scores, prizes, rankings, rewards, and competitive presentation are fictional game mechanics.
 
 Coins, XP, inventory, cosmetics, unlocks, and other virtual rewards exist only within the Game. They have no real-world cash value and cannot be exchanged for cash.
+
+Fire Feast does not involve gambling, wagering of real money, or real-money prizes. Contest entry fees use virtual coins only, and gameplay outcomes do not award cash or anything of real-world value.
+
+The Game does not require, encourage, or instruct players to consume food, attempt an eating challenge, imitate gameplay events, or visit any depicted location. You can play Fire Feast without eating or drinking anything.
 
 ## 2. Health and Well-Being
 
@@ -28,7 +32,7 @@ Fire Feast may contain flashing lights, bright visual effects, animations, motio
 
 If you have a history of photosensitive epilepsy or a similar condition, consider consulting a qualified healthcare professional before playing if you have concerns. Stop playing and seek medical advice if you experience symptoms such as dizziness, altered vision, eye or muscle twitching, loss of awareness, disorientation, involuntary movement, or a seizure.
 
-This section provides general safety information and is not medical advice.
+This disclaimer and the Game provide general entertainment and safety information only. They are not medical advice, diagnosis, or treatment and are not a substitute for advice from a qualified healthcare professional.
 
 ## 4. Motion and Visual Effects
 
@@ -62,8 +66,8 @@ If you have questions or concerns about this disclaimer or Fire Feast, contact:
 
 **J&B Forge Studios**
 
-**Email:** TODO Support Email
+**Email:** support@firefeastgame.com
 
-**Website:** TODO Website
+**Website:** https://firefeastgame.com
 
 Response times may vary.

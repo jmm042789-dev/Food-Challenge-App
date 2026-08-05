@@ -11,8 +11,10 @@ import { loadAudioSettings } from "../src/audio/AudioSettings";
 import { updateAudioSettings } from "../src/audio/AdaptiveAudioManager";
 import type { AudioSettings } from "../src/audio/AudioTypes";
 import { useAppPreferences, type AppPreferences } from "../src/preferences/AppPreferences";
+import { openExternalUrl } from "../src/utils/externalUrls";
 
-const SUPPORT_EMAIL = "support@firefeast.app";
+export const SUPPORT_EMAIL = "support@firefeastgame.com";
+export const PUBLIC_WEBSITE_URL = "https://firefeastgame.com";
 const version = Constants.expoConfig?.version ?? "1.0.0";
 const build = String(Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? "1");
 
@@ -48,6 +50,11 @@ export default function SettingsScreen() {
     const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
     Linking.openURL(url).catch(() => Alert.alert("Email unavailable", `Contact us at ${SUPPORT_EMAIL}.`));
   }, []);
+  const openWebsite = useCallback(() => {
+    void openExternalUrl(PUBLIC_WEBSITE_URL).then((opened) => {
+      if (!opened) Alert.alert("Website unavailable", PUBLIC_WEBSITE_URL);
+    });
+  }, []);
 
   const large = preferences.largeText;
   return <SafeAreaView style={styles.screen}>
@@ -80,6 +87,7 @@ export default function SettingsScreen() {
         <FireButton fullWidth title="TERMS OF SERVICE" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "terms" } })} />
         <FireButton fullWidth title="GAMEPLAY & HEALTH DISCLAIMER" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "disclaimer" } })} />
         <FireButton fullWidth title="CONTACT SUPPORT" variant="secondary" onPress={() => contact("Fire Feast Support")} />
+        <FireButton fullWidth title="FIRE FEAST WEBSITE" variant="secondary" onPress={openWebsite} />
         <FireButton fullWidth title="REPORT A BUG" variant="secondary" onPress={() => contact("Fire Feast Beta Bug Report")} />
       </FirePanel>
 

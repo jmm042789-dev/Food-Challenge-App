@@ -1,7 +1,7 @@
 # Fire Feast Terms of Service
 
-**Effective Date:** TODO
-**Last Updated:** TODO
+**Effective Date:** 2026-08-04
+**Last Updated:** 2026-08-04
 
 **Operator:** J&B Forge Studios
 
@@ -29,6 +29,8 @@ Fire Feast uses online services to provide features including guest authenticati
 
 Online features may occasionally be unavailable because of maintenance, updates, network conditions, technical issues, security needs, or events outside our reasonable control. We do not promise that Fire Feast or its online services will always be available.
 
+Fire Feast is being provided as a Closed Beta. Beta features may be incomplete, may contain errors, and may change or become unavailable during testing. You may lose access to beta progress or features because of technical failures, security measures, account deletion, device changes, or updates to the Game.
+
 ## 5. Virtual Items
 
 Fire Feast includes virtual gameplay items and progression, such as:
@@ -43,6 +45,8 @@ These items and progression are part of the Game only. They have no real-world m
 
 Virtual balances, rewards, item availability, and progression requirements may change as Fire Feast is updated or balanced. Locally stored beta progression may be separate from balances maintained by Fire Feast online services.
 
+The current Game does not offer real-money purchases. Contest entry fees and shop purchases use virtual coins only. Virtual coins, XP, rewards, gear, cosmetics, Antacid, and other virtual items cannot be sold, transferred, redeemed, or exchanged for cash, goods, services, or real-world prizes.
+
 ## 6. Player Conduct
 
 When using Fire Feast, you must not:
@@ -55,7 +59,7 @@ When using Fire Feast, you must not:
 - attempt unauthorized access to accounts, systems, or data; or
 - disrupt other players or the operation of the Game.
 
-If you discover a security issue or serious exploit, please report it through the contact information in Section 13 rather than using or sharing it in a way that could cause harm.
+If you discover a security issue or serious exploit, please report it through the contact information in Section 14 rather than using or sharing it in a way that could cause harm.
 
 ## 7. Suspension or Termination
 
@@ -65,7 +69,11 @@ We are not required to provide a warning before taking action. Suspension or ter
 
 You may stop using Fire Feast at any time. The Game also provides an in-app process for permanently deleting the current guest account and its associated server-side data.
 
-## 8. Intellectual Property
+## 8. Account Deletion
+
+You may permanently delete the current guest account through the Account & Data controls in the Profile screen. Account deletion removes the current server-side guest profile and associated progress and attempts to clear guest credentials and certain local guest progression from the device. Deletion is permanent and the account or its virtual items may not be recoverable.
+
+## 9. Intellectual Property
 
 Fire Feast and its artwork, music, logos, code, characters, designs, text, and related content are owned by J&B Forge Studios or used under applicable rights. These Terms do not transfer ownership of Fire Feast or its content to you.
 
@@ -73,7 +81,7 @@ Subject to these Terms, J&B Forge Studios grants you a limited, personal, non-ex
 
 You may not copy, distribute, sell, publicly display, reverse engineer, or create derivative works from Fire Feast except where applicable law expressly permits that activity.
 
-## 9. Disclaimers
+## 10. Disclaimers
 
 Fire Feast is provided on an "as is" and "as available" basis. To the extent permitted by applicable law, we do not make warranties that the Game will always be available, uninterrupted, secure, or error-free.
 
@@ -81,7 +89,7 @@ Updates, device conditions, network availability, and third-party services may a
 
 Nothing in these Terms excludes warranties or other rights that cannot legally be excluded.
 
-## 10. Limitation of Liability
+## 11. Limitation of Liability
 
 To the extent permitted by applicable law, J&B Forge Studios will not be liable for indirect, incidental, special, or consequential losses arising from your use of, or inability to use, Fire Feast.
 
@@ -89,26 +97,26 @@ J&B Forge Studios is not responsible for losses caused by circumstances outside 
 
 Nothing in these Terms limits liability where doing so would be unlawful, including liability that cannot be limited or excluded under applicable consumer-protection law.
 
-## 11. Changes to Fire Feast
+## 12. Changes to Fire Feast
 
 We may update, balance, add to, restrict, or remove parts of Fire Feast over time. This may include changes to gameplay, features, virtual items, progression, online services, content, or device compatibility.
 
 Changes may be needed to improve the Game, address technical or security issues, maintain fair play, or support continued operation. We do not guarantee that any particular feature, item, balance, or content will remain available permanently.
 
-## 12. Changes to These Terms
+## 13. Changes to These Terms
 
 We may update these Terms when Fire Feast, our practices, or applicable requirements change. We will update the **Last Updated** date when revised Terms are published.
 
 You should review these Terms periodically. Continued use of Fire Feast after updated Terms take effect means you accept the revised Terms to the extent permitted by applicable law.
 
-## 13. Contact Information
+## 14. Contact Information
 
 If you have questions or concerns about these Terms or Fire Feast, contact:
 
 **J&B Forge Studios**
 
-**Email:** TODO Support Email
+**Email:** support@firefeastgame.com
 
-**Website:** TODO Website
+**Website:** https://firefeastgame.com
 
 Response times may vary.
