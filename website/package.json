@@ -1,0 +1,16 @@
+{
+  "name": "fire-feast-marketing-website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/website.test.mjs",
+    "lint": "node --check scripts/build.mjs && node --check tests/website.test.mjs",
+    "typecheck": "node --check scripts/build.mjs && node --check tests/website.test.mjs",
+    "validate": "npm run build && npm test && npm run lint && npm run typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
