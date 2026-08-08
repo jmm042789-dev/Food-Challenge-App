@@ -42,6 +42,17 @@ test('production domain and support email are correct', async () => {
   assert.doesNotMatch(`${support}\n${sitemap}`, /support@(?!firefeastgame\.com)/);
 });
 
+test('account deletion page documents the secure request workflow', async () => {
+  const deletion = await readFile(fileFor('/delete-account'), 'utf8');
+  assert.match(deletion, /com\.firefeast\.app/);
+  assert.match(deletion, /Delete Account Permanently/);
+  assert.match(deletion, /What is deleted\?/);
+  assert.match(deletion, /What may be retained\?/);
+  assert.match(deletion, /within 30 days/);
+  assert.match(deletion, /mailto:support@firefeastgame\.com\?subject=Fire%20Feast%20Account%20Deletion%20Request/);
+  assert.match(deletion, /does not expose an unauthenticated deletion endpoint/);
+});
+
 test('every page includes core accessibility and SEO metadata', async () => {
   const titles = new Set();
   for (const route of routes) {

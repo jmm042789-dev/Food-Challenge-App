@@ -78,6 +78,7 @@ Microphone recording is explicitly disabled in the `expo-audio` plugin configura
 - Publish the privacy policy at https://firefeastgame.com/privacy and use that exact URL in Play Console.
 - Verify `support@firefeastgame.com` can receive and reply to messages before inviting testers.
 - Publish the Terms of Service and Gameplay & Health Disclaimer on `firefeastgame.com`, and verify the in-app Settings legal pages match the published text.
+- Publish and verify the account-deletion instructions at https://firefeastgame.com/delete-account, then enter that URL in Play Console's account-deletion requirement.
 - Confirm all public legal pages work without authentication, private-host redirects, or certificate warnings.
 
 ## Play Console preparation
@@ -89,6 +90,7 @@ Microphone recording is explicitly disabled in the `expo-audio` plugin configura
 - [ ] Review the Data Safety form against the shipping binary, backend, hosting, and data practices.
 - [ ] Enter https://firefeastgame.com/privacy as the Play privacy policy URL and verify it is publicly reachable.
 - [ ] Publish and verify the Terms of Service and Gameplay & Health Disclaimer.
+- [ ] Enter https://firefeastgame.com/delete-account as the Play account-deletion URL and verify it is publicly reachable without authentication.
 - [ ] Verify the support mailbox and store-listing contact information.
 - [ ] Complete content rating, target audience, ads declaration, and all other required policy declarations.
 - [ ] Review Play Console's generated permission list and explain every permission.

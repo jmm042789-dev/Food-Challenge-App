@@ -1,7 +1,7 @@
 # Fire Feast Privacy Policy
 
 **Effective Date:** 2026-08-04
-**Last Updated:** 2026-08-04
+**Last Updated:** 2026-08-07
 
 ## 1. Introduction
 
@@ -120,7 +120,9 @@ No method of storage or transmission is completely secure. We cannot guarantee a
 
 We retain server-side guest account and gameplay information for as long as reasonably needed to operate Fire Feast, maintain the account, protect the service, and meet applicable obligations, or until the account is deleted.
 
-Information stored locally remains on the device until the Game removes it, you use the in-app deletion process, or you remove or clear the Game's storage. Operational records maintained by service providers may be retained for limited periods under their security, backup, and legal requirements.
+Information stored locally remains on the device until the Game removes it, you use the in-app deletion process, or you remove or clear the Game's storage.
+
+The current Fire Feast application database does not retain a separate account history after an authenticated deletion succeeds. Limited operational records, security logs, or backup copies maintained by our hosting and database service providers may remain for their normal backup or security cycles, or longer when required by law or needed to investigate fraud, abuse, or security incidents. These records are not used to restore the deleted guest account and are removed or anonymized when the applicable retention purpose ends.
 
 ## 10. Your Choices and Requests
 
@@ -130,13 +132,13 @@ For questions or requests concerning your information, contact us using the info
 
 ## 11. Account Deletion
 
-Fire Feast provides an account-deletion control in the Profile screen under **Account & Data**. The Game requires confirmation before submitting the deletion request.
+Fire Feast provides an account-deletion control in the Profile screen under **Account & Data**. The Game requires two confirmations before submitting the deletion request. Because guest accounts are protected by credentials stored on the device, this authenticated in-game process is the fastest and safest way to prove control of the account.
 
 When an authenticated deletion request succeeds, Fire Feast online services delete the guest profile and its associated profile data, credentials, gameplay progress, balances, inventory, active-match information, and leaderboard entry. The Game also attempts to clear Fire Feast credentials and certain guest-progression records from that device.
 
-Account deletion is permanent. J&B Forge Studios may not be able to restore a deleted guest account or its progress.
+The active account data is deleted immediately when the in-game request reports success. Account deletion is permanent. J&B Forge Studios cannot restore a deleted guest account or its progress.
 
-If you cannot access the in-app deletion control, contact us using the information in Section 14.
+Instructions and the support-based request path are available at **https://firefeastgame.com/delete-account**. If you cannot access the in-app deletion control, email **support@firefeastgame.com**. We will respond with the information needed to assess whether we can safely identify and verify the guest account. Do not email authentication credentials, bearer tokens, recovery secrets, or passwords. We aim to complete a verifiable support request within 30 days. Because Fire Feast does not collect an account email address or provide a conventional login, we may be unable to identify or delete a guest account after its device credentials are lost.
 
 ## 12. Children's Privacy
 

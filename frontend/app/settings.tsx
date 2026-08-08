@@ -15,6 +15,7 @@ import { openExternalUrl } from "../src/utils/externalUrls";
 
 export const SUPPORT_EMAIL = "support@firefeastgame.com";
 export const PUBLIC_WEBSITE_URL = "https://firefeastgame.com";
+export const ACCOUNT_DELETION_URL = "https://firefeastgame.com/delete-account";
 const version = Constants.expoConfig?.version ?? "1.0.0";
 const build = String(Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? "1");
 
@@ -55,6 +56,11 @@ export default function SettingsScreen() {
       if (!opened) Alert.alert("Website unavailable", PUBLIC_WEBSITE_URL);
     });
   }, []);
+  const openAccountDeletionHelp = useCallback(() => {
+    void openExternalUrl(ACCOUNT_DELETION_URL).then((opened) => {
+      if (!opened) Alert.alert("Page unavailable", ACCOUNT_DELETION_URL);
+    });
+  }, []);
 
   const large = preferences.largeText;
   return <SafeAreaView style={styles.screen}>
@@ -86,6 +92,7 @@ export default function SettingsScreen() {
         <FireButton fullWidth title="PRIVACY POLICY" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "privacy" } })} />
         <FireButton fullWidth title="TERMS OF SERVICE" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "terms" } })} />
         <FireButton fullWidth title="GAMEPLAY & HEALTH DISCLAIMER" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "disclaimer" } })} />
+        <FireButton fullWidth title="REQUEST ACCOUNT DELETION" variant="ghost" onPress={openAccountDeletionHelp} />
         <FireButton fullWidth title="CONTACT SUPPORT" variant="secondary" onPress={() => contact("Fire Feast Support")} />
         <FireButton fullWidth title="FIRE FEAST WEBSITE" variant="secondary" onPress={openWebsite} />
         <FireButton fullWidth title="REPORT A BUG" variant="secondary" onPress={() => contact("Fire Feast Beta Bug Report")} />

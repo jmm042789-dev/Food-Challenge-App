@@ -115,18 +115,18 @@ Positive adjustments are used only in the two implementation-specific scores to 
 
 ## 8. High findings
 
-### F2 — Privacy policy, in-app privacy access, support contact, and disclosure package are absent
+### F2 — Privacy policy, in-app privacy access, support contact, and account-deletion resources added after the original audit
 
 - **Severity:** High
 - **Category:** Store compliance / privacy / support
 - **Affected files:** repository root; `frontend/app/**`; store-console metadata (not present)
-- **Evidence:** No privacy policy, terms, support document/URL, in-app legal link, marketing URL, or data-disclosure worksheet exists.
+- **Evidence update (2026-08-07):** The repository now includes authoritative privacy, terms, and gameplay-disclaimer documents; synchronized in-app legal screens; an authenticated in-app guest-account deletion flow; and a static public website with privacy, support, and account-deletion routes. Play Console declarations and support-mailbox verification remain external tasks.
 - **Why it matters:** Apple requires a privacy-policy link in metadata and in-app; Google Play requires Data Safety completion and a privacy-policy link for closed/open/production tracks. App review also expects functional support contact information.
-- **Disposition:** Google Play blocker: **Yes**. Apple blocker: **Yes**. Closed beta blocker: **Yes if distributed through Play closed testing/external TestFlight review**. Public launch blocker: **Yes**.
+- **Disposition update:** The missing-page and missing-in-app-control blockers are resolved in the repository. Public deployment, mailbox operation, legal review, and accurate Play Data Safety/account-deletion declarations must still be verified for the submitted release.
 - **Estimated effort:** Medium
-- **Recommended fix:** Publish a durable HTTPS privacy policy and support page, identify the developer/entity, document device ID/profile/gameplay data, retention, security, deletion, subprocessors/hosting, and contact details; link them from Profile/Settings and both consoles; complete Play Data Safety and Apple App Privacy.
+- **Recommended follow-up:** Keep the public pages synchronized with the shipping app, verify the support mailbox, and complete Play Data Safety, account-deletion, and Apple App Privacy declarations.
 - **Code changes required:** Yes for in-app links; legal/store work also required.
-- **Uncertainty:** None of the required external pages or console entries was available.
+- **Uncertainty update:** Public page availability must be reverified after each deployment; Play Console entries and support-mailbox operation cannot be proven from repository contents.
 
 ### F3 — No deletion path for persistent player profiles
 
@@ -524,7 +524,7 @@ Run clean installs, upgrades, offline/startup/background/process-death scenarios
 - Development localhost/HTTP references are confined to templates/default local Mongo and guarded external URL handling.
 - Production frontend API requires HTTPS.
 - No tracked `.env`, private key, service credential, or hard-coded database password was found.
-- Repository has no GitHub workflow, license, third-party notice, privacy policy, terms, or support/legal document.
+- Repository now has privacy, terms, gameplay-disclaimer, support, and account-deletion website content. A license, third-party notice, and hosted store-console declarations were not established by this repository review.
 
 ## 25. Files changed and confirmations
 

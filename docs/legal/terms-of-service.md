@@ -1,7 +1,7 @@
 # Fire Feast Terms of Service
 
 **Effective Date:** 2026-08-04
-**Last Updated:** 2026-08-04
+**Last Updated:** 2026-08-07
 
 **Operator:** J&B Forge Studios
 
@@ -71,7 +71,7 @@ You may stop using Fire Feast at any time. The Game also provides an in-app proc
 
 ## 8. Account Deletion
 
-You may permanently delete the current guest account through the Account & Data controls in the Profile screen. Account deletion removes the current server-side guest profile and associated progress and attempts to clear guest credentials and certain local guest progression from the device. Deletion is permanent and the account or its virtual items may not be recoverable.
+You may permanently delete the current guest account through the Account & Data controls in the Profile screen. Account deletion removes the current server-side guest profile and associated progress and attempts to clear guest credentials and certain local guest progression from the device. Deletion is permanent and the account or its virtual items cannot be recovered. Instructions and the support-based request path are available at **https://firefeastgame.com/delete-account**.
 
 ## 9. Intellectual Property
 

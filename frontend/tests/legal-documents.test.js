@@ -43,7 +43,7 @@ test("final legal documents contain no placeholders and use the approved operato
   assert.doesNotMatch(userFacingSources, /support@firefeast\.app|example@|example\.com|TODO Support Email|TODO Website/i);
   for (const markdown of legalSources) {
     assert.match(markdown, /\*\*Effective Date:\*\* 2026-08-04/);
-    assert.match(markdown, /\*\*Last Updated:\*\* 2026-08-04/);
+    assert.match(markdown, /\*\*Last Updated:\*\* 2026-08-(?:04|07)/);
     assert.match(markdown, /support@firefeastgame\.com/);
     assert.match(markdown, /https:\/\/firefeastgame\.com/);
   }
@@ -66,12 +66,14 @@ test("settings exposes legal documents and approved support channels", () => {
   const settings = read(settingsPath);
   assert.match(settings, /SUPPORT_EMAIL = "support@firefeastgame\.com"/);
   assert.match(settings, /PUBLIC_WEBSITE_URL = "https:\/\/firefeastgame\.com"/);
+  assert.match(settings, /ACCOUNT_DELETION_URL = "https:\/\/firefeastgame\.com\/delete-account"/);
   for (const key of ["privacy", "terms", "disclaimer"]) {
     assert.match(settings, new RegExp(`document: "${key}"`));
   }
   assert.match(settings, /title="CONTACT SUPPORT"/);
   assert.match(settings, /title="FIRE FEAST WEBSITE"/);
   assert.match(settings, /title="REPORT A BUG"/);
+  assert.match(settings, /title="REQUEST ACCOUNT DELETION"/);
 });
 
 test("account deletion remains reachable from Profile", () => {
@@ -80,4 +82,5 @@ test("account deletion remains reachable from Profile", () => {
   assert.match(profile, /title="DELETE ACCOUNT"/);
   assert.match(profile, /api\.deleteAccount\(\)/);
   assert.match(profile, /Delete Account Permanently/);
+  assert.match(profile, /This cannot be undone/);
 });
