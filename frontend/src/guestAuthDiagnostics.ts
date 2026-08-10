@@ -10,6 +10,10 @@ export const AUTH_DIAGNOSTIC_CODES = [
   "AUTH_NETWORK",
   "AUTH_INVALID_RESPONSE",
   "AUTH_LOCAL_RESET_FAILED",
+  "AUTH_RESET_INTERRUPTED",
+  "AUTH_INSTALLATION_CREATE_FAILED",
+  "AUTH_CREDENTIAL_PERSIST_FAILED",
+  "AUTH_SESSION_VERIFY_FAILED",
   "AUTH_UNKNOWN",
 ] as const;
 
@@ -67,6 +71,14 @@ export function diagnosticMessage(code: AuthDiagnosticCode): string {
       return "The guest service returned an invalid response.";
     case "AUTH_LOCAL_RESET_FAILED":
       return "Fire Feast could not safely clear the local guest credentials.";
+    case "AUTH_RESET_INTERRUPTED":
+      return "A previously confirmed guest reset did not finish. Retry or start the new guest again.";
+    case "AUTH_INSTALLATION_CREATE_FAILED":
+      return "Fire Feast could not create a fresh local installation identity.";
+    case "AUTH_CREDENTIAL_PERSIST_FAILED":
+      return "The new guest was created, but its protected credentials could not be saved.";
+    case "AUTH_SESSION_VERIFY_FAILED":
+      return "The new guest credentials were saved, but the authenticated session could not be verified.";
     default:
       return "Fire Feast could not verify this guest account.";
   }
@@ -81,6 +93,10 @@ export function isResetEligibleAuthCode(code: AuthDiagnosticCode): boolean {
     "AUTH_RECOVERY_EXPIRED",
     "AUTH_RECOVERY_USED",
     "AUTH_BOOTSTRAP_CONFLICT",
+    "AUTH_RESET_INTERRUPTED",
+    "AUTH_INSTALLATION_CREATE_FAILED",
+    "AUTH_CREDENTIAL_PERSIST_FAILED",
+    "AUTH_SESSION_VERIFY_FAILED",
   ]).has(code);
 }
 

@@ -46,6 +46,8 @@ test("stable diagnostic codes cover all production recovery outcomes", () => {
     "AUTH_BEARER_REJECTED", "AUTH_RECOVERY_INVALID", "AUTH_RECOVERY_EXPIRED",
     "AUTH_RECOVERY_USED", "AUTH_BOOTSTRAP_CONFLICT", "AUTH_NETWORK",
     "AUTH_INVALID_RESPONSE", "AUTH_LOCAL_RESET_FAILED", "AUTH_UNKNOWN",
+    "AUTH_RESET_INTERRUPTED", "AUTH_INSTALLATION_CREATE_FAILED",
+    "AUTH_CREDENTIAL_PERSIST_FAILED", "AUTH_SESSION_VERIFY_FAILED",
   ]) {
     assert.ok(AUTH_DIAGNOSTIC_CODES.includes(code));
     assert.ok(diagnosticMessage(code).length > 10);
@@ -111,7 +113,7 @@ test("stale bearer is never converted into installation-only authentication", ()
 });
 
 test("pending recovery and backend recovery outcomes have explicit mappings", () => {
-  assert.match(apiSource, /resolvePendingRecoverySession\(recovery\.authToken\)/);
+  assert.match(apiSource, /resolvePendingRecoverySession\(recovery\.authToken, generation\)/);
   assert.match(apiSource, /GUEST_BOOTSTRAP_EXISTS/);
   assert.match(apiSource, /GUEST_RECOVERY_INVALID[\s\S]*AUTH_RECOVERY_INVALID/);
   assert.match(apiSource, /GUEST_RECOVERY_EXPIRED[\s\S]*AUTH_RECOVERY_EXPIRED/);
@@ -121,10 +123,66 @@ test("pending recovery and backend recovery outcomes have explicit mappings", ()
 });
 
 test("new guest reset verifies the bearer session before returning the player", () => {
-  const reset = apiSource.slice(apiSource.indexOf("async function startNewGuestAccount"), apiSource.indexOf("export const api"));
+  const reset = apiSource.slice(apiSource.indexOf("async function performConfirmedNewGuestReset"), apiSource.indexOf("export const api"));
   assert.ok(reset.indexOf("clearLocalGuestAuthenticationForReset()") < reset.indexOf("ensureGuestCredentials()"));
   assert.ok(reset.indexOf('req("/auth/session")') < reset.indexOf('req(`/player/'));
   assert.match(reset, /session\.player_id !== credentials\.playerId/);
+});
+
+test("version 2 to version 3 reset fences and drains stale bearer work before deletion", () => {
+  const reset = apiSource.slice(
+    apiSource.indexOf("async function clearLocalGuestAuthenticationForReset"),
+    apiSource.indexOf("async function writeResetJournal"),
+  );
+  assert.ok(reset.indexOf("authStateGeneration += 1") < reset.indexOf("Promise.allSettled"));
+  assert.ok(reset.indexOf("Promise.allSettled") < reset.indexOf("performLocalGuestReset"));
+  assert.match(apiSource, /assertCurrentAuthGeneration\(generation\)/);
+  assert.match(apiSource, /if \(credentialsPromise === pending\) credentialsPromise = null/);
+  assert.match(apiSource, /if \(recoveryPromise === pendingRecovery\) recoveryPromise = null/);
+});
+
+test("confirmed reset creates and verifies a genuinely fresh installation identity", () => {
+  const reset = apiSource.slice(
+    apiSource.indexOf("async function createFreshInstallationIdentity"),
+    apiSource.indexOf("export const api"),
+  );
+  assert.match(reset, /install_\$\{cryptographicSecret\(\)\}/);
+  assert.ok(reset.indexOf("AsyncStorage.setItem(INSTALLATION_KEY") < reset.indexOf("ensureGuestCredentials()"));
+  assert.match(reset, /persisted !== installationId/);
+  assert.ok(reset.indexOf('req("/auth/session"') < reset.indexOf('req(`/player/'));
+});
+
+test("fresh credentials are reloaded from protected storage before session verification", () => {
+  const reset = apiSource.slice(
+    apiSource.indexOf("async function performConfirmedNewGuestReset"),
+    apiSource.indexOf("async function startNewGuestAccount"),
+  );
+  assert.match(reset, /credentialsCache = null/);
+  assert.match(reset, /readStoredCredentials\(authStateGeneration\)/);
+  assert.match(reset, /AUTH_CREDENTIAL_PERSIST_FAILED/);
+  assert.match(reset, /AUTH_SESSION_VERIFY_FAILED/);
+  assert.match(reset, /req\("\/auth\/session", \{\}, true, false\)/);
+});
+
+test("confirmed reset is journaled and an interrupted reset remains recoverable", () => {
+  assert.match(apiSource, /GUEST_RESET_PENDING_KEY = "firefeast_guest_reset_pending_v1"/);
+  assert.match(apiSource, /writeResetJournal\("confirmed"\)/);
+  assert.match(apiSource, /writeResetJournal\("installation_created"\)/);
+  assert.match(apiSource, /writeResetJournal\("credentials_persisted"\)/);
+  assert.match(apiSource, /AUTH_RESET_INTERRUPTED/);
+  assert.match(apiSource, /removeItem\(GUEST_RESET_PENDING_KEY\)/);
+});
+
+test("reset failures replace the old diagnostic and reset never deletes a server account", () => {
+  const handlerStart = startupSource.indexOf("const confirmNewGuest");
+  const handler = startupSource.slice(handlerStart, startupSource.indexOf("\n  return (", handlerStart));
+  assert.match(handler, /setFailure\(describeAuthenticationFailure\(error\)\)/);
+  assert.doesNotMatch(handler, /AUTH_BEARER_REJECTED/);
+  const reset = apiSource.slice(
+    apiSource.indexOf("async function clearLocalGuestAuthenticationForReset"),
+    apiSource.indexOf("export const api"),
+  );
+  assert.doesNotMatch(reset, /DELETE|deleteAccount|\/player\/account/);
 });
 
 test("startup reset requires confirmation, supports cancellation, and states server data is not deleted", () => {
@@ -142,10 +200,10 @@ test("safe request IDs are retained without accepting secret-like values", () =>
   assert.doesNotMatch(startupSource, /authToken|installationId|recovery_nonce|auth_token/);
 });
 
-test("Expo config enables precise SecureStore backup rules and versionCode 3", () => {
+test("Expo config enables precise SecureStore backup rules and versionCode 4", () => {
   assert.equal(appConfig.expo.version, "1.0.0");
   assert.equal(appConfig.expo.android.package, "com.firefeast.app");
-  assert.equal(appConfig.expo.android.versionCode, 3);
+  assert.equal(appConfig.expo.android.versionCode, 4);
   assert.ok(appConfig.expo.plugins.some((plugin) => Array.isArray(plugin)
     && plugin[0] === "expo-secure-store"
     && plugin[1]?.configureAndroidBackup === true));

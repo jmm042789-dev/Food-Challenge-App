@@ -53,6 +53,7 @@ const CREDENTIALS_KEY = "firefeast_guest_credentials_v1";
 const BOOTSTRAP_RECOVERY_NONCE_KEY = "firefeast_bootstrap_recovery_nonce_v1";
 const BOOTSTRAP_RECOVERY_TOKEN_KEY = "firefeast_bootstrap_recovery_token_v1";
 const BOOTSTRAP_COMPLETION_PENDING_KEY = "firefeast_bootstrap_completion_pending_v1";
+const GUEST_RESET_PENDING_KEY = "firefeast_guest_reset_pending_v1";
 const PLAYER_ID_KEY = "firefeast_player_id";
 const AUTH_TOKEN_KEY = "firefeast_auth_token";
 const LEGACY_PLAYER_ID_KEY = "chompchamps_device_id";
@@ -68,6 +69,9 @@ let bootstrapPlayerCache: unknown | undefined;
 let credentialsCache: GuestCredentials | null = null;
 let credentialsPromise: Promise<GuestCredentials> | null = null;
 let recoveryPromise: Promise<GuestCredentials> | null = null;
+let resetPromise: Promise<unknown> | null = null;
+let authStateGeneration = 0;
+let confirmedResetBootstrapActive = false;
 let requestSequence = 0;
 let coinMutationGeneration = 0;
 
@@ -99,6 +103,37 @@ type PendingRecoveryToken = {
   version: 1;
   auth_token: string;
 };
+
+type GuestResetJournal = {
+  version: 1;
+  stage: "confirmed" | "installation_created" | "credentials_persisted";
+};
+
+class AuthOperationSupersededError extends Error {
+  constructor() {
+    super("Guest authentication operation was superseded by a confirmed local reset.");
+    this.name = "AuthOperationSupersededError";
+  }
+}
+
+function assertCurrentAuthGeneration(generation: number): void {
+  if (generation !== authStateGeneration) throw new AuthOperationSupersededError();
+}
+
+async function readResetJournal(): Promise<GuestResetJournal | null> {
+  const raw = await AsyncStorage.getItem(GUEST_RESET_PENDING_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<GuestResetJournal>;
+    if (
+      parsed.version === 1
+      && ["confirmed", "installation_created", "credentials_persisted"].includes(parsed.stage ?? "")
+    ) return parsed as GuestResetJournal;
+  } catch {
+    // A malformed marker is still proof that a confirmed reset was interrupted.
+  }
+  return { version: 1, stage: "confirmed" };
+}
 
 export class AuthenticationError extends Error {
   code: AuthDiagnosticCode;
@@ -336,10 +371,12 @@ async function clearBootstrapRecoveryState(): Promise<void> {
   ]);
 }
 
-async function readStoredCredentials(): Promise<GuestCredentials | null> {
+async function readStoredCredentials(generation = authStateGeneration): Promise<GuestCredentials | null> {
+  assertCurrentAuthGeneration(generation);
   if (credentialsCache) return credentialsCache;
 
   const result = await storage.secureRead<string>(CREDENTIALS_KEY);
+  assertCurrentAuthGeneration(generation);
   if (result.status === "unavailable") {
     throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Protected guest credential storage is unavailable.");
   }
@@ -367,7 +404,7 @@ async function readStoredCredentials(): Promise<GuestCredentials | null> {
   const authToken = values[1]?.[1]?.trim() || "";
   if (playerId && authToken) {
     const credentials = { playerId, authToken };
-    await storeCredentials(credentials);
+    await storeCredentials(credentials, generation);
     return credentials;
   }
   if (playerId || authToken) {
@@ -377,13 +414,18 @@ async function readStoredCredentials(): Promise<GuestCredentials | null> {
   return null;
 }
 
-async function storeCredentials(credentials: GuestCredentials): Promise<void> {
+async function storeCredentials(
+  credentials: GuestCredentials,
+  generation = authStateGeneration,
+): Promise<void> {
+  assertCurrentAuthGeneration(generation);
   const record: StoredGuestCredentials = {
     version: 1,
     player_id: credentials.playerId,
     auth_token: credentials.authToken,
   };
   const stored = await storage.secureSet(CREDENTIALS_KEY, JSON.stringify(record));
+  assertCurrentAuthGeneration(generation);
   if (!stored) {
     throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Guest credentials could not be stored securely.");
   }
@@ -407,12 +449,14 @@ async function persistRecoveredCredentials(
   playerId: string,
   authToken: string,
   player: unknown,
+  generation = authStateGeneration,
 ): Promise<GuestCredentials> {
   const credentials = { playerId: playerId.trim(), authToken: authToken.trim() };
   if (!credentials.playerId || !credentials.authToken) {
     throw authenticationError("AUTH_INVALID_RESPONSE", "The guest account response was invalid.");
   }
-  await storeCredentials(credentials);
+  await storeCredentials(credentials, generation);
+  assertCurrentAuthGeneration(generation);
   await AsyncStorage.setItem(BOOTSTRAP_COMPLETION_PENDING_KEY, "true");
   await clearBootstrapRecoveryState();
   cacheBootstrapPlayer(player);
@@ -420,7 +464,10 @@ async function persistRecoveredCredentials(
   return credentials;
 }
 
-async function resolvePendingRecoverySession(authToken: string): Promise<GuestCredentials | null> {
+async function resolvePendingRecoverySession(
+  authToken: string,
+  generation = authStateGeneration,
+): Promise<GuestCredentials | null> {
   try {
     const response = await req("/auth/session", {
       headers: { Authorization: `Bearer ${authToken}` },
@@ -428,15 +475,24 @@ async function resolvePendingRecoverySession(authToken: string): Promise<GuestCr
     if (typeof response.player_id !== "string" || !response.player_id.trim()) {
       throw authenticationError("AUTH_INVALID_RESPONSE", "The guest recovery session response was invalid.");
     }
-    return persistRecoveredCredentials(response.player_id, authToken, response.player);
+    return persistRecoveredCredentials(response.player_id, authToken, response.player, generation);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) return null;
     throw error;
   }
 }
 
-async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
-  const stored = await readStoredCredentials();
+async function loadOrBootstrapCredentials(generation: number): Promise<GuestCredentials> {
+  assertCurrentAuthGeneration(generation);
+  const resetJournal = confirmedResetBootstrapActive ? null : await readResetJournal();
+  if (resetJournal?.stage === "confirmed") {
+    throw authenticationError(
+      "AUTH_RESET_INTERRUPTED",
+      "A previously confirmed local guest reset did not finish.",
+    );
+  }
+  const stored = await readStoredCredentials(generation);
+  assertCurrentAuthGeneration(generation);
   if (stored) {
     if (await AsyncStorage.getItem(BOOTSTRAP_COMPLETION_PENDING_KEY)) {
       await finishBootstrapRecovery(stored);
@@ -466,7 +522,7 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
 
   const installationId = await getInstallationId();
   const recovery = await getOrCreateBootstrapRecovery();
-  const recoveredSession = await resolvePendingRecoverySession(recovery.authToken);
+  const recoveredSession = await resolvePendingRecoverySession(recovery.authToken, generation);
   if (recoveredSession) return recoveredSession;
   try {
     const response = await req(
@@ -498,6 +554,7 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
       response.player_id,
       response.auth_token,
       response.player,
+      generation,
     );
     if (__DEV__) {
       console.info("Fire Feast guest credentials created", {
@@ -525,6 +582,7 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
           recovered.player_id,
           recovery.authToken,
           recovered.player,
+          generation,
         );
       } catch (recoveryError) {
         if (
@@ -541,7 +599,7 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
           recoveryError instanceof ApiRequestError
           && recoveryError.code === "GUEST_RECOVERY_USED"
         ) {
-          const recoveredAfterLostResponse = await resolvePendingRecoverySession(recovery.authToken);
+          const recoveredAfterLostResponse = await resolvePendingRecoverySession(recovery.authToken, generation);
           if (recoveredAfterLostResponse) return recoveredAfterLostResponse;
           throw authenticationError(
             "AUTH_RECOVERY_USED",
@@ -578,10 +636,12 @@ async function ensureGuestCredentials(): Promise<GuestCredentials> {
 
   // Assign before the first asynchronous storage read so every concurrent
   // caller in this JavaScript runtime shares the exact same bootstrap.
-  credentialsPromise = loadOrBootstrapCredentials().finally(() => {
-    credentialsPromise = null;
+  const generation = authStateGeneration;
+  const pending = loadOrBootstrapCredentials(generation).finally(() => {
+    if (credentialsPromise === pending) credentialsPromise = null;
   });
-  return credentialsPromise;
+  credentialsPromise = pending;
+  return pending;
 }
 
 export async function getDeviceId(): Promise<string> {
@@ -660,7 +720,8 @@ async function recoverCredentialsAfterUnauthorized(
 ): Promise<GuestCredentials> {
   if (recoveryPromise) return recoveryPromise;
 
-  recoveryPromise = (async () => {
+  const generation = authStateGeneration;
+  const pendingRecovery = (async () => {
     if (__DEV__) {
       console.warn("Fire Feast authentication rejected; attempting session recovery", {
         requestedPlayerId: rejected.playerId,
@@ -707,7 +768,7 @@ async function recoverCredentialsAfterUnauthorized(
         );
       }
       const recovered = { playerId, authToken: rejected.authToken };
-      await storeCredentials(recovered);
+      await storeCredentials(recovered, generation);
       if (data.player) cacheBootstrapPlayer(data.player);
       if (__DEV__) {
         console.info("Fire Feast authentication session repaired", {
@@ -732,10 +793,10 @@ async function recoverCredentialsAfterUnauthorized(
       requestId,
     );
   })().finally(() => {
-    recoveryPromise = null;
+    if (recoveryPromise === pendingRecovery) recoveryPromise = null;
   });
-
-  return recoveryPromise;
+  recoveryPromise = pendingRecovery;
+  return pendingRecovery;
 }
 
 async function req(
@@ -824,6 +885,7 @@ async function req(
 
     if (authenticated && requestPath !== "/player/account") {
       await AsyncStorage.removeItem(DELETION_PENDING_KEY);
+      if (!resetPromise) await AsyncStorage.removeItem(GUEST_RESET_PENDING_KEY);
     }
     if (isMutation) {
       coinMutationGeneration += 1;
@@ -886,11 +948,22 @@ async function req(
 }
 
 async function clearLocalGuestAuthenticationForReset(): Promise<void> {
+  const previousCredentialPromise = credentialsPromise;
+  const previousRecoveryPromise = recoveryPromise;
+  authStateGeneration += 1;
   credentialsCache = null;
   credentialsPromise = null;
   recoveryPromise = null;
   bootstrapPlayerCache = undefined;
   clearPlayerBalance();
+
+  // Dropping a promise reference does not cancel its work. Wait for every old
+  // operation after invalidating its generation so it cannot repopulate
+  // SecureStore or the in-memory cache after reset verification.
+  await Promise.allSettled([
+    previousCredentialPromise,
+    previousRecoveryPromise,
+  ].filter((value): value is Promise<GuestCredentials> => value !== null));
 
   const asyncKeys = [
       INSTALLATION_KEY,
@@ -903,14 +976,6 @@ async function clearLocalGuestAuthenticationForReset(): Promise<void> {
       BOOTSTRAP_COMPLETION_PENDING_KEY,
       ...PLAYER_DATA_KEYS,
   ];
-  const verificationKeys = [
-      INSTALLATION_KEY,
-      PLAYER_ID_KEY,
-      AUTH_TOKEN_KEY,
-      LEGACY_PLAYER_ID_KEY,
-      BOOTSTRAP_RECOVERY_NONCE_KEY,
-      BOOTSTRAP_COMPLETION_PENDING_KEY,
-  ];
   try {
     await performLocalGuestReset({
       clearAsyncKeys: async () => {
@@ -920,7 +985,7 @@ async function clearLocalGuestAuthenticationForReset(): Promise<void> {
       clearSecureRecovery: () => storage.secureRemove(BOOTSTRAP_RECOVERY_TOKEN_KEY),
       asyncKeysAreClear: async () => {
         try {
-          const remaining = await AsyncStorage.multiGet(verificationKeys);
+          const remaining = await AsyncStorage.multiGet(asyncKeys);
           return remaining.every(([, value]) => value === null);
         } catch { return false; }
       },
@@ -941,14 +1006,111 @@ async function clearLocalGuestAuthenticationForReset(): Promise<void> {
   }
 }
 
-async function startNewGuestAccount(): Promise<unknown> {
-  await clearLocalGuestAuthenticationForReset();
-  const credentials = await ensureGuestCredentials();
-  const session = await req("/auth/session") as { player_id?: unknown };
-  if (session.player_id !== credentials.playerId) {
-    throw authenticationError("AUTH_INVALID_RESPONSE", "The new guest session could not be verified.");
+async function writeResetJournal(stage: GuestResetJournal["stage"]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      GUEST_RESET_PENDING_KEY,
+      JSON.stringify({ version: 1, stage } satisfies GuestResetJournal),
+    );
+  } catch {
+    throw authenticationError(
+      "AUTH_LOCAL_RESET_FAILED",
+      "The confirmed guest reset could not be recorded safely.",
+    );
   }
-  return req(`/player/${encodeURIComponent(credentials.playerId)}`);
+}
+
+async function createFreshInstallationIdentity(): Promise<string> {
+  const installationId = `install_${cryptographicSecret()}`;
+  try {
+    await AsyncStorage.setItem(INSTALLATION_KEY, installationId);
+    const persisted = await AsyncStorage.getItem(INSTALLATION_KEY);
+    if (persisted !== installationId) throw new Error("installation identity verification failed");
+    return installationId;
+  } catch {
+    throw authenticationError(
+      "AUTH_INSTALLATION_CREATE_FAILED",
+      "A fresh installation identity could not be persisted.",
+    );
+  }
+}
+
+async function performConfirmedNewGuestReset(): Promise<unknown> {
+  await writeResetJournal("confirmed");
+  await clearLocalGuestAuthenticationForReset();
+  await createFreshInstallationIdentity();
+  await writeResetJournal("installation_created");
+
+  let credentials: GuestCredentials;
+  confirmedResetBootstrapActive = true;
+  try {
+    credentials = await ensureGuestCredentials();
+  } catch (error) {
+    if (error instanceof AuthenticationError || error instanceof ApiRequestError) throw error;
+    throw authenticationError(
+      diagnosticCodeForUnknown(error),
+      "The fresh guest bootstrap failed.",
+      safeAuthRequestId(error),
+    );
+  } finally {
+    confirmedResetBootstrapActive = false;
+  }
+
+  // Force subsequent verification to reload the exact persisted bundle. This
+  // proves the new account does not depend on a stale module-level credential.
+  credentialsCache = null;
+  const persisted = await readStoredCredentials(authStateGeneration);
+  if (
+    !persisted
+    || persisted.playerId !== credentials.playerId
+    || persisted.authToken !== credentials.authToken
+  ) {
+    throw authenticationError(
+      "AUTH_CREDENTIAL_PERSIST_FAILED",
+      "The fresh guest credentials were not persisted consistently.",
+    );
+  }
+  await writeResetJournal("credentials_persisted");
+
+  let session: { player_id?: unknown };
+  try {
+    session = await req("/auth/session", {}, true, false) as { player_id?: unknown };
+  } catch (error) {
+    throw authenticationError(
+      error instanceof AuthenticationError && error.code === "AUTH_NETWORK"
+        ? "AUTH_NETWORK"
+        : "AUTH_SESSION_VERIFY_FAILED",
+      "The fresh guest session could not be verified.",
+      safeAuthRequestId(error),
+    );
+  }
+  if (session.player_id !== credentials.playerId) {
+    throw authenticationError("AUTH_SESSION_VERIFY_FAILED", "The fresh guest session did not match the created player.");
+  }
+
+  let player: unknown;
+  try {
+    player = await req(`/player/${encodeURIComponent(credentials.playerId)}`, {}, true, false);
+  } catch (error) {
+    throw authenticationError(
+      error instanceof AuthenticationError && error.code === "AUTH_NETWORK"
+        ? "AUTH_NETWORK"
+        : "AUTH_SESSION_VERIFY_FAILED",
+      "The fresh guest player could not be verified.",
+      safeAuthRequestId(error),
+    );
+  }
+  await AsyncStorage.removeItem(GUEST_RESET_PENDING_KEY);
+  return player;
+}
+
+async function startNewGuestAccount(): Promise<unknown> {
+  if (resetPromise) return resetPromise;
+  const pendingReset = performConfirmedNewGuestReset().finally(() => {
+    if (resetPromise === pendingReset) resetPromise = null;
+  });
+  resetPromise = pendingReset;
+  return pendingReset;
 }
 
 export const api = {
