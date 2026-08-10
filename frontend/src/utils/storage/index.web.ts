@@ -6,7 +6,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { AssertNoExtras, StorageBase, StorageItemValue } from "./storage-base";
+import { AssertNoExtras, SecureReadResult, StorageBase, StorageItemValue } from "./storage-base";
 
 export class Storage extends StorageBase {
   // General KV — backed by AsyncStorage (its built-in web shim uses IndexedDB).
@@ -52,6 +52,18 @@ export class Storage extends StorageBase {
     fallback: Fallback,
   ): Promise<Fallback | null> {
     return this.getItem(key, fallback);
+  }
+
+  async secureRead<Value extends StorageItemValue>(
+    key: string,
+  ): Promise<SecureReadResult<Value>> {
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      return { status: "available", value: this.retrieve(raw, null) as Value | null };
+    } catch (e) {
+      this.warn("secureRead", key, e);
+      return { status: "unavailable", value: null };
+    }
   }
 
   async secureSet<Value extends StorageItemValue>(

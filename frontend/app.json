@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.firefeast.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo/app-icon.png",
         "backgroundColor": "#070405"
@@ -44,6 +44,12 @@
       ],
       "expo-font",
       "expo-asset",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
       [
         "expo-audio",
         {

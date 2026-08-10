@@ -4,6 +4,15 @@ import { uuid } from "expo-modules-core";
 import { joinApiPath, resolveApiBase } from "./apiBase";
 import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance";
 import {
+  type AuthDiagnosticCode,
+  classifyGuestAuthStorage,
+  diagnosticCodeForUnknown,
+  diagnosticMessage,
+  isResetEligibleAuthCode,
+  safeAuthRequestId,
+} from "./guestAuthDiagnostics";
+import { performLocalGuestReset } from "./guestAuthReset";
+import {
   ApiRequestError,
   readResponseRequestId,
   requestIdForError,
@@ -92,6 +101,7 @@ type PendingRecoveryToken = {
 };
 
 export class AuthenticationError extends Error {
+  code: AuthDiagnosticCode;
   localCredentialsCleared: boolean;
   requestId: string | null;
 
@@ -99,16 +109,43 @@ export class AuthenticationError extends Error {
     message = "Guest authentication failed.",
     localCredentialsCleared = false,
     requestId: string | null = null,
+    code: AuthDiagnosticCode = "AUTH_UNKNOWN",
   ) {
     super(message);
     this.name = "AuthenticationError";
+    this.code = code;
     this.localCredentialsCleared = localCredentialsCleared;
     this.requestId = requestId;
   }
 }
 
+function authenticationError(
+  code: AuthDiagnosticCode,
+  message: string,
+  requestId: string | null = null,
+): AuthenticationError {
+  return new AuthenticationError(message, false, requestId, code);
+}
+
 export function isAuthenticationError(error: unknown): error is AuthenticationError {
   return error instanceof AuthenticationError;
+}
+
+export function describeAuthenticationFailure(error: unknown): {
+  code: AuthDiagnosticCode;
+  message: string;
+  requestId: string | null;
+  canStartNewGuest: boolean;
+} {
+  const code = error instanceof AuthenticationError
+    ? error.code
+    : diagnosticCodeForUnknown(error);
+  return {
+    code,
+    message: diagnosticMessage(code),
+    requestId: safeAuthRequestId(error),
+    canStartNewGuest: isResetEligibleAuthCode(code),
+  };
 }
 
 export function cacheBootstrapPlayer(player: unknown): void {
@@ -249,7 +286,11 @@ function cryptographicSecret(): string {
 }
 
 async function readPendingRecoveryToken(): Promise<string | null> {
-  const stored = await storage.secureGet(BOOTSTRAP_RECOVERY_TOKEN_KEY, null);
+  const result = await storage.secureRead<string>(BOOTSTRAP_RECOVERY_TOKEN_KEY);
+  if (result.status === "unavailable") {
+    throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Protected guest recovery storage is unavailable.");
+  }
+  const stored = result.value;
   if (!stored) return null;
   try {
     const parsed = JSON.parse(stored) as Partial<PendingRecoveryToken>;
@@ -279,7 +320,8 @@ async function getOrCreateBootstrapRecovery(): Promise<{ nonce: string; authToke
       JSON.stringify({ version: 1, auth_token: authToken } satisfies PendingRecoveryToken),
     );
     if (!stored) {
-      throw new AuthenticationError(
+      throw authenticationError(
+        "AUTH_SECURESTORE_UNAVAILABLE",
         "Guest recovery credentials could not be stored securely. No account was created; retry when secure storage is available.",
       );
     }
@@ -297,7 +339,11 @@ async function clearBootstrapRecoveryState(): Promise<void> {
 async function readStoredCredentials(): Promise<GuestCredentials | null> {
   if (credentialsCache) return credentialsCache;
 
-  const storedBundle = await storage.secureGet(CREDENTIALS_KEY, null);
+  const result = await storage.secureRead<string>(CREDENTIALS_KEY);
+  if (result.status === "unavailable") {
+    throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Protected guest credential storage is unavailable.");
+  }
+  const storedBundle = result.value;
   if (storedBundle) {
     try {
       const parsed = JSON.parse(storedBundle) as Partial<StoredGuestCredentials>;
@@ -310,12 +356,7 @@ async function readStoredCredentials(): Promise<GuestCredentials | null> {
     } catch {
       // Invalid local authentication state is cleared below and re-bootstrapped.
     }
-    await Promise.all([
-      storage.secureRemove(CREDENTIALS_KEY),
-      AsyncStorage.multiRemove([CREDENTIALS_KEY, PLAYER_ID_KEY, AUTH_TOKEN_KEY]),
-    ]);
-    console.warn("Fire Feast auth storage contained an invalid credential bundle; cleared it.");
-    return null;
+    throw authenticationError("AUTH_INVALID_RESPONSE", "The protected guest credential bundle is malformed.");
   }
 
   // One-time migration from the former two-key format. Persisting the pair as
@@ -344,7 +385,7 @@ async function storeCredentials(credentials: GuestCredentials): Promise<void> {
   };
   const stored = await storage.secureSet(CREDENTIALS_KEY, JSON.stringify(record));
   if (!stored) {
-    throw new AuthenticationError("Guest credentials could not be stored securely.");
+    throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Guest credentials could not be stored securely.");
   }
   await AsyncStorage.multiRemove([PLAYER_ID_KEY, AUTH_TOKEN_KEY]);
   credentialsCache = credentials;
@@ -369,7 +410,7 @@ async function persistRecoveredCredentials(
 ): Promise<GuestCredentials> {
   const credentials = { playerId: playerId.trim(), authToken: authToken.trim() };
   if (!credentials.playerId || !credentials.authToken) {
-    throw new AuthenticationError("The guest account response was invalid.");
+    throw authenticationError("AUTH_INVALID_RESPONSE", "The guest account response was invalid.");
   }
   await storeCredentials(credentials);
   await AsyncStorage.setItem(BOOTSTRAP_COMPLETION_PENDING_KEY, "true");
@@ -385,7 +426,7 @@ async function resolvePendingRecoverySession(authToken: string): Promise<GuestCr
       headers: { Authorization: `Bearer ${authToken}` },
     }, false, false) as { player_id?: unknown; player?: unknown };
     if (typeof response.player_id !== "string" || !response.player_id.trim()) {
-      throw new AuthenticationError("The guest recovery session response was invalid.");
+      throw authenticationError("AUTH_INVALID_RESPONSE", "The guest recovery session response was invalid.");
     }
     return persistRecoveredCredentials(response.player_id, authToken, response.player);
   } catch (error) {
@@ -402,9 +443,23 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
     }
     return stored;
   }
-  const legacyPlayerId = await AsyncStorage.getItem(LEGACY_PLAYER_ID_KEY);
+  const [legacyPlayerId, existingInstallationId, existingRecoveryNonce] = await Promise.all([
+    AsyncStorage.getItem(LEGACY_PLAYER_ID_KEY),
+    AsyncStorage.getItem(INSTALLATION_KEY),
+    AsyncStorage.getItem(BOOTSTRAP_RECOVERY_NONCE_KEY),
+  ]);
+  const existingRecoveryToken = await readPendingRecoveryToken();
+  const storageState = classifyGuestAuthStorage({
+    credentialsPresent: false,
+    installationPresent: Boolean(existingInstallationId),
+    legacyPresent: Boolean(legacyPlayerId),
+    recoveryNoncePresent: Boolean(existingRecoveryNonce),
+    recoveryTokenPresent: Boolean(existingRecoveryToken),
+    secureStoreAvailable: true,
+  });
   if (legacyPlayerId) {
-    throw new AuthenticationError(
+    throw authenticationError(
+      "AUTH_LEGACY_STATE",
       "A legacy guest profile was found. Its server progress is preserved, but it cannot be claimed securely from the formerly public player ID. Keep local data intact while a controlled recovery path is prepared; reinstalling creates a new guest account.",
     );
   }
@@ -437,7 +492,7 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
         && (response.player as { player_id?: unknown }).player_id !== response.player_id
       )
     ) {
-      throw new AuthenticationError("The guest account response was invalid.");
+      throw authenticationError("AUTH_INVALID_RESPONSE", "The guest account response was invalid.");
     }
     const credentials = await persistRecoveredCredentials(
       response.player_id,
@@ -464,7 +519,7 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
           }),
         }, false, false) as GuestRecoveryResponse;
         if (typeof recovered.player_id !== "string" || !recovered.player_id.trim()) {
-          throw new AuthenticationError("The guest recovery response was invalid.");
+          throw authenticationError("AUTH_INVALID_RESPONSE", "The guest recovery response was invalid.");
         }
         return persistRecoveredCredentials(
           recovered.player_id,
@@ -476,8 +531,10 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
           recoveryError instanceof ApiRequestError
           && recoveryError.code === "GUEST_RECOVERY_EXPIRED"
         ) {
-          throw new AuthenticationError(
+          throw authenticationError(
+            "AUTH_RECOVERY_EXPIRED",
             "Guest account recovery expired before credentials were saved. Clear Fire Feast app data to create a new guest account, or contact support if progress must be preserved.",
+            recoveryError.requestId,
           );
         }
         if (
@@ -486,8 +543,29 @@ async function loadOrBootstrapCredentials(): Promise<GuestCredentials> {
         ) {
           const recoveredAfterLostResponse = await resolvePendingRecoverySession(recovery.authToken);
           if (recoveredAfterLostResponse) return recoveredAfterLostResponse;
+          throw authenticationError(
+            "AUTH_RECOVERY_USED",
+            "Guest account recovery was already used and no valid session remains.",
+            recoveryError.requestId,
+          );
         }
-        throw recoveryError;
+        if (recoveryError instanceof ApiRequestError) {
+          if (recoveryError.code === "GUEST_RECOVERY_INVALID") {
+            throw authenticationError(
+              "AUTH_RECOVERY_INVALID",
+              "The guest recovery credential is invalid.",
+              recoveryError.requestId,
+            );
+          }
+          if (recoveryError.status >= 500) throw recoveryError;
+        }
+        throw authenticationError(
+          storageState === "INSTALLATION_WITHOUT_CREDENTIALS"
+            ? "AUTH_SECURESTORE_MISSING"
+            : "AUTH_BOOTSTRAP_CONFLICT",
+          "A guest already exists for this installation and could not be recovered safely.",
+          safeAuthRequestId(recoveryError),
+        );
       }
     }
     throw error;
@@ -603,7 +681,8 @@ async function recoverCredentialsAfterUnauthorized(
       });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new AuthenticationError(
+        throw authenticationError(
+          "AUTH_NETWORK",
           `Authentication recovery timed out after ${REQUEST_TIMEOUT_MS}ms.`,
         );
       }
@@ -621,9 +700,9 @@ async function recoverCredentialsAfterUnauthorized(
       };
       const playerId = typeof data.player_id === "string" ? data.player_id.trim() : "";
       if (!playerId) {
-        throw new AuthenticationError(
+        throw authenticationError(
+          "AUTH_INVALID_RESPONSE",
           "The authentication recovery response was invalid.",
-          false,
           requestId,
         );
       }
@@ -640,16 +719,18 @@ async function recoverCredentialsAfterUnauthorized(
     }
 
     if (response.status !== 401) {
-      throw new AuthenticationError(
+      throw authenticationError(
+        response.status >= 500 ? "AUTH_NETWORK" : "AUTH_UNKNOWN",
         `Authentication recovery was unavailable (HTTP ${response.status}).`,
-        false,
         requestId,
       );
     }
 
-    console.warn("Fire Feast bearer token is invalid; clearing local guest state and re-bootstrapping.");
-    await clearLocalGuestData();
-    return ensureGuestCredentials();
+    throw authenticationError(
+      "AUTH_BEARER_REJECTED",
+      "The saved guest bearer credential was rejected.",
+      requestId,
+    );
   })().finally(() => {
     recoveryPromise = null;
   });
@@ -724,6 +805,7 @@ async function req(
             : "This guest account could not be authenticated. Retry without clearing local app data.",
           recoveredDeletion,
           requestId,
+          recoveredDeletion ? "AUTH_UNKNOWN" : "AUTH_BEARER_REJECTED",
         );
       }
       const detail = data && typeof data === "object"
@@ -803,6 +885,72 @@ async function req(
   }
 }
 
+async function clearLocalGuestAuthenticationForReset(): Promise<void> {
+  credentialsCache = null;
+  credentialsPromise = null;
+  recoveryPromise = null;
+  bootstrapPlayerCache = undefined;
+  clearPlayerBalance();
+
+  const asyncKeys = [
+      INSTALLATION_KEY,
+      CREDENTIALS_KEY,
+      PLAYER_ID_KEY,
+      AUTH_TOKEN_KEY,
+      LEGACY_PLAYER_ID_KEY,
+      DELETION_PENDING_KEY,
+      BOOTSTRAP_RECOVERY_NONCE_KEY,
+      BOOTSTRAP_COMPLETION_PENDING_KEY,
+      ...PLAYER_DATA_KEYS,
+  ];
+  const verificationKeys = [
+      INSTALLATION_KEY,
+      PLAYER_ID_KEY,
+      AUTH_TOKEN_KEY,
+      LEGACY_PLAYER_ID_KEY,
+      BOOTSTRAP_RECOVERY_NONCE_KEY,
+      BOOTSTRAP_COMPLETION_PENDING_KEY,
+  ];
+  try {
+    await performLocalGuestReset({
+      clearAsyncKeys: async () => {
+        try { await AsyncStorage.multiRemove(asyncKeys); return true; } catch { return false; }
+      },
+      clearSecureCredentials: () => storage.secureRemove(CREDENTIALS_KEY),
+      clearSecureRecovery: () => storage.secureRemove(BOOTSTRAP_RECOVERY_TOKEN_KEY),
+      asyncKeysAreClear: async () => {
+        try {
+          const remaining = await AsyncStorage.multiGet(verificationKeys);
+          return remaining.every(([, value]) => value === null);
+        } catch { return false; }
+      },
+      secureCredentialsAreClear: async () => {
+        const result = await storage.secureRead<string>(CREDENTIALS_KEY);
+        return result.status === "available" && result.value === null;
+      },
+      secureRecoveryIsClear: async () => {
+        const result = await storage.secureRead<string>(BOOTSTRAP_RECOVERY_TOKEN_KEY);
+        return result.status === "available" && result.value === null;
+      },
+    });
+  } catch {
+    throw authenticationError(
+      "AUTH_LOCAL_RESET_FAILED",
+      "Local guest state could not be cleared completely; no new account was created.",
+    );
+  }
+}
+
+async function startNewGuestAccount(): Promise<unknown> {
+  await clearLocalGuestAuthenticationForReset();
+  const credentials = await ensureGuestCredentials();
+  const session = await req("/auth/session") as { player_id?: unknown };
+  if (session.player_id !== credentials.playerId) {
+    throw authenticationError("AUTH_INVALID_RESPONSE", "The new guest session could not be verified.");
+  }
+  return req(`/player/${encodeURIComponent(credentials.playerId)}`);
+}
+
 export const api = {
   // =========================
   // PLAYER
@@ -811,6 +959,8 @@ export const api = {
     const id = await getDeviceId();
     return req(`/player/${encodeURIComponent(id)}`);
   },
+
+  startNewGuestAccount,
 
   updatePlayer: async (data: {
     username?: string;

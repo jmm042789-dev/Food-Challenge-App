@@ -3,6 +3,9 @@
 
 export type StorageItemKey = string;
 export type StorageItemValue = string | number | boolean | null;
+export type SecureReadResult<Value extends StorageItemValue> =
+  | { status: "available"; value: Value | null }
+  | { status: "unavailable"; value: null };
 
 // Helper for subclasses to enforce that they don't declare methods beyond
 // StorageBase. Use as: type _ = AssertNoExtras<Exclude<keyof Storage, keyof StorageBase>>;
@@ -42,6 +45,9 @@ export abstract class StorageBase {
     key: string,
     fallback: Fallback,
   ): Promise<Fallback | null>;
+  abstract secureRead<Value extends StorageItemValue>(
+    key: string,
+  ): Promise<SecureReadResult<Value>>;
   abstract secureSet<Value extends StorageItemValue>(
     key: string,
     value: Value,

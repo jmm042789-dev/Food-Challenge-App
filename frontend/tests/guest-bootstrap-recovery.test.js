@@ -31,7 +31,7 @@ test("recovery nonce and replacement bearer are durable before bootstrap starts"
 test("SecureStore failure prevents account creation and preserves a retry path", () => {
   const recoverySetup = functionBody("getOrCreateBootstrapRecovery", "clearBootstrapRecoveryState");
   assert.match(recoverySetup, /if \(!stored\) \{[\s\S]*No account was created/);
-  assert.match(recoverySetup, /throw new AuthenticationError/);
+  assert.match(recoverySetup, /throw authenticationError/);
 });
 
 test("restart and lost-response paths authenticate the pending rotated bearer first", () => {

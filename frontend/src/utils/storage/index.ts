@@ -6,7 +6,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 
-import { AssertNoExtras, StorageBase, StorageItemValue } from "./storage-base";
+import { AssertNoExtras, SecureReadResult, StorageBase, StorageItemValue } from "./storage-base";
 
 export class Storage extends StorageBase {
   // General KV — backed by AsyncStorage.
@@ -57,6 +57,18 @@ export class Storage extends StorageBase {
     } catch (e) {
       this.warn("secureGet", key, e);
       return fallback;
+    }
+  }
+
+  async secureRead<Value extends StorageItemValue>(
+    key: string,
+  ): Promise<SecureReadResult<Value>> {
+    try {
+      const raw = await SecureStore.getItemAsync(key);
+      return { status: "available", value: this.retrieve(raw, null) as Value | null };
+    } catch (e) {
+      this.warn("secureRead", key, e);
+      return { status: "unavailable", value: null };
     }
   }
 
