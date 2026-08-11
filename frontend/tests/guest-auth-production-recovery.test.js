@@ -213,10 +213,10 @@ test("safe request IDs are retained without accepting secret-like values", () =>
   assert.doesNotMatch(startupSource, /authToken|installationId|recovery_nonce|auth_token/);
 });
 
-test("Expo config enables precise SecureStore backup rules and versionCode 5", () => {
+test("Expo config enables precise SecureStore backup rules and versionCode 6", () => {
   assert.equal(appConfig.expo.version, "1.0.0");
   assert.equal(appConfig.expo.android.package, "com.firefeast.app");
-  assert.equal(appConfig.expo.android.versionCode, 5);
+  assert.equal(appConfig.expo.android.versionCode, 6);
   assert.ok(appConfig.expo.plugins.some((plugin) => Array.isArray(plugin)
     && plugin[0] === "expo-secure-store"
     && plugin[1]?.configureAndroidBackup === true));
@@ -235,10 +235,13 @@ test("Android backup rules exclude every supported AsyncStorage database and Sec
 test("beta runtime diagnostics identify native build, source commit, auth implementation, and backend", () => {
   assert.match(dynamicConfigSource, /EAS_BUILD_GIT_COMMIT_HASH/);
   assert.match(dynamicConfigSource, /EAS_BUILD_ID/);
-  assert.match(dynamicConfigSource, /guest-auth-state-v5/);
+  assert.match(dynamicConfigSource, /guest-auth-state-v6/);
   assert.match(startupSource, /Constants\.nativeBuildVersion/);
+  assert.match(startupSource, /expoConfig\?\.android\?\.versionCode/);
   assert.match(startupSource, /publicAuthRuntimeDiagnostics/);
   assert.match(startupSource, /failure\.stage/);
+  assert.match(startupSource, /failure\.httpStatus/);
+  assert.match(startupSource, /failure\.backendCode/);
   assert.doesNotMatch(startupSource, /authToken|recoveryToken|installationId/);
 });
 

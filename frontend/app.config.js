@@ -21,7 +21,7 @@ module.exports = ({ config }) => {
     extra: {
       ...config.extra,
       build: {
-        authImplementation: "guest-auth-state-v5",
+        authImplementation: "guest-auth-state-v6",
         easBuildId: process.env.EAS_BUILD_ID || "local",
         gitCommit: process.env.EAS_BUILD_GIT_COMMIT_HASH || "local",
       },

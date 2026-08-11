@@ -18,7 +18,9 @@ export const SUPPORT_EMAIL = "support@firefeastgame.com";
 export const PUBLIC_WEBSITE_URL = "https://firefeastgame.com";
 export const ACCOUNT_DELETION_URL = "https://firefeastgame.com/delete-account";
 const version = Constants.expoConfig?.version ?? "1.0.0";
-const build = Constants.nativeBuildVersion ?? "unknown";
+const build = Constants.nativeBuildVersion
+  ?? Constants.expoConfig?.android?.versionCode?.toString()
+  ?? "unknown";
 const buildExtra = Constants.expoConfig?.extra?.build as {
   authImplementation?: string;
   easBuildId?: string;

@@ -13,6 +13,7 @@ import {
   safeAuthRequestId,
 } from "./guestAuthDiagnostics";
 import { performLocalGuestReset } from "./guestAuthReset";
+import { pendingSessionDisposition, shouldProbePendingRecovery } from "./guestAuthStartupPolicy";
 import {
   ApiRequestError,
   readResponseRequestId,
@@ -43,7 +44,7 @@ const BASE = resolveApiBase({
 });
 const API = joinApiPath(BASE, "/api");
 const REQUEST_TIMEOUT_MS = 8000;
-export const AUTH_IMPLEMENTATION_VERSION = "guest-auth-state-v5";
+export const AUTH_IMPLEMENTATION_VERSION = "guest-auth-state-v6";
 
 // 🔥 DEBUG LOGS (A.0 sanity check)
 if (__DEV__) {
@@ -148,6 +149,8 @@ export class AuthenticationError extends Error {
   localCredentialsCleared: boolean;
   requestId: string | null;
   stage: string;
+  httpStatus: number | null;
+  backendCode: string | null;
 
   constructor(
     message = "Guest authentication failed.",
@@ -155,6 +158,8 @@ export class AuthenticationError extends Error {
     requestId: string | null = null,
     code: AuthDiagnosticCode = "AUTH_UNKNOWN",
     stage = authDiagnosticStage,
+    httpStatus: number | null = null,
+    backendCode: string | null = null,
   ) {
     super(message);
     this.name = "AuthenticationError";
@@ -162,6 +167,8 @@ export class AuthenticationError extends Error {
     this.localCredentialsCleared = localCredentialsCleared;
     this.requestId = requestId;
     this.stage = stage;
+    this.httpStatus = httpStatus;
+    this.backendCode = backendCode;
   }
 }
 
@@ -183,6 +190,9 @@ export function describeAuthenticationFailure(error: unknown): {
   requestId: string | null;
   canStartNewGuest: boolean;
   stage: string;
+  httpStatus: number | null;
+  backendCode: string | null;
+  routeClass: string;
 } {
   const code = error instanceof AuthenticationError
     ? error.code
@@ -193,6 +203,19 @@ export function describeAuthenticationFailure(error: unknown): {
     requestId: safeAuthRequestId(error),
     canStartNewGuest: isResetEligibleAuthCode(code),
     stage: error instanceof AuthenticationError ? error.stage : authDiagnosticStage,
+    httpStatus: error instanceof AuthenticationError
+      ? error.httpStatus
+      : error instanceof ApiRequestError ? error.status : null,
+    backendCode: error instanceof AuthenticationError
+      ? error.backendCode
+      : error instanceof ApiRequestError ? error.code : null,
+    routeClass: authDiagnosticStage.includes("BOOTSTRAP")
+      ? "POST /api/auth/guest"
+      : authDiagnosticStage.includes("SESSION")
+        ? "GET /api/auth/session"
+        : authDiagnosticStage.includes("PLAYER")
+          ? "GET /api/player/:playerId"
+          : "startup authentication",
   };
 }
 
@@ -529,7 +552,15 @@ async function resolvePendingRecoverySession(
     }
     return persistRecoveredCredentials(response.player_id, authToken, response.player, generation);
   } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 401) return null;
+    if (
+      error instanceof ApiRequestError
+      && pendingSessionDisposition({ authenticated: false, httpStatus: error.status }) === "CONTINUE_BOOTSTRAP"
+    ) return null;
+    if (
+      error instanceof AuthenticationError
+      && pendingSessionDisposition({ authenticated: false, httpStatus: error.httpStatus }) === "CONTINUE_BOOTSTRAP"
+      && error.stage === "AUTH_STAGE_PENDING_SESSION_CHECK"
+    ) return null;
     throw error;
   }
 }
@@ -575,10 +606,20 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
   }
 
   const installationId = await getInstallationId();
+  const hadPendingRecovery = shouldProbePendingRecovery({
+    recoveryNoncePresent: Boolean(existingRecoveryNonce),
+    recoveryTokenPresent: Boolean(existingRecoveryToken),
+  });
   const recovery = await getOrCreateBootstrapRecovery();
-  markAuthStage("AUTH_STAGE_PENDING_SESSION_CHECK");
-  const recoveredSession = await resolvePendingRecoverySession(recovery.authToken, generation);
-  if (recoveredSession) return recoveredSession;
+  // A pending token is client-generated recovery material, not authentication.
+  // It can be a bearer only after /auth/guest/recover atomically rotates the
+  // server token and its response is lost. Probe only that interrupted state;
+  // a brand-new token must proceed directly to guest bootstrap.
+  if (hadPendingRecovery) {
+    markAuthStage("AUTH_STAGE_PENDING_SESSION_CHECK");
+    const recoveredSession = await resolvePendingRecoverySession(recovery.authToken, generation);
+    if (recoveredSession) return recoveredSession;
+  }
   try {
     markAuthStage("AUTH_STAGE_BOOTSTRAP_SENT");
     const response = await req(
@@ -929,6 +970,9 @@ async function req(
             false,
             requestId,
             diagnosticCodeForHttp401(requestPath, false),
+            authDiagnosticStage,
+            res.status,
+            code,
           );
         }
         const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();

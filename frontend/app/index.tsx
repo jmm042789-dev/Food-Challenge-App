@@ -21,6 +21,9 @@ type StartupFailure = {
   requestId: string | null;
   canStartNewGuest: boolean;
   stage: string;
+  httpStatus: number | null;
+  backendCode: string | null;
+  routeClass: string;
 };
 
 type BuildExtra = {
@@ -31,7 +34,9 @@ type BuildExtra = {
 
 const runtimeAuth = publicAuthRuntimeDiagnostics();
 const buildExtra = (Constants.expoConfig?.extra?.build ?? {}) as BuildExtra;
-const nativeBuild = Constants.nativeBuildVersion ?? "unknown";
+const nativeBuild = Constants.nativeBuildVersion
+  ?? Constants.expoConfig?.android?.versionCode?.toString()
+  ?? "unknown";
 const publicVersion = Constants.expoConfig?.version ?? "unknown";
 const shortCommit = typeof buildExtra.gitCommit === "string" && buildExtra.gitCommit !== "local"
   ? buildExtra.gitCommit.slice(0, 8)
@@ -148,6 +153,9 @@ export default function Index() {
             onPress={() => setAttempt((current) => current + 1)}
           />
           <Text selectable style={styles.diagnostic}>{failure.code}{failure.requestId ? ` · Request ${failure.requestId}` : ""}</Text>
+          <Text selectable style={styles.runtimeDiagnostic}>
+            {failure.routeClass}{failure.httpStatus ? ` · HTTP ${failure.httpStatus}` : ""}{failure.backendCode ? ` · ${failure.backendCode}` : ""}
+          </Text>
           <Text selectable style={styles.runtimeDiagnostic}>
             {failure.stage} · App {publicVersion} ({nativeBuild}) · {buildExtra.authImplementation ?? runtimeAuth.authImplementation} · {shortCommit} · {runtimeAuth.backendHost}
           </Text>

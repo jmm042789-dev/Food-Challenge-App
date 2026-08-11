@@ -34,13 +34,14 @@ test("SecureStore failure prevents account creation and preserves a retry path",
   assert.match(recoverySetup, /throw authenticationError/);
 });
 
-test("restart and lost-response paths authenticate the pending rotated bearer first", () => {
+test("only pre-existing pending recovery is checked for a lost response", () => {
   const bootstrap = functionBody("loadOrBootstrapCredentials", "ensureGuestCredentials");
   assert.ok(
-    bootstrap.indexOf("resolvePendingRecoverySession(recovery.authToken)")
+    bootstrap.indexOf("if (hadPendingRecovery)")
       < bootstrap.indexOf('"/auth/guest"'),
-    "a restart must test whether a prior recovery succeeded before replaying it",
+    "a restart may test whether a prior recovery succeeded before replaying it",
   );
+  assert.match(bootstrap, /shouldProbePendingRecovery/);
   assert.match(bootstrap, /GUEST_RECOVERY_USED[\s\S]*resolvePendingRecoverySession/);
 });
 
