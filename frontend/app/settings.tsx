@@ -12,12 +12,19 @@ import { updateAudioSettings } from "../src/audio/AdaptiveAudioManager";
 import type { AudioSettings } from "../src/audio/AudioTypes";
 import { useAppPreferences, type AppPreferences } from "../src/preferences/AppPreferences";
 import { openExternalUrl } from "../src/utils/externalUrls";
+import { publicAuthRuntimeDiagnostics } from "../src/api";
 
 export const SUPPORT_EMAIL = "support@firefeastgame.com";
 export const PUBLIC_WEBSITE_URL = "https://firefeastgame.com";
 export const ACCOUNT_DELETION_URL = "https://firefeastgame.com/delete-account";
 const version = Constants.expoConfig?.version ?? "1.0.0";
-const build = String(Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? "1");
+const build = Constants.nativeBuildVersion ?? "unknown";
+const buildExtra = Constants.expoConfig?.extra?.build as {
+  authImplementation?: string;
+  easBuildId?: string;
+  gitCommit?: string;
+} | undefined;
+const authRuntime = publicAuthRuntimeDiagnostics();
 
 function SettingRow({ title, detail, children, largeText = false }: { title: string; detail?: string; children: React.ReactNode; largeText?: boolean }) {
   return <View style={styles.row}><View style={styles.rowCopy}><Text style={[styles.rowTitle, largeText && styles.largeRowTitle]}>{title}</Text>{detail ? <Text style={[styles.rowDetail, largeText && styles.largeRowDetail]}>{detail}</Text> : null}</View>{children}</View>;
@@ -101,6 +108,9 @@ export default function SettingsScreen() {
       <FirePanel title="ABOUT" subtitle="Fire Feast Closed Beta" elevated>
         <SettingRow title="Game Version" largeText={large}><Text style={styles.aboutValue}>{version}</Text></SettingRow>
         <SettingRow title="Build Number" largeText={large}><Text style={styles.aboutValue}>{build}</Text></SettingRow>
+        <SettingRow title="Auth Runtime" largeText={large}><Text selectable style={styles.aboutValue}>{buildExtra?.authImplementation ?? authRuntime.authImplementation}</Text></SettingRow>
+        <SettingRow title="Build Commit" largeText={large}><Text selectable style={styles.aboutValue}>{buildExtra?.gitCommit?.slice(0, 8) ?? "local"}</Text></SettingRow>
+        <SettingRow title="Backend" largeText={large}><Text selectable style={styles.aboutValue}>{authRuntime.backendHost}</Text></SettingRow>
         <SettingRow title="Credits" detail="Game design, engineering, art direction, and beta operations." largeText={large}><Text style={styles.aboutValue}>FIRE FEAST TEAM</Text></SettingRow>
       </FirePanel>
     </ScrollView>

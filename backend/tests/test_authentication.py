@@ -50,6 +50,38 @@ class GuestAuthenticationTests(unittest.TestCase):
         )
         self.assertNotEqual(captured["auth_token_hash"], response["auth_token"])
 
+    def test_bootstrap_token_verifies_in_a_separate_authentication_context(self):
+        """Models two Render workers sharing only the persisted player document."""
+        persisted = {}
+
+        def insert(document):
+            persisted.update(document)
+            return database.public_player_document(document)
+
+        with (
+            patch.object(player_service, "installation_has_guest", return_value=False),
+            patch.object(player_service, "create_guest_player", side_effect=insert),
+        ):
+            bootstrap = player_service.bootstrap_guest(
+                "installation_" + "m" * 32,
+                "recovery_" + "n" * 32,
+            )
+
+        with patch.object(
+            auth,
+            "find_internal_player_by_auth_hash",
+            return_value=dict(persisted),
+        ):
+            authenticated = auth.authenticated_bearer_player(
+                f"Bearer {bootstrap['auth_token']}"
+            )
+
+        self.assertEqual(authenticated["player_id"], bootstrap["player_id"])
+        self.assertEqual(
+            authenticated["auth_token_hash"],
+            auth.hash_auth_token(bootstrap["auth_token"]),
+        )
+
     def test_token_not_returned_by_ordinary_profile_sanitization(self):
         profile = database.public_player_document(
             {

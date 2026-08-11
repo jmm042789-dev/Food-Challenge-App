@@ -7,6 +7,7 @@ const {
   AUTH_DIAGNOSTIC_CODES,
   classifyGuestAuthStorage,
   diagnosticCodeForUnknown,
+  diagnosticCodeForHttp401,
   diagnosticMessage,
   isResetEligibleAuthCode,
   safeAuthRequestId,
@@ -16,6 +17,8 @@ const { performLocalGuestReset } = require("../src/guestAuthReset.ts");
 const apiSource = fs.readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
 const startupSource = fs.readFileSync(path.join(__dirname, "../app/index.tsx"), "utf8");
 const appConfig = JSON.parse(fs.readFileSync(path.join(__dirname, "../app.json"), "utf8"));
+const dynamicConfigSource = fs.readFileSync(path.join(__dirname, "../app.config.js"), "utf8");
+const backupPluginSource = fs.readFileSync(path.join(__dirname, "../plugins/withAndroidAuthBackupExclusions.js"), "utf8");
 const backendRoot = path.join(__dirname, "../../backend");
 
 function snapshot(overrides = {}) {
@@ -48,6 +51,7 @@ test("stable diagnostic codes cover all production recovery outcomes", () => {
     "AUTH_INVALID_RESPONSE", "AUTH_LOCAL_RESET_FAILED", "AUTH_UNKNOWN",
     "AUTH_RESET_INTERRUPTED", "AUTH_INSTALLATION_CREATE_FAILED",
     "AUTH_CREDENTIAL_PERSIST_FAILED", "AUTH_SESSION_VERIFY_FAILED",
+    "AUTH_BOOTSTRAP_REJECTED",
   ]) {
     assert.ok(AUTH_DIAGNOSTIC_CODES.includes(code));
     assert.ok(diagnosticMessage(code).length > 10);
@@ -55,6 +59,15 @@ test("stable diagnostic codes cover all production recovery outcomes", () => {
   assert.equal(diagnosticCodeForUnknown(new TypeError("Network request failed")), "AUTH_NETWORK");
   assert.equal(diagnosticCodeForUnknown({ status: 503 }), "AUTH_NETWORK");
   assert.equal(diagnosticCodeForUnknown({ code: "AUTH_INVALID_RESPONSE" }), "AUTH_INVALID_RESPONSE");
+});
+
+test("a bootstrap 401 is never mislabeled as a rejected saved bearer", () => {
+  assert.equal(diagnosticCodeForHttp401("/auth/guest", false), "AUTH_BOOTSTRAP_REJECTED");
+  assert.equal(diagnosticCodeForHttp401("/auth/session", true), "AUTH_BEARER_REJECTED");
+  assert.equal(diagnosticCodeForHttp401("/contests", false), "AUTH_UNKNOWN");
+  const responseHandling = apiSource.slice(apiSource.indexOf("if (!res.ok)"), apiSource.indexOf("if (authenticated && requestPath"));
+  assert.ok(responseHandling.indexOf("if (!authenticated)") < responseHandling.indexOf("recoverPendingDeletionAfterUnauthorized"));
+  assert.match(responseHandling, /diagnosticCodeForHttp401\(requestPath, false\)/);
 });
 
 test("only unrecoverable credential states offer a local new-guest reset", () => {
@@ -200,13 +213,33 @@ test("safe request IDs are retained without accepting secret-like values", () =>
   assert.doesNotMatch(startupSource, /authToken|installationId|recovery_nonce|auth_token/);
 });
 
-test("Expo config enables precise SecureStore backup rules and versionCode 4", () => {
+test("Expo config enables precise SecureStore backup rules and versionCode 5", () => {
   assert.equal(appConfig.expo.version, "1.0.0");
   assert.equal(appConfig.expo.android.package, "com.firefeast.app");
-  assert.equal(appConfig.expo.android.versionCode, 4);
+  assert.equal(appConfig.expo.android.versionCode, 5);
   assert.ok(appConfig.expo.plugins.some((plugin) => Array.isArray(plugin)
     && plugin[0] === "expo-secure-store"
     && plugin[1]?.configureAndroidBackup === true));
+  assert.ok(appConfig.expo.plugins.includes("./plugins/withAndroidAuthBackupExclusions"));
+});
+
+test("Android backup rules exclude every supported AsyncStorage database and SecureStore", () => {
+  for (const name of ["SecureStore", "RKStorage", "AsyncStorage"]) {
+    assert.match(backupPluginSource, new RegExp(`path=\\"${name}\\"`));
+  }
+  assert.match(backupPluginSource, /<cloud-backup>/);
+  assert.match(backupPluginSource, /<device-transfer>/);
+  assert.doesNotMatch(backupPluginSource, /allowBackup|fullBackupOnly/);
+});
+
+test("beta runtime diagnostics identify native build, source commit, auth implementation, and backend", () => {
+  assert.match(dynamicConfigSource, /EAS_BUILD_GIT_COMMIT_HASH/);
+  assert.match(dynamicConfigSource, /EAS_BUILD_ID/);
+  assert.match(dynamicConfigSource, /guest-auth-state-v5/);
+  assert.match(startupSource, /Constants\.nativeBuildVersion/);
+  assert.match(startupSource, /publicAuthRuntimeDiagnostics/);
+  assert.match(startupSource, /failure\.stage/);
+  assert.doesNotMatch(startupSource, /authToken|recoveryToken|installationId/);
 });
 
 test("reward and account-deletion contracts remain unchanged", () => {

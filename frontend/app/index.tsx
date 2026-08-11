@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
+import Constants from "expo-constants";
 
-import { api, cacheBootstrapPlayer, describeAuthenticationFailure, peekBootstrapPlayer } from "../src/api";
+import { api, cacheBootstrapPlayer, describeAuthenticationFailure, peekBootstrapPlayer, publicAuthRuntimeDiagnostics } from "../src/api";
 import type { AuthDiagnosticCode } from "../src/guestAuthDiagnostics";
 import FireButton from "../src/components/fire/FireButton";
 import FireEmptyState from "../src/components/fire/FireEmptyState";
@@ -19,7 +20,22 @@ type StartupFailure = {
   message: string;
   requestId: string | null;
   canStartNewGuest: boolean;
+  stage: string;
 };
+
+type BuildExtra = {
+  authImplementation?: string;
+  easBuildId?: string;
+  gitCommit?: string;
+};
+
+const runtimeAuth = publicAuthRuntimeDiagnostics();
+const buildExtra = (Constants.expoConfig?.extra?.build ?? {}) as BuildExtra;
+const nativeBuild = Constants.nativeBuildVersion ?? "unknown";
+const publicVersion = Constants.expoConfig?.version ?? "unknown";
+const shortCommit = typeof buildExtra.gitCommit === "string" && buildExtra.gitCommit !== "local"
+  ? buildExtra.gitCommit.slice(0, 8)
+  : "local";
 
 export default function Index() {
   const router = useRouter();
@@ -132,6 +148,9 @@ export default function Index() {
             onPress={() => setAttempt((current) => current + 1)}
           />
           <Text selectable style={styles.diagnostic}>{failure.code}{failure.requestId ? ` · Request ${failure.requestId}` : ""}</Text>
+          <Text selectable style={styles.runtimeDiagnostic}>
+            {failure.stage} · App {publicVersion} ({nativeBuild}) · {buildExtra.authImplementation ?? runtimeAuth.authImplementation} · {shortCommit} · {runtimeAuth.backendHost}
+          </Text>
           {failure.canStartNewGuest ? (
             <FireButton
               accessibilityHint="Requires confirmation and may remove local access to the previous guest"
@@ -155,4 +174,5 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   failure: { alignSelf: "center", justifyContent: "center", maxWidth: 430, width: "100%" },
   diagnostic: { color: "#A99483", fontSize: 11, marginHorizontal: 24, marginTop: -24, textAlign: "center" },
+  runtimeDiagnostic: { color: "#806F65", fontSize: 10, marginHorizontal: 24, marginTop: 6, textAlign: "center" },
 });

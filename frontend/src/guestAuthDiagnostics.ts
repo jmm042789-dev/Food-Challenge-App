@@ -7,6 +7,7 @@ export const AUTH_DIAGNOSTIC_CODES = [
   "AUTH_RECOVERY_EXPIRED",
   "AUTH_RECOVERY_USED",
   "AUTH_BOOTSTRAP_CONFLICT",
+  "AUTH_BOOTSTRAP_REJECTED",
   "AUTH_NETWORK",
   "AUTH_INVALID_RESPONSE",
   "AUTH_LOCAL_RESET_FAILED",
@@ -65,6 +66,8 @@ export function diagnosticMessage(code: AuthDiagnosticCode): string {
       return "The saved guest recovery credential has already been used.";
     case "AUTH_BOOTSTRAP_CONFLICT":
       return "A guest already exists for this installation and could not be recovered safely.";
+    case "AUTH_BOOTSTRAP_REJECTED":
+      return "The guest service rejected new-account bootstrap before credentials were issued.";
     case "AUTH_NETWORK":
       return "Fire Feast could not reach the guest service. Check your connection and retry.";
     case "AUTH_INVALID_RESPONSE":
@@ -82,6 +85,15 @@ export function diagnosticMessage(code: AuthDiagnosticCode): string {
     default:
       return "Fire Feast could not verify this guest account.";
   }
+}
+
+export function diagnosticCodeForHttp401(
+  path: string,
+  authenticated: boolean,
+): AuthDiagnosticCode {
+  if (authenticated) return "AUTH_BEARER_REJECTED";
+  if (path === "/auth/guest") return "AUTH_BOOTSTRAP_REJECTED";
+  return "AUTH_UNKNOWN";
 }
 
 export function isResetEligibleAuthCode(code: AuthDiagnosticCode): boolean {

@@ -6,6 +6,7 @@ import { applyPlayerBalanceResponse, clearPlayerBalance } from "./playerBalance"
 import {
   type AuthDiagnosticCode,
   classifyGuestAuthStorage,
+  diagnosticCodeForHttp401,
   diagnosticCodeForUnknown,
   diagnosticMessage,
   isResetEligibleAuthCode,
@@ -42,6 +43,7 @@ const BASE = resolveApiBase({
 });
 const API = joinApiPath(BASE, "/api");
 const REQUEST_TIMEOUT_MS = 8000;
+export const AUTH_IMPLEMENTATION_VERSION = "guest-auth-state-v5";
 
 // 🔥 DEBUG LOGS (A.0 sanity check)
 if (__DEV__) {
@@ -74,6 +76,12 @@ let authStateGeneration = 0;
 let confirmedResetBootstrapActive = false;
 let requestSequence = 0;
 let coinMutationGeneration = 0;
+let authDiagnosticStage = "AUTH_STAGE_UNINITIALIZED";
+
+function markAuthStage(stage: string): void {
+  authDiagnosticStage = stage;
+  console.info("Fire Feast auth stage", { stage });
+}
 
 type GuestCredentials = {
   playerId: string;
@@ -139,18 +147,21 @@ export class AuthenticationError extends Error {
   code: AuthDiagnosticCode;
   localCredentialsCleared: boolean;
   requestId: string | null;
+  stage: string;
 
   constructor(
     message = "Guest authentication failed.",
     localCredentialsCleared = false,
     requestId: string | null = null,
     code: AuthDiagnosticCode = "AUTH_UNKNOWN",
+    stage = authDiagnosticStage,
   ) {
     super(message);
     this.name = "AuthenticationError";
     this.code = code;
     this.localCredentialsCleared = localCredentialsCleared;
     this.requestId = requestId;
+    this.stage = stage;
   }
 }
 
@@ -171,6 +182,7 @@ export function describeAuthenticationFailure(error: unknown): {
   message: string;
   requestId: string | null;
   canStartNewGuest: boolean;
+  stage: string;
 } {
   const code = error instanceof AuthenticationError
     ? error.code
@@ -180,7 +192,18 @@ export function describeAuthenticationFailure(error: unknown): {
     message: diagnosticMessage(code),
     requestId: safeAuthRequestId(error),
     canStartNewGuest: isResetEligibleAuthCode(code),
+    stage: error instanceof AuthenticationError ? error.stage : authDiagnosticStage,
   };
+}
+
+export function publicAuthRuntimeDiagnostics(): {
+  authImplementation: string;
+  backendHost: string;
+  stage: string;
+} {
+  let backendHost = "invalid";
+  try { backendHost = new URL(BASE).host; } catch { /* Public diagnostic only. */ }
+  return { authImplementation: AUTH_IMPLEMENTATION_VERSION, backendHost, stage: authDiagnosticStage };
 }
 
 export function cacheBootstrapPlayer(player: unknown): void {
@@ -464,6 +487,35 @@ async function persistRecoveredCredentials(
   return credentials;
 }
 
+async function verifyFreshBootstrapSession(
+  credentials: GuestCredentials,
+): Promise<GuestCredentials> {
+  markAuthStage(confirmedResetBootstrapActive
+    ? "RESET_STAGE_SESSION_VERIFY"
+    : "AUTH_STAGE_FRESH_SESSION_VERIFY");
+  try {
+    const session = await req("/auth/session", {}, true, false) as { player_id?: unknown };
+    if (session.player_id !== credentials.playerId) {
+      throw authenticationError(
+        "AUTH_SESSION_VERIFY_FAILED",
+        "The newly issued guest session did not match the created player.",
+      );
+    }
+    return credentials;
+  } catch (error) {
+    if (error instanceof AuthenticationError && error.code === "AUTH_SESSION_VERIFY_FAILED") {
+      throw error;
+    }
+    throw authenticationError(
+      diagnosticCodeForUnknown(error) === "AUTH_NETWORK"
+        ? "AUTH_NETWORK"
+        : "AUTH_SESSION_VERIFY_FAILED",
+      "The newly issued guest credential could not be verified.",
+      safeAuthRequestId(error),
+    );
+  }
+}
+
 async function resolvePendingRecoverySession(
   authToken: string,
   generation = authStateGeneration,
@@ -483,6 +535,7 @@ async function resolvePendingRecoverySession(
 }
 
 async function loadOrBootstrapCredentials(generation: number): Promise<GuestCredentials> {
+  markAuthStage("AUTH_STAGE_LOADING_LOCAL");
   assertCurrentAuthGeneration(generation);
   const resetJournal = confirmedResetBootstrapActive ? null : await readResetJournal();
   if (resetJournal?.stage === "confirmed") {
@@ -494,6 +547,7 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
   const stored = await readStoredCredentials(generation);
   assertCurrentAuthGeneration(generation);
   if (stored) {
+    markAuthStage("AUTH_STAGE_LOCAL_CREDENTIALS");
     if (await AsyncStorage.getItem(BOOTSTRAP_COMPLETION_PENDING_KEY)) {
       await finishBootstrapRecovery(stored);
     }
@@ -522,9 +576,11 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
 
   const installationId = await getInstallationId();
   const recovery = await getOrCreateBootstrapRecovery();
+  markAuthStage("AUTH_STAGE_PENDING_SESSION_CHECK");
   const recoveredSession = await resolvePendingRecoverySession(recovery.authToken, generation);
   if (recoveredSession) return recoveredSession;
   try {
+    markAuthStage("AUTH_STAGE_BOOTSTRAP_SENT");
     const response = await req(
       "/auth/guest",
       {
@@ -550,21 +606,32 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
     ) {
       throw authenticationError("AUTH_INVALID_RESPONSE", "The guest account response was invalid.");
     }
+    markAuthStage(confirmedResetBootstrapActive ? "RESET_STAGE_BOOTSTRAP_OK" : "AUTH_STAGE_BOOTSTRAP_OK");
     const credentials = await persistRecoveredCredentials(
       response.player_id,
       response.auth_token,
       response.player,
       generation,
     );
+    markAuthStage(confirmedResetBootstrapActive
+      ? "RESET_STAGE_CREDENTIALS_WRITTEN"
+      : "AUTH_STAGE_BOOTSTRAP_CREDENTIALS_SAVED");
     if (__DEV__) {
       console.info("Fire Feast guest credentials created", {
         playerId: credentials.playerId,
         tokenLength: credentials.authToken.length,
       });
     }
-    return credentials;
+    return verifyFreshBootstrapSession(credentials);
   } catch (error) {
     if (error instanceof AuthenticationError) throw error;
+    if (error instanceof ApiRequestError && error.status === 401) {
+      throw authenticationError(
+        "AUTH_BOOTSTRAP_REJECTED",
+        "New guest bootstrap was rejected before credentials were issued.",
+        error.requestId,
+      );
+    }
     if (error instanceof ApiRequestError && error.code === "GUEST_BOOTSTRAP_EXISTS") {
       try {
         const recovered = await req("/auth/guest/recover", {
@@ -578,12 +645,13 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
         if (typeof recovered.player_id !== "string" || !recovered.player_id.trim()) {
           throw authenticationError("AUTH_INVALID_RESPONSE", "The guest recovery response was invalid.");
         }
-        return persistRecoveredCredentials(
+        const recoveredCredentials = await persistRecoveredCredentials(
           recovered.player_id,
           recovery.authToken,
           recovered.player,
           generation,
         );
+        return verifyFreshBootstrapSession(recoveredCredentials);
       } catch (recoveryError) {
         if (
           recoveryError instanceof ApiRequestError
@@ -848,7 +916,21 @@ async function req(
       data = text;
     }
     if (!res.ok) {
+      const detail = data && typeof data === "object"
+        ? (data as { detail?: unknown }).detail
+        : null;
+      const code = detail && typeof detail === "object" && typeof (detail as { code?: unknown }).code === "string"
+        ? (detail as { code: string }).code
+        : null;
       if (res.status === 401) {
+        if (!authenticated) {
+          throw new AuthenticationError(
+            "An unauthenticated authentication request was rejected.",
+            false,
+            requestId,
+            diagnosticCodeForHttp401(requestPath, false),
+          );
+        }
         const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();
         if (!recoveredDeletion && authenticated && credentials && allowAuthenticationRecovery) {
           const recovered = await recoverCredentialsAfterUnauthorized(credentials);
@@ -869,12 +951,6 @@ async function req(
           recoveredDeletion ? "AUTH_UNKNOWN" : "AUTH_BEARER_REJECTED",
         );
       }
-      const detail = data && typeof data === "object"
-        ? (data as { detail?: unknown }).detail
-        : null;
-      const code = detail && typeof detail === "object" && typeof (detail as { code?: unknown }).code === "string"
-        ? (detail as { code: string }).code
-        : null;
       throw new ApiRequestError(
         res.status,
         `HTTP ${res.status}: ${JSON.stringify(data)}`,
@@ -1036,9 +1112,12 @@ async function createFreshInstallationIdentity(): Promise<string> {
 }
 
 async function performConfirmedNewGuestReset(): Promise<unknown> {
+  markAuthStage("RESET_STAGE_CONFIRMED");
   await writeResetJournal("confirmed");
   await clearLocalGuestAuthenticationForReset();
+  markAuthStage("RESET_STAGE_STORAGE_CLEARED");
   await createFreshInstallationIdentity();
+  markAuthStage("RESET_STAGE_INSTALL_CREATED");
   await writeResetJournal("installation_created");
 
   let credentials: GuestCredentials;
@@ -1059,6 +1138,7 @@ async function performConfirmedNewGuestReset(): Promise<unknown> {
   // Force subsequent verification to reload the exact persisted bundle. This
   // proves the new account does not depend on a stale module-level credential.
   credentialsCache = null;
+  markAuthStage("RESET_STAGE_CREDENTIALS_RELOADED");
   const persisted = await readStoredCredentials(authStateGeneration);
   if (
     !persisted
@@ -1074,10 +1154,11 @@ async function performConfirmedNewGuestReset(): Promise<unknown> {
 
   let session: { player_id?: unknown };
   try {
+    markAuthStage("RESET_STAGE_SESSION_VERIFY");
     session = await req("/auth/session", {}, true, false) as { player_id?: unknown };
   } catch (error) {
     throw authenticationError(
-      error instanceof AuthenticationError && error.code === "AUTH_NETWORK"
+      diagnosticCodeForUnknown(error) === "AUTH_NETWORK"
         ? "AUTH_NETWORK"
         : "AUTH_SESSION_VERIFY_FAILED",
       "The fresh guest session could not be verified.",
@@ -1090,10 +1171,11 @@ async function performConfirmedNewGuestReset(): Promise<unknown> {
 
   let player: unknown;
   try {
+    markAuthStage("RESET_STAGE_PLAYER_VERIFY");
     player = await req(`/player/${encodeURIComponent(credentials.playerId)}`, {}, true, false);
   } catch (error) {
     throw authenticationError(
-      error instanceof AuthenticationError && error.code === "AUTH_NETWORK"
+      diagnosticCodeForUnknown(error) === "AUTH_NETWORK"
         ? "AUTH_NETWORK"
         : "AUTH_SESSION_VERIFY_FAILED",
       "The fresh guest player could not be verified.",
@@ -1101,6 +1183,7 @@ async function performConfirmedNewGuestReset(): Promise<unknown> {
     );
   }
   await AsyncStorage.removeItem(GUEST_RESET_PENDING_KEY);
+  markAuthStage("RESET_STAGE_COMPLETE");
   return player;
 }
 
@@ -1118,8 +1201,11 @@ export const api = {
   // PLAYER
   // =========================
   getPlayer: async () => {
+    markAuthStage("AUTH_STAGE_PLAYER_VERIFY");
     const id = await getDeviceId();
-    return req(`/player/${encodeURIComponent(id)}`);
+    const player = await req(`/player/${encodeURIComponent(id)}`);
+    markAuthStage("AUTH_STAGE_AUTHENTICATED");
+    return player;
   },
 
   startNewGuestAccount,

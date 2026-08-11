@@ -16,5 +16,15 @@ module.exports = ({ config }) => {
     );
   }
 
-  return config;
+  return {
+    ...config,
+    extra: {
+      ...config.extra,
+      build: {
+        authImplementation: "guest-auth-state-v5",
+        easBuildId: process.env.EAS_BUILD_ID || "local",
+        gitCommit: process.env.EAS_BUILD_GIT_COMMIT_HASH || "local",
+      },
+    },
+  };
 };

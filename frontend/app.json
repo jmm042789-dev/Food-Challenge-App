@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.firefeast.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo/app-icon.png",
         "backgroundColor": "#070405"
@@ -50,6 +50,7 @@
           "configureAndroidBackup": true
         }
       ],
+      "./plugins/withAndroidAuthBackupExclusions",
       [
         "expo-audio",
         {
