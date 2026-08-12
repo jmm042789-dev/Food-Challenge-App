@@ -15,6 +15,7 @@ import FireLoading from "../../src/components/fire/FireLoading";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import FirePanel from "../../src/components/fire/FirePanel";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
+import CompactScreenHeader from "../../src/components/fire/CompactScreenHeader";
 
 type Leader = { rank: number; username: string; score: number; is_you?: boolean; belt?: { name?: string } };
 
@@ -47,8 +48,7 @@ return(
 <ArcadeBackground active={isFocused}/>
 <ScrollView alwaysBounceVertical={false} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 <FireScreenEntrance distance={12}>
-<Text style={styles.header}>🏆 FIRE FEAST RANKINGS</Text>
-<Text style={styles.sub}>Compete for the top spot!</Text>
+<CompactScreenHeader title="RANKS" context="FIRE FEAST GLOBAL" />
 
 <FirePanel title="ARENA LEADER" elevated accent="gold" style={styles.podium}>
 <Text style={styles.crown}>👑</Text>
@@ -86,8 +86,6 @@ player.is_you && styles.currentPlayer
 const styles=StyleSheet.create({
 container:{flex:1,backgroundColor:"#070405"},
 content:{paddingHorizontal:12,paddingTop:7,paddingBottom:22},
-header:{color:"#FFF0D8",fontSize:25,fontWeight:"900",letterSpacing:1.1},
-sub:{color:"#A99482",fontSize:10,marginTop:2,marginBottom:6},
 podium:{
 backgroundColor:"rgba(17,10,10,0.96)",
 borderWidth:2,

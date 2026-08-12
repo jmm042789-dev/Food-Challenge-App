@@ -10,7 +10,7 @@ import FireLoading from "../../src/components/fire/FireLoading";
 import FireEmptyState from "../../src/components/fire/FireEmptyState";
 import FirePanel from "../../src/components/fire/FirePanel";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
-import TournamentBanner from "../../src/game/ui/TournamentBanner";
+import CompactScreenHeader from "../../src/components/fire/CompactScreenHeader";
 import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
 import TournamentPanel from "../../src/tournaments/components/TournamentPanel";
 import { getTournamentPlayerProgress } from "../../src/tournaments/TournamentProgress";
@@ -130,19 +130,13 @@ export default function ContestsScreen() {
         contentContainerStyle={[styles.listContent, { paddingTop: Math.max(insets.top, 8) }]}
         ListHeaderComponent={
           <View>
-            <View style={styles.header}>
-              <View style={styles.headerTitleBlock}>
-                <Text style={styles.kicker}>FIRE FEAST ARENA</Text>
-                <Text style={styles.title}>CONTESTS</Text>
-              </View>
-              <View style={styles.coinHud}>
+            <CompactScreenHeader title="CONTESTS" context="FIRE FEAST ARENA" right={<View style={styles.coinHud}>
                 <Image source={COIN} resizeMode="contain" style={styles.coinIcon} />
                 <View>
                   <Text style={styles.coinLabel}>COINS</Text>
                   <Text style={styles.coinValue}>{coins.toLocaleString()}</Text>
                 </View>
-              </View>
-            </View>
+              </View>} />
 
             {tournamentProgress ? (
               <TournamentPanel
@@ -152,8 +146,6 @@ export default function ContestsScreen() {
                 onClaimReward={(rewardId) => { void claimTournamentReward(rewardId); }}
               />
             ) : null}
-
-            <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName="TOURNAMENT BOARD" roundLabel={`${contests.length} EVENTS`} variant="compact" />
 
             <FlatList
               horizontal
@@ -186,16 +178,12 @@ export default function ContestsScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   listContent: { paddingBottom: 12, paddingHorizontal: 12 },
-  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minHeight: 62, minWidth: 0, paddingHorizontal: 2 },
-  headerTitleBlock: { flex: 1, minWidth: 0, paddingRight: 8 },
-  kicker: { color: "#B98450", fontSize: 8, fontWeight: "900", letterSpacing: 1.8 },
-  title: { color: "#FFF1DD", fontSize: 25, fontWeight: "900", letterSpacing: 1.2, lineHeight: 28 },
   coinHud: { alignItems: "center", backgroundColor: "rgba(9,7,8,0.94)", borderColor: "rgba(238,151,56,0.7)", borderRadius: 10, borderWidth: 1, flexDirection: "row", flexShrink: 0, minWidth: 98, paddingHorizontal: 8, paddingVertical: 6 },
   coinIcon: { height: 28, marginRight: 5, width: 28 },
   coinLabel: { color: "#B58B59", fontSize: 7, fontWeight: "900", letterSpacing: 1 },
   coinValue: { color: "#FFD16A", fontSize: 15, fontWeight: "900", lineHeight: 17 },
-  tabs: { gap: 5, paddingBottom: 8, paddingRight: 10, paddingTop: 3 },
-  tab: { alignItems: "center", backgroundColor: "rgba(13,10,11,0.9)", borderColor: "rgba(151,94,50,0.38)", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 44, minWidth: 54, paddingHorizontal: 10 },
+  tabs: { gap: 5, paddingBottom: 6, paddingRight: 10, paddingTop: 1 },
+  tab: { alignItems: "center", backgroundColor: "rgba(13,10,11,0.9)", borderColor: "rgba(151,94,50,0.38)", borderRadius: 8, borderWidth: 1, justifyContent: "center", minHeight: 40, minWidth: 54, paddingHorizontal: 10 },
   tabActive: { backgroundColor: "rgba(139,67,17,0.92)", borderColor: "#F2A13D" },
   tabPressed: { opacity: 0.8 },
   tabText: { color: "#9E8876", fontSize: 8, fontWeight: "900", letterSpacing: 0.7, textAlign: "center" },

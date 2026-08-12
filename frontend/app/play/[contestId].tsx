@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AccessibilityInfo, Alert, Animated, AppState, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
@@ -46,12 +46,13 @@ import { usePlayerBalance } from "../../src/playerBalance";
 import { stopGameplayMusic } from "../../src/audio";
 import { antacidHeatReduction } from "../../src/game/matchModifiers";
 import { useAppPreferences } from "../../src/preferences/AppPreferences";
-import { isTransientPlayerError, playerFacingErrorMessage } from "../../src/playerFacingErrors";
+import { playerFacingErrorMessage } from "../../src/playerFacingErrors";
 import {
   parseAuthoritativeOpponent,
   type AuthoritativeOpponentConfig,
 } from "../../src/game/authoritativeOpponent";
 import type { Opponent } from "../../src/game/ai/types";
+import { initialResultFlow, transitionResultFlow } from "../../src/game/resultFlow";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
 
@@ -70,7 +71,6 @@ export default function ContestScreen() {
   const [matchStartError, setMatchStartError] = useState(false);
   const [matchStartFailureMessage, setMatchStartFailureMessage] = useState("The arena could not start this match. Please try again.");
   const [matchStartAttempt, setMatchStartAttempt] = useState(0);
-  const [resultSubmitAttempt, setResultSubmitAttempt] = useState(0);
   const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
   const [equippedGear, setEquippedGear] = useState<string | null>(null);
   const [authoritativeOpponent, setAuthoritativeOpponent] = useState<Opponent | null>(null);
@@ -146,8 +146,7 @@ export default function ContestScreen() {
     opponentScore: number;
     outcome: "win" | "loss" | "tie";
   } | null>(null);
-  const [resultVerificationError, setResultVerificationError] = useState(false);
-  const [resultPhase, setResultPhase] = useState<"PLAYING" | "SUBMITTING_RESULT" | "OFFICIAL_RESULT_RECEIVED" | "RESULT_ERROR">("PLAYING");
+  const [resultFlow, dispatchResultFlow] = useReducer(transitionResultFlow<NonNullable<typeof resultReward>>, undefined, initialResultFlow<NonNullable<typeof resultReward>>);
   const result = state.status === "FINISHED" && resultReward
     ? resultReward.outcome === "tie"
       ? "draw"
@@ -168,8 +167,6 @@ export default function ContestScreen() {
   const abandonRequestInFlight = useRef(false);
   const resultNavigationInFlight = useRef(false);
   const submittedResultKey = useRef<string | null>(null);
-  const resultRetryCount = useRef(0);
-  const resultRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousStatus = useRef(state.status);
   const lastCameraCombo = useRef(state.combo);
   const lastBiteHapticAt = useRef(0);
@@ -240,7 +237,6 @@ export default function ContestScreen() {
 
   useEffect(() => () => {
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
-    if (resultRetryTimer.current) clearTimeout(resultRetryTimer.current);
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
   }, []);
 
@@ -314,25 +310,36 @@ export default function ContestScreen() {
     serverMatchId.current = null;
     resultRequestInFlight.current = false;
     submittedResultKey.current = null;
-    resultRetryCount.current = 0;
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
     antacidAcknowledgementTimer.current = null;
     setAntacidAcknowledging(false);
     setResultAchievements([]);
     setResultTournament(null);
     setResultReward(null);
-    setResultVerificationError(false);
-    setResultPhase("PLAYING");
+    dispatchResultFlow({ type: "RESET" });
   }, [matchDurationSeconds, matchRouteKey]);
 
   useEffect(() => {
-    if (state.status !== "FINISHED" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
+    if (state.status === "FINISHED") dispatchResultFlow({ type: "FINISH" });
+  }, [state.status]);
+
+  useEffect(() => {
+    if (resultFlow.phase === "FINISHED") dispatchResultFlow({ type: "SUBMIT" });
+  }, [resultFlow.phase]);
+
+  useEffect(() => {
+    if (resultFlow.phase === "OFFICIAL_RESULT_RECEIVED" || resultFlow.phase === "NAVIGATING_RESULT") {
+      dispatchResultFlow({ type: "SHOW_RESULT" });
+    }
+  }, [resultFlow.phase]);
+
+  useEffect(() => {
+    if (resultFlow.phase !== "SUBMITTING_RESULT" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
     const opponentId = serverOpponentId.current;
     const matchId = serverMatchId.current;
     if (!opponentId || !matchId) return;
 
     resultRequestInFlight.current = true;
-    setResultPhase("SUBMITTING_RESULT");
     const duration = matchStartedAt.current === null
       ? matchDurationSeconds
       : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
@@ -375,7 +382,7 @@ export default function ContestScreen() {
       ) {
         throw new Error("Match reward response was invalid.");
       }
-      setResultReward({
+      const officialResult = {
         coins: Math.max(0, reward.coin_reward),
         xp: Math.max(0, reward.xp_reward),
         totalXp: Math.max(0, reward.new_xp),
@@ -383,25 +390,16 @@ export default function ContestScreen() {
         acceptedScore: Math.max(0, reward.accepted_score),
         opponentScore: Math.max(0, reward.authoritative_opponent_score),
         outcome: reward.authoritative_outcome as "win" | "loss" | "tie",
-      });
+      };
+      setResultReward(officialResult);
       submittedResultKey.current = matchRouteKey;
-      setResultPhase("OFFICIAL_RESULT_RECEIVED");
+      dispatchResultFlow({ type: "ACCEPT", result: officialResult });
     }).catch((error: unknown) => {
-      // The persisted match remains open, so bounded retries are safe.
-      if (isTransientPlayerError(error) && resultRetryCount.current < 2) {
-        resultRetryCount.current += 1;
-        resultRetryTimer.current = setTimeout(
-          () => setResultSubmitAttempt((current) => current + 1),
-          resultRetryCount.current * 1000,
-        );
-      } else {
-        setResultVerificationError(true);
-        setResultPhase("RESULT_ERROR");
-      }
+      dispatchResultFlow({ type: "REJECT", error });
     }).finally(() => {
       resultRequestInFlight.current = false;
     });
-  }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultSubmitAttempt, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
+  }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultFlow.attempt, resultFlow.phase, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, tournamentOccurrenceId]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
@@ -846,20 +844,17 @@ export default function ContestScreen() {
     opponentSubtitle: currentOpponent.personality,
   }), [contest?.food, contest?.name, currentOpponent.name, currentOpponent.personality, foodProfile.displayName, foodProfile.id, introPlayer.name, introPlayer.rank, introPlayer.title, tournamentOccurrenceId]);
 
-  if (resultVerificationError) {
+  if (resultFlow.phase === "RESULT_ERROR") {
     return (
       <View style={styles.container}>
         <ArcadeBackground reducedMotion={reducedMotion} />
         <FireEmptyState
           icon="!"
           title="Result Not Verified"
-          message="No rewards were applied. Retry safely to ask the server for this match's official result."
+          message={`${playerFacingErrorMessage(resultFlow.error)} No rewards were applied. Retry safely for this match's official result.`}
           buttonLabel="RETRY RESULT"
           onPress={() => {
-            resultRetryCount.current = 0;
-            setResultVerificationError(false);
-            setResultPhase("SUBMITTING_RESULT");
-            setResultSubmitAttempt((current) => current + 1);
+            dispatchResultFlow({ type: "RETRY" });
           }}
         />
         <FireButton title="RETURN TO ARENA" onPress={() => router.replace("/(tabs)/contests")} variant="secondary" style={styles.recoveryButton} />
@@ -1056,7 +1051,7 @@ export default function ContestScreen() {
           onBackToArena={() => router.replace("/(tabs)/contests")}
         />
       ) : null}
-      {state.status === "FINISHED" && resultPhase === "SUBMITTING_RESULT" ? (
+      {state.status === "FINISHED" && resultFlow.phase === "SUBMITTING_RESULT" ? (
         <View accessibilityViewIsModal style={styles.resultPending}>
           <FireLoading title="Verifying Result" subtitle="Waiting for the arena's official score and rewards." />
         </View>

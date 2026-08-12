@@ -13,6 +13,7 @@ import { trackAchievementEvent } from "../../src/achievements/AchievementTracker
 import { usePlayerBalance } from "../../src/playerBalance";
 import { classifyPlayerError, playerFacingErrorMessage } from "../../src/playerFacingErrors";
 import { equipmentStatus } from "../../src/equipmentState";
+import CompactScreenHeader from "../../src/components/fire/CompactScreenHeader";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ANTACID = require("../../src/assets/icons/antacid.png");
@@ -196,16 +197,10 @@ export default function ShopScreen() {
 
   const header = (
     <>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.eyebrow}>FIRE FEAST</Text>
-          <Text style={styles.headerTitle}>SHOP</Text>
-        </View>
-        <View style={styles.balanceRow}>
+      <CompactScreenHeader title="SHOP" context="FIRE FEAST" right={<View style={styles.balanceRow}>
           <CurrencyCounter icon={COIN} label="COINS" value={coins} />
           <CurrencyCounter icon={ANTACID} label="ANTACID" value={player.antacid} />
-        </View>
-      </View>
+        </View>} />
 
       {featured ? (
         <FireScreenEntrance duration="fast" distance={8}>
@@ -271,10 +266,7 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   content: { paddingHorizontal: 12, paddingTop: 6 },
-  header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 8, minWidth: 0 },
   headerTitleBlock: { flexShrink: 1, minWidth: 0, paddingRight: 6 },
-  eyebrow: { color: "#B7793C", fontSize: 7, fontWeight: "900", letterSpacing: 1.5 },
-  headerTitle: { color: "#FFF0D8", fontSize: 28, fontWeight: "900", letterSpacing: 1.2, lineHeight: 30 },
   balanceRow: { flexDirection: "row", flexShrink: 0, gap: 4 },
   counter: { alignItems: "center", backgroundColor: "rgba(8,6,7,0.94)", borderColor: "rgba(225,136,45,0.58)", borderRadius: 8, borderWidth: 1, flexDirection: "row", minWidth: 78, paddingHorizontal: 6, paddingVertical: 5 },
   counterIcon: { height: 23, marginRight: 5, width: 23 },
@@ -282,8 +274,8 @@ const styles = StyleSheet.create({
   counterValue: { color: "#FFD06A", fontSize: 12, fontWeight: "900", lineHeight: 14 },
   featured: { backgroundColor: "rgba(17,10,10,0.96)", borderColor: "#D88A2A", borderRadius: 15, borderWidth: 1.5, elevation: 7, overflow: "hidden", padding: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 10 },
   featuredHighlight: { backgroundColor: "rgba(255,210,125,0.18)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
-  featuredTop: { alignItems: "center", flexDirection: "row", minHeight: 132 },
-  featuredArt: { alignItems: "center", backgroundColor: "rgba(65,23,12,0.54)", borderColor: "rgba(233,141,42,0.52)", borderRadius: 12, borderWidth: 1, height: 124, justifyContent: "center", marginRight: 11, width: "38%" },
+  featuredTop: { alignItems: "center", flexDirection: "row", minHeight: 108 },
+  featuredArt: { alignItems: "center", backgroundColor: "rgba(65,23,12,0.54)", borderColor: "rgba(233,141,42,0.52)", borderRadius: 12, borderWidth: 1, height: 102, justifyContent: "center", marginRight: 10, width: "34%" },
   featuredEmoji: { fontSize: 68 },
   featuredInfo: { flex: 1, minWidth: 0 },
   featuredName: { color: "#FFF0D8", fontSize: 21, fontWeight: "900", lineHeight: 23 },

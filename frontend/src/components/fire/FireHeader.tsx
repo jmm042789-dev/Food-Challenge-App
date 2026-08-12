@@ -42,8 +42,8 @@ export default function FireHeader({ level, xp, nextLevelXp, coins }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center", flexDirection: "row", minHeight: 78, minWidth: 0 },
-  logo: { flexShrink: 1, height: 86, marginLeft: -16, marginRight: -7, maxWidth: 180, width: "48%" },
+  container: { alignItems: "center", flexDirection: "row", minHeight: 64, minWidth: 0 },
+  logo: { flexShrink: 1, height: 70, marginLeft: -12, marginRight: -5, maxWidth: 160, width: "44%" },
   hud: { flex: 1, gap: 4, minWidth: 0 },
   coinFrame: { borderRadius: 9, minHeight: 34, paddingHorizontal: 8, paddingVertical: 5 },
   coinIcon: { height: 22, width: 22 },

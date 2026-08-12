@@ -633,16 +633,13 @@ export function useGameLoop({
           freshStomachRemainingMs: Math.max(0, freshStomachEndsAtRef.current - now),
           freshStomachMultiplier: freshStomachEndsAtRef.current > now ? FRESH_STOMACH_SCORE_MULTIPLIER : 1,
         }));
-        setTimeRemaining((time) => {
-          if (time <= 1) {
-            timeRemainingRef.current = 0;
-            endGame();
-            return 0;
-          }
-          const nextTime = time - 1;
-          timeRemainingRef.current = nextTime;
-          return nextTime;
-        });
+        const nextTime = Math.max(0, timeRemainingRef.current - 1);
+        timeRemainingRef.current = nextTime;
+        setTimeRemaining(nextTime);
+        // Never schedule the terminal state transition from inside another
+        // React state updater. React may replay or discard updater work while
+        // still committing the visible 0:00 clock.
+        if (nextTime === 0) endGame();
       }, 1000);
     }, 1000);
   }, [endGame, resetMatch, startCoolingLoop, startOpponentLoop]);

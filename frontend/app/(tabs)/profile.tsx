@@ -20,6 +20,7 @@ import TitleUnlockBanner from "../../src/titles/components/TitleUnlockBanner";
 import { useTitleProgress } from "../../src/titles/useTitleProgress";
 import { usePlayerBalance } from "../../src/playerBalance";
 import PlayerProfileCard from "../../src/profile/PlayerProfileCard";
+import CompactScreenHeader from "../../src/components/fire/CompactScreenHeader";
 import { DEFAULT_IDENTITY, loadPlayerIdentity, type PlayerIdentity } from "../../src/profile/PlayerIdentity";
 
 
@@ -200,14 +201,7 @@ export default function ProfileScreen() {
       <ArcadeBackground active={isFocused} />
       {titleNotification ? <TitleUnlockBanner notification={titleNotification} onDismiss={dismissTitleNotification} /> : restaurantNotification ? <RestaurantUnlockBanner notification={restaurantNotification} onDismiss={dismissRestaurantNotification} /> : null}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <FireButton
-          accessibilityLabel="Open settings"
-          fullWidth
-          onPress={() => router.push("/settings")}
-          size="small"
-          title="SETTINGS"
-          variant="secondary"
-        />
+        <CompactScreenHeader title="PROFILE" context="PLAYER HQ" right={<FireButton accessibilityLabel="Open settings" onPress={() => router.push("/settings")} size="compact" title="SETTINGS" variant="secondary" />} />
         <View style={styles.retentionNav}>
           <FireButton title="DAILY REWARDS" size="compact" variant="gold" style={styles.retentionButton} onPress={() => router.push("/daily-rewards")} />
           <FireButton title="ACHIEVEMENTS" size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/achievements")} />
@@ -230,8 +224,7 @@ export default function ProfileScreen() {
             achievementTotal={achievementState?.progress.length ?? 0}
           />
         </FireScreenEntrance>
-        <FireButton accessibilityLabel="Edit gamer name and avatar" fullWidth title="CUSTOMIZE PLAYER IDENTITY" variant="gold" onPress={() => router.push("/avatar-customization")} />
-        <FireButton accessibilityLabel="View complete career statistics and history" fullWidth title="VIEW FULL CAREER" variant="secondary" onPress={() => router.push("/career")} />
+        <View style={styles.profileActions}><FireButton accessibilityLabel="Edit gamer name and avatar" title="CUSTOMIZE" size="compact" style={styles.profileAction} variant="gold" onPress={() => router.push("/avatar-customization")} /><FireButton accessibilityLabel="View complete career statistics and history" title="CAREER" size="compact" style={styles.profileAction} variant="secondary" onPress={() => router.push("/career")} /></View>
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>CAREER STATS</Text>
@@ -316,6 +309,8 @@ const styles = StyleSheet.create({
   content: { alignSelf: "center", maxWidth: 760, paddingBottom: 18, paddingHorizontal: 12, paddingTop: 7, width: "100%" },
   retentionNav: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   retentionButton: { flex: 1, flexBasis: 100, marginTop: 0, minWidth: 96 },
+  profileActions: { flexDirection: "row", gap: 6 },
+  profileAction: { flex: 1 },
   identityPanel: { backgroundColor: "rgba(13,9,10,0.95)", borderRadius: 15, borderWidth: 1.5, elevation: 7, overflow: "hidden", padding: 11, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 10 },
   panelHighlight: { backgroundColor: "rgba(255,220,160,0.13)", height: 1, left: 12, position: "absolute", right: 12, top: 1 },
   hudRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minWidth: 0 },
@@ -325,10 +320,10 @@ const styles = StyleSheet.create({
   counterIcon: { height: 22, marginRight: 4, width: 22 },
   counterLabel: { color: "#987B62", fontSize: 6, fontWeight: "900", letterSpacing: 0.7 },
   counterValue: { color: "#FFD06A", fontSize: 12, fontWeight: "900", lineHeight: 14 },
-  identityBody: { alignItems: "center", flexDirection: "row", minHeight: 142 },
-  avatarStage: { alignItems: "center", height: 138, justifyContent: "center", marginLeft: -8, width: "43%" },
+  identityBody: { alignItems: "center", flexDirection: "row", minHeight: 124 },
+  avatarStage: { alignItems: "center", height: 122, justifyContent: "center", marginLeft: -8, width: "40%" },
   avatarGlow: { backgroundColor: "rgba(207,61,12,0.15)", borderRadius: 65, height: 130, position: "absolute", width: 130 },
-  blaze: { height: 144, width: 144 },
+  blaze: { height: 128, width: 128 },
   avatarBadge: { alignItems: "center", backgroundColor: "#23100D", borderColor: "#DC8630", borderRadius: 17, borderWidth: 1, bottom: 5, height: 34, justifyContent: "center", position: "absolute", right: 4, width: 34 },
   avatarEmoji: { fontSize: 18 },
   identityInfo: { flex: 1, minWidth: 0, paddingLeft: 4 },
