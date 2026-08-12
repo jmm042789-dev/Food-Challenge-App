@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.firefeast.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo/app-icon.png",
         "backgroundColor": "#070405"
