@@ -215,6 +215,8 @@ def _new_player(device_id: str):
 
         "owned_gear": [],
 
+        "equipped_cosmetic": None,
+
         "last_claim_date": None,
 
         "streak_days": 0,
@@ -493,5 +495,7 @@ def player_summary(device_id: str):
         "longest_combo": player["longest_combo"],
 
         "owned_gear": player["owned_gear"],
+
+        "equipped_cosmetic": player.get("equipped_cosmetic"),
 
     }

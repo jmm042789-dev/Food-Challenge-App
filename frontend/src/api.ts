@@ -1274,6 +1274,14 @@ export const api = {
     });
   },
 
+  equipCosmetic: async (cosmetic_id: string | null) => {
+    const id = await getDeviceId();
+    return req(`/player/equip-cosmetic`, {
+      method: "POST",
+      body: JSON.stringify({ device_id: id, cosmetic_id }),
+    });
+  },
+
   markTutorialDone: async () => {
     const id = await getDeviceId();
     return req(`/player/tutorial_done`, {

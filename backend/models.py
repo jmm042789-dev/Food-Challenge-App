@@ -100,6 +100,7 @@ class Player(BaseModel):
 
     owned_gear: List[str] = Field(default_factory=list)
     equipped_gear: Optional[str] = None
+    equipped_cosmetic: Optional[str] = None
 
     last_claim_date: Optional[str] = None
     streak_days: int = 0
@@ -157,6 +158,11 @@ class PurchaseRequest(RequestModel):
 class EquipRequest(RequestModel):
     device_id: Identifier
     gear_id: Optional[Identifier] = None
+
+
+class CosmeticEquipRequest(RequestModel):
+    device_id: Identifier
+    cosmetic_id: Optional[Identifier] = None
 
 
 # ==========================================================

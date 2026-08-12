@@ -18,6 +18,7 @@ import { resolveContestDurationSeconds } from "../../src/game/contestDuration";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import FireButton from "../../src/components/fire/FireButton";
 import FireEmptyState from "../../src/components/fire/FireEmptyState";
+import FireLoading from "../../src/components/fire/FireLoading";
 import HeatScreenOverlay from "../../src/game/ui/HeatScreenOverlay";
 import HeatTierBanner from "../../src/game/ui/HeatTierBanner";
 import AntacidCoolingFeedback from "../../src/game/ui/AntacidCoolingFeedback";
@@ -45,6 +46,7 @@ import { usePlayerBalance } from "../../src/playerBalance";
 import { stopGameplayMusic } from "../../src/audio";
 import { antacidHeatReduction } from "../../src/game/matchModifiers";
 import { useAppPreferences } from "../../src/preferences/AppPreferences";
+import { isTransientPlayerError, playerFacingErrorMessage } from "../../src/playerFacingErrors";
 import {
   parseAuthoritativeOpponent,
   type AuthoritativeOpponentConfig,
@@ -66,6 +68,7 @@ export default function ContestScreen() {
   const [contest, setContest] = useState<Contest | null>(null);
   const [contestLoaded, setContestLoaded] = useState(false);
   const [matchStartError, setMatchStartError] = useState(false);
+  const [matchStartFailureMessage, setMatchStartFailureMessage] = useState("The arena could not start this match. Please try again.");
   const [matchStartAttempt, setMatchStartAttempt] = useState(0);
   const [resultSubmitAttempt, setResultSubmitAttempt] = useState(0);
   const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
@@ -144,6 +147,7 @@ export default function ContestScreen() {
     outcome: "win" | "loss" | "tie";
   } | null>(null);
   const [resultVerificationError, setResultVerificationError] = useState(false);
+  const [resultPhase, setResultPhase] = useState<"PLAYING" | "SUBMITTING_RESULT" | "OFFICIAL_RESULT_RECEIVED" | "RESULT_ERROR">("PLAYING");
   const result = state.status === "FINISHED" && resultReward
     ? resultReward.outcome === "tie"
       ? "draw"
@@ -318,6 +322,7 @@ export default function ContestScreen() {
     setResultTournament(null);
     setResultReward(null);
     setResultVerificationError(false);
+    setResultPhase("PLAYING");
   }, [matchDurationSeconds, matchRouteKey]);
 
   useEffect(() => {
@@ -327,6 +332,7 @@ export default function ContestScreen() {
     if (!opponentId || !matchId) return;
 
     resultRequestInFlight.current = true;
+    setResultPhase("SUBMITTING_RESULT");
     const duration = matchStartedAt.current === null
       ? matchDurationSeconds
       : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
@@ -379,9 +385,10 @@ export default function ContestScreen() {
         outcome: reward.authoritative_outcome as "win" | "loss" | "tie",
       });
       submittedResultKey.current = matchRouteKey;
-    }).catch(() => {
+      setResultPhase("OFFICIAL_RESULT_RECEIVED");
+    }).catch((error: unknown) => {
       // The persisted match remains open, so bounded retries are safe.
-      if (resultRetryCount.current < 2) {
+      if (isTransientPlayerError(error) && resultRetryCount.current < 2) {
         resultRetryCount.current += 1;
         resultRetryTimer.current = setTimeout(
           () => setResultSubmitAttempt((current) => current + 1),
@@ -389,6 +396,7 @@ export default function ContestScreen() {
         );
       } else {
         setResultVerificationError(true);
+        setResultPhase("RESULT_ERROR");
       }
     }).finally(() => {
       resultRequestInFlight.current = false;
@@ -620,6 +628,7 @@ export default function ContestScreen() {
     started.current = false;
     setContestLoaded(false);
     setMatchStartError(false);
+    setMatchStartFailureMessage("The arena could not start this match. Please try again.");
     setContest(null);
     setEquippedGear(null);
     setAuthoritativeOpponent(null);
@@ -702,11 +711,12 @@ export default function ContestScreen() {
           serverMatchId.current = matchId;
           setContestLoaded(true);
         }
-      } catch {
+      } catch (error: unknown) {
         if (active) {
           setContest(null);
           setNextContestId(null);
           setRoundLabel("WORLD TOUR EVENT");
+          setMatchStartFailureMessage(playerFacingErrorMessage(error));
           setMatchStartError(true);
         }
       }
@@ -843,10 +853,16 @@ export default function ContestScreen() {
         <FireEmptyState
           icon="!"
           title="Result Not Verified"
-          message="No match rewards or progression were applied. Return to the arena and try another match."
-          buttonLabel="RETURN TO ARENA"
-          onPress={() => router.replace("/(tabs)/contests")}
+          message="No rewards were applied. Retry safely to ask the server for this match's official result."
+          buttonLabel="RETRY RESULT"
+          onPress={() => {
+            resultRetryCount.current = 0;
+            setResultVerificationError(false);
+            setResultPhase("SUBMITTING_RESULT");
+            setResultSubmitAttempt((current) => current + 1);
+          }}
         />
+        <FireButton title="RETURN TO ARENA" onPress={() => router.replace("/(tabs)/contests")} variant="secondary" style={styles.recoveryButton} />
       </View>
     );
   }
@@ -858,7 +874,7 @@ export default function ContestScreen() {
         <FireEmptyState
           icon="!"
           title="Unable to Start the Feast"
-          message="Check your connection or coin balance, then try again."
+          message={matchStartFailureMessage}
           buttonLabel="RETRY"
           onPress={() => setMatchStartAttempt((current) => current + 1)}
         />
@@ -932,6 +948,7 @@ export default function ContestScreen() {
             {state.antacidProtectionRemainingMs > 0 ? <Text style={styles.shieldIndicator}>🛡 HEAT SHIELD</Text> : null}
             {state.freshStomachRemainingMs > 0 ? <Text style={styles.freshIndicator}>✨ FRESH STOMACH +10%</Text> : null}
           </View>
+          <View style={styles.utilityControlsRow}>
           <HeartburnMeter
             coolingTrigger={coolingTrigger}
             heartburn={heartburn}
@@ -958,6 +975,7 @@ export default function ContestScreen() {
             />
           </Animated.View>
         ) : null}
+          </View>
         </View>
         <View style={styles.gameplayContent}>
           <FoodArena
@@ -1038,6 +1056,11 @@ export default function ContestScreen() {
           onBackToArena={() => router.replace("/(tabs)/contests")}
         />
       ) : null}
+      {state.status === "FINISHED" && resultPhase === "SUBMITTING_RESULT" ? (
+        <View accessibilityViewIsModal style={styles.resultPending}>
+          <FireLoading title="Verifying Result" subtitle="Waiting for the arena's official score and rewards." />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1055,6 +1078,7 @@ const styles = StyleSheet.create({
     bottom: 48,
     position: "absolute",
   },
+  resultPending: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(7,4,5,0.9)", justifyContent: "center", zIndex: 200 },
   overlay: {
     flex: 1,
     minHeight: 0,
@@ -1065,12 +1089,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 0,
   },
-  utilityHud: { alignItems: "center", flexDirection: "row", flexShrink: 0, justifyContent: "space-between", minHeight: 72, paddingHorizontal: 12, paddingVertical: 2, width: "100%", zIndex: 40 },
-  matchModifierRow: { alignItems: "flex-start", gap: 3, left: 12, position: "absolute", top: -4, zIndex: 45 },
+  utilityHud: { flexShrink: 0, minHeight: 88, paddingHorizontal: 12, paddingTop: 3, width: "100%", zIndex: 40 },
+  matchModifierRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 3, minHeight: 4, paddingBottom: 3, zIndex: 45 },
+  utilityControlsRow: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between", minHeight: 82, width: "100%" },
   perkIndicator: { backgroundColor: "rgba(75,35,8,0.92)", borderColor: "#D89A3C", borderRadius: 6, borderWidth: 1, color: "#FFD879", fontSize: 7, fontWeight: "900", letterSpacing: 0.5, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
   shieldIndicator: { backgroundColor: "rgba(7,49,56,0.94)", borderColor: "#8DE7F3", borderRadius: 6, borderWidth: 1, color: "#DFFFFF", fontSize: 7, fontWeight: "900", letterSpacing: 0.5, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
   freshIndicator: { backgroundColor: "rgba(45,30,7,0.94)", borderColor: "#FFD66B", borderRadius: 6, borderWidth: 1, color: "#FFF1A8", fontSize: 7, fontWeight: "900", letterSpacing: 0.45, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
-  antacidControl: { maxWidth: "60%", zIndex: 40 },
+  antacidControl: { alignItems: "flex-end", flex: 1, maxWidth: 220, minWidth: 0, zIndex: 40 },
   antacidControlCritical: { backgroundColor: "rgba(116,42,8,0.34)", borderRadius: 16 },
   antacidControlWarning: { backgroundColor: "rgba(180,22,12,0.42)", elevation: 12, zIndex: 90 },
   antacidControlAcknowledged: { backgroundColor: "rgba(35,130,148,0.38)", borderRadius: 16 },

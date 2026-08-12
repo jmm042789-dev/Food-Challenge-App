@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import CharacterPortrait, { type CharacterReaction } from "./CharacterPortrait";
 import TournamentBanner from "./TournamentBanner";
 import { formatMatchDuration } from "../contestDuration";
 import type { OpponentMood } from "../ai/OpponentMood";
+import { resolveMatchHudLayout } from "./gameplayLayout";
 
 type Props = {
   timeRemaining: number;
@@ -46,6 +47,8 @@ function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reacti
 }
 
 export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentMood, opponentScore, playerScore, combo = 0, contestName, roundLabel, reducedMotion = false }: Props) {
+  const { width } = useWindowDimensions();
+  const layout = resolveMatchHudLayout(width);
   const formattedTime = formatMatchDuration(timeRemaining);
   const lowTime = timeRemaining > 0 && timeRemaining <= 10;
   const previousScore = useRef(playerScore);
@@ -161,7 +164,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
           <Animated.View pointerEvents="none" style={[styles.scoreFlash, { opacity: scoreFlash }]} />
         </View>
 
-        <View style={styles.centerZone}>
+        <View style={[styles.centerZone, { width: layout.centerWidth }]}>
           <Animated.View style={[styles.timer, lowTime && styles.timerWarning, { transform: [{ scale: timerScale }] }]}>
             <Animated.View pointerEvents="none" style={[styles.timerGlow, { opacity: timerGlow }]} />
             <Text maxFontSizeMultiplier={1.5} style={styles.timerLabel}>TIME</Text>

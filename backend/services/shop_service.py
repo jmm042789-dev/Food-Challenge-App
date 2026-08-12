@@ -131,3 +131,21 @@ def equip_item(device_id: str, gear_id: str | None) -> dict:
     )
     updated["equipped_perk"] = gear_id
     return updated
+
+
+def equip_cosmetic(device_id: str, cosmetic_id: str | None) -> dict:
+    """Equip one owned cosmetic without affecting gear, coins, or rewards."""
+    player = find_player(device_id)
+    if not player:
+        raise GearNotOwnedError
+    if cosmetic_id is not None:
+        if cosmetic_id not in player.get("owned_gear", []):
+            raise GearNotOwnedError
+        item = get_shop_item(cosmetic_id)
+        if not item or item.get("type") != "cosmetic":
+            raise GearNotOwnedError
+
+    return update_player_document(
+        device_id,
+        {"$set": {"equipped_cosmetic": cosmetic_id}},
+    )

@@ -59,10 +59,12 @@ from services.shop_service import (
     InsufficientCoinsError as ShopInsufficientCoinsError,
     ItemNotFoundError,
     WelcomePackAlreadyClaimedError,
+    equip_cosmetic,
     equip_item,
     purchase_item,
 )
 from models import (
+    CosmeticEquipRequest,
     EquipRequest,
     AccountDeletionRequest,
     GuestBootstrapRequest,
@@ -639,6 +641,18 @@ def equip_endpoint(
         return equip_item(data.device_id, data.gear_id)
     except GearNotOwnedError:
         raise HTTPException(status_code=400, detail="you do not own that gear")
+
+
+@app.post("/api/player/equip-cosmetic")
+def equip_cosmetic_endpoint(
+    data: CosmeticEquipRequest,
+    authorization: str | None = Header(default=None),
+):
+    authenticated_player(data.device_id, authorization)
+    try:
+        return equip_cosmetic(data.device_id, data.cosmetic_id)
+    except GearNotOwnedError:
+        raise HTTPException(status_code=400, detail="you do not own that cosmetic")
 
 
 @app.get("/api/leaderboard")

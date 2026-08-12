@@ -74,7 +74,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#070405" }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StatusBar animated hidden={segments[0] === "play"} style="light" />
         <AppPreferencesProvider>
           <AnimationProvider>
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#070405" } }}>
@@ -90,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="missions" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="avatar-customization" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="career" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="locker" options={{ animation: "slide_from_right" }} />
             </Stack>
           </AnimationProvider>
         </AppPreferencesProvider>

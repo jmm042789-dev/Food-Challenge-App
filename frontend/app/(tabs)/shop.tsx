@@ -11,6 +11,8 @@ import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import { trackAchievementEvent } from "../../src/achievements/AchievementTracker";
 import { usePlayerBalance } from "../../src/playerBalance";
+import { classifyPlayerError, playerFacingErrorMessage } from "../../src/playerFacingErrors";
+import { equipmentStatus } from "../../src/equipmentState";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ANTACID = require("../../src/assets/icons/antacid.png");
@@ -34,6 +36,7 @@ type Player = {
   xp: number;
   owned_gear: string[];
   equipped_gear?: string | null;
+  equipped_cosmetic?: string | null;
   closed_beta_welcome_pack_claimed: boolean;
 };
 
@@ -43,6 +46,7 @@ const EMPTY_PLAYER: Player = {
   xp: 0,
   owned_gear: [],
   equipped_gear: null,
+  equipped_cosmetic: null,
   closed_beta_welcome_pack_claimed: false,
 };
 
@@ -112,13 +116,15 @@ export default function ShopScreen() {
     if (actionInFlight.current) return;
 
     const owned = player.owned_gear.includes(item.id);
-    const equipped = player.equipped_gear === item.id;
-    if (equipped) return;
+    const equipped = equipmentStatus(item, player) === "equipped";
+    if (equipped || (owned && !["gear", "cosmetic"].includes(item.type))) return;
     actionInFlight.current = true;
     setPendingId(item.id);
     try {
       if (owned && item.type === "gear") {
         await api.equipGear(item.id);
+      } else if (owned && item.type === "cosmetic") {
+        await api.equipCosmetic(item.id);
       } else {
         const purchase = await api.purchase(item.id) as Partial<Player> & {
           new_coins?: number;
@@ -140,20 +146,23 @@ export default function ShopScreen() {
         }
       }
       await load();
-    } catch (purchaseError: any) {
-      Alert.alert("Shop action failed", purchaseError?.message || "Please try again.");
+    } catch (purchaseError: unknown) {
+      if (classifyPlayerError(purchaseError) === "already_owned") {
+        await load();
+        Alert.alert("Already in Locker", playerFacingErrorMessage(purchaseError));
+      } else {
+        Alert.alert("Shop action failed", playerFacingErrorMessage(purchaseError));
+      }
     } finally {
       actionInFlight.current = false;
       setPendingId(null);
     }
-  }, [load, player.equipped_gear, player.owned_gear]);
+  }, [load, player.equipped_cosmetic, player.equipped_gear, player.owned_gear]);
 
   const statusFor = useCallback((item: ShopItem) => {
     if (item.type === "welcome_pack" && player.closed_beta_welcome_pack_claimed) return "redeemed";
-    if (player.equipped_gear === item.id) return "equipped";
-    if (player.owned_gear.includes(item.id)) return "owned";
-    return "available";
-  }, [player.closed_beta_welcome_pack_claimed, player.equipped_gear, player.owned_gear]);
+    return equipmentStatus(item, player);
+  }, [player.closed_beta_welcome_pack_claimed, player.equipped_cosmetic, player.equipped_gear, player.owned_gear]);
 
   const renderItem = ({ item }: { item: ShopItem }) => {
     const status = statusFor(item);
@@ -172,9 +181,9 @@ export default function ShopScreen() {
         <View style={styles.itemAction}>
           <Price item={item} />
           <FireButton
-            title={status === "redeemed" ? "REDEEMED" : status === "equipped" ? "EQUIPPED" : status === "owned" && item.type === "gear" ? "EQUIP" : "BUY"}
+            title={status === "redeemed" ? "RECEIVED" : status === "equipped" ? "EQUIPPED" : status === "owned" && ["gear", "cosmetic"].includes(item.type) ? "EQUIP" : status === "owned" ? "OWNED" : "BUY"}
             onPress={() => actOnItem(item)}
-            disabled={pendingId !== null || status === "equipped" || status === "redeemed" || (unaffordable && status === "available")}
+            disabled={pendingId !== null || status === "equipped" || status === "redeemed" || (status === "owned" && !["gear", "cosmetic"].includes(item.type)) || (unaffordable && status === "available")}
             loading={pendingId === item.id}
             size="compact"
             variant={status === "owned" ? "secondary" : "primary"}
@@ -215,9 +224,9 @@ export default function ShopScreen() {
               </View>
             </View>
             <FireButton
-              title={statusFor(featured) === "redeemed" ? "ALREADY REDEEMED" : statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && featured.type === "gear" ? "EQUIP ITEM" : featured.type === "welcome_pack" ? "CLAIM WELCOME PACK" : "PURCHASE ITEM"}
+              title={statusFor(featured) === "redeemed" ? "RECEIVED" : statusFor(featured) === "equipped" ? "EQUIPPED" : statusFor(featured) === "owned" && ["gear", "cosmetic"].includes(featured.type) ? "EQUIP ITEM" : statusFor(featured) === "owned" ? "OWNED" : featured.type === "welcome_pack" ? "CLAIM WELCOME PACK" : "PURCHASE ITEM"}
               onPress={() => actOnItem(featured)}
-              disabled={pendingId !== null || statusFor(featured) === "equipped" || statusFor(featured) === "redeemed" || (featured.price > coins && statusFor(featured) === "available")}
+              disabled={pendingId !== null || statusFor(featured) === "equipped" || statusFor(featured) === "redeemed" || (statusFor(featured) === "owned" && !["gear", "cosmetic"].includes(featured.type)) || (featured.price > coins && statusFor(featured) === "available")}
               loading={pendingId === featured.id}
               variant="gold"
               size="small"

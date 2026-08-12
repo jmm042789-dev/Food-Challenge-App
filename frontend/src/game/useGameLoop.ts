@@ -652,7 +652,10 @@ export function useGameLoop({
     const now = Date.now();
     const tapPower = effectiveTapPower(matchStats, heartburnRef.current);
     acceptedTapCountRef.current += 1;
-    acceptedActionSequenceRef.current += tapPower;
+    // Weighted progress remains authoritative gameplay telemetry. Keep it
+    // numerically stable while the presentation layer uses the discrete,
+    // accepted input count returned below.
+    acceptedActionSequenceRef.current = Math.round((acceptedActionSequenceRef.current + tapPower) * 1_000_000) / 1_000_000;
     const acceptedActionSequence = acceptedActionSequenceRef.current;
     const delta = lastTapRef.current === 0 ? 0 : now - lastTapRef.current;
     lastTapRef.current = now;
@@ -709,7 +712,7 @@ export function useGameLoop({
       canUseAntacid: canConsumeAntacid(old.antacidCount, statusRef.current, heartburnRef.current, heatProtectionEndsAtRef.current, now),
     }));
     debugLog("TAP", scoreRef.current, comboRef.current, heartburnRef.current);
-    return acceptedActionSequence;
+    return acceptedTapCountRef.current;
   }, [announceTierChange, matchStats, resolvedBiteHeat, startOverheatWarning]);
 
   const didDraw = state.score === opponentScore;

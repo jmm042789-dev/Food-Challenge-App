@@ -261,6 +261,13 @@ export default function ProfileScreen() {
           </View>
           <FireBadge label={starterLoadout ? "STARTER" : "EQUIPPED"} variant={starterLoadout ? "muted" : "gold"} />
         </View>
+        <FireButton
+          accessibilityLabel="Open Locker and manage owned gear and cosmetics"
+          fullWidth
+          title="OPEN LOCKER / GEAR"
+          variant="gold"
+          onPress={() => router.push("/locker" as never)}
+        />
 
         {titleState ? (
           <View style={styles.titleSection}>

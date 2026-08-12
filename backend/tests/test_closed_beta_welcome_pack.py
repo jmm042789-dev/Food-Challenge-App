@@ -90,6 +90,41 @@ class ClosedBetaWelcomePackTests(unittest.TestCase):
             with self.assertRaises(shop_service.GearNotOwnedError):
                 shop_service.equip_item("guest_gear", "unknown_gear")
 
+    def test_purchase_then_equip_golden_apron_preserves_balance(self):
+        persisted = {
+            "device_id": "guest_apron",
+            "coins": 1000,
+            "xp": 25,
+            "owned_gear": [],
+        }
+
+        def read_player(_device_id):
+            return dict(persisted)
+
+        def atomic_update(_device_id, update, *, extra_filter=None):
+            if extra_filter and "coins" in extra_filter:
+                if "gold_apron" in persisted["owned_gear"]:
+                    return None
+                persisted["coins"] += update["$inc"]["coins"]
+                persisted["owned_gear"].append("gold_apron")
+            else:
+                persisted.update(update["$set"])
+            return dict(persisted)
+
+        with (
+            patch.object(shop_service, "get_or_create_player", side_effect=read_player),
+            patch.object(shop_service, "find_player", side_effect=read_player),
+            patch.object(shop_service, "update_player_document", side_effect=atomic_update),
+        ):
+            purchased = shop_service.purchase_item("guest_apron", "gold_apron")
+            balance_after_purchase = purchased["new_coins"]
+            equipped = shop_service.equip_cosmetic("guest_apron", "gold_apron")
+
+        self.assertEqual(balance_after_purchase, 500)
+        self.assertEqual(equipped["coins"], 500)
+        self.assertEqual(equipped["xp"], 25)
+        self.assertEqual(equipped["equipped_cosmetic"], "gold_apron")
+
 
 if __name__ == "__main__":
     unittest.main()

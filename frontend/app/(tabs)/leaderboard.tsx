@@ -45,7 +45,7 @@ if (!leaders.length) return <SafeAreaView style={styles.container} edges={["top"
 return(
 <SafeAreaView style={styles.container} edges={["top"]}>
 <ArcadeBackground active={isFocused}/>
-<ScrollView contentContainerStyle={styles.content}>
+<ScrollView alwaysBounceVertical={false} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 <FireScreenEntrance distance={12}>
 <Text style={styles.header}>🏆 FIRE FEAST RANKINGS</Text>
 <Text style={styles.sub}>Compete for the top spot!</Text>
@@ -87,19 +87,19 @@ const styles=StyleSheet.create({
 container:{flex:1,backgroundColor:"#070405"},
 content:{paddingHorizontal:12,paddingTop:7,paddingBottom:22},
 header:{color:"#FFF0D8",fontSize:25,fontWeight:"900",letterSpacing:1.1},
-sub:{color:"#A99482",fontSize:10,marginTop:2,marginBottom:10},
+sub:{color:"#A99482",fontSize:10,marginTop:2,marginBottom:6},
 podium:{
 backgroundColor:"rgba(17,10,10,0.96)",
 borderWidth:2,
 borderColor:"#F6C76A",
 borderRadius:14,
-padding:14,
+padding:10,
 alignItems:"center",
-marginBottom:12,
+marginBottom:8,
 },
-crown:{fontSize:44},
-podiumName:{color:"#FFF7E8",fontSize:24,fontWeight:"900",letterSpacing:0.3,marginTop:6},
-podiumScore:{color:"#F6C76A",fontWeight:"900",marginTop:6,fontSize:18},
+crown:{fontSize:34},
+podiumName:{color:"#FFF7E8",fontSize:21,fontWeight:"900",letterSpacing:0.3,marginTop:3},
+podiumScore:{color:"#F6C76A",fontWeight:"900",marginTop:3,fontSize:16},
 section:{color:"#E8BD7A",fontSize:10,fontWeight:"900",letterSpacing:1.1,marginBottom:7},
 card:{
 backgroundColor:"rgba(14,9,10,0.95)",
