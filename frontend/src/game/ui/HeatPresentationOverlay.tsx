@@ -111,7 +111,7 @@ function HeatPresentationOverlay({ events, overheatWarningActive, overheatRemain
       Animated.timing(effectProgress, { toValue: 1, duration: reducedMotion ? 0 : 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]);
     activeAnimation.current.start();
-    const presentationDuration = displayEvent.type === "OVERHEATED" || displayEvent.type === "ANTACID_SAVE" ? 980 : displayEvent.type === "OVERHEAT_PENALTY_ENDED" ? 450 : 720;
+    const presentationDuration = displayEvent.type === "OVERHEATED" || displayEvent.type === "ANTACID_SAVE" ? 780 : displayEvent.type === "OVERHEAT_PENALTY_ENDED" ? 380 : 580;
     timer.current = setTimeout(() => {
       const exitAnimation = Animated.timing(opacity, { toValue: 0, duration: reducedMotion ? 0 : 180, useNativeDriver: true });
       activeAnimation.current = exitAnimation;
@@ -166,19 +166,19 @@ export default memo(HeatPresentationOverlay);
 
 const styles = StyleSheet.create({
   effectLayer: { ...StyleSheet.absoluteFillObject, alignItems: "center", pointerEvents: "none", zIndex: 115 },
-  effectImage: { height: 170, position: "absolute", top: "20%", width: 230 },
+  effectImage: { height: 126, maxWidth: "42%", position: "absolute", top: "20%", width: 170 },
   coolingImage: { tintColor: "#B9F6FF" },
-  warning: { alignItems: "center", alignSelf: "center", backgroundColor: "rgba(85,8,7,0.97)", borderColor: "#FF4A32", borderRadius: 14, borderWidth: 2, elevation: 14, maxWidth: "84%", paddingHorizontal: 20, paddingVertical: 12, position: "absolute", shadowColor: "#FF341F", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 12, top: "27%", width: 246, zIndex: 120 },
-  warningTitle: { color: "#FFF0DA", fontSize: 22, fontWeight: "900", letterSpacing: 1.3, textAlign: "center", textShadowColor: "rgba(255,61,31,0.72)", textShadowRadius: 8 },
+  warning: { alignItems: "center", alignSelf: "center", backgroundColor: "rgba(85,8,7,0.97)", borderColor: "#FF4A32", borderRadius: 12, borderWidth: 2, elevation: 14, maxWidth: "72%", paddingHorizontal: 14, paddingVertical: 8, position: "absolute", shadowColor: "#FF341F", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.32, shadowRadius: 9, top: "22%", width: 218, zIndex: 120 },
+  warningTitle: { color: "#FFF0DA", fontSize: 18, fontWeight: "900", letterSpacing: 1.1, textAlign: "center", textShadowColor: "rgba(255,61,31,0.72)", textShadowRadius: 6 },
   warningSubtitle: { color: "#FFD05C", fontSize: 13, fontWeight: "900", letterSpacing: 1.1, marginTop: 2 },
   warningTrack: { backgroundColor: "rgba(28,4,4,0.92)", borderColor: "rgba(255,220,120,0.45)", borderRadius: 4, borderWidth: 1, height: 8, marginTop: 8, overflow: "hidden", width: "100%" },
   warningFill: { backgroundColor: "#FFB52F", height: "100%" },
   warningTime: { color: "#FFE4B3", fontSize: 9, fontWeight: "900", letterSpacing: 0.55, marginTop: 5 },
-  event: { alignItems: "center", alignSelf: "center", borderRadius: 12, borderWidth: 2, elevation: 12, maxWidth: "84%", minWidth: 190, paddingHorizontal: 22, paddingVertical: 10, position: "absolute", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.38, shadowRadius: 8, top: "28%" },
+  event: { alignItems: "center", alignSelf: "center", borderRadius: 10, borderWidth: 2, elevation: 10, maxWidth: "72%", minWidth: 160, paddingHorizontal: 16, paddingVertical: 7, position: "absolute", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.32, shadowRadius: 7, top: "22%" },
   danger: { backgroundColor: "rgba(93,11,8,0.96)", borderColor: "#FF5138" },
   positive: { backgroundColor: "rgba(7,49,56,0.96)", borderColor: "#8DE7F3" },
   subtle: { borderWidth: 1, minWidth: 0, paddingHorizontal: 14, paddingVertical: 6 },
-  eventTitle: { color: "#FFF0D7", fontSize: 18, fontWeight: "900", letterSpacing: 1, textAlign: "center" },
+  eventTitle: { color: "#FFF0D7", fontSize: 15, fontWeight: "900", letterSpacing: 0.8, textAlign: "center" },
   positiveText: { color: "#DFFFFF" },
   subtleText: { fontSize: 12 },
   eventSubtitle: { color: "#FFD27A", fontSize: 10, fontWeight: "900", letterSpacing: 1.15, marginTop: 3 },

@@ -57,7 +57,6 @@ function ArenaEffects({ atmosphere, reducedMotion }: { atmosphere: ArenaAtmosphe
     <View pointerEvents="none" style={styles.layer}>
       <Animated.View style={[styles.tint, { backgroundColor: atmosphere.theme.accentPrimary, opacity: intensity.interpolate({ inputRange: [0, 1], outputRange: [0, reducedMotion ? 0.055 : 0.11] }) }]} />
       {!reducedMotion ? <Animated.View style={[styles.flash, { backgroundColor: atmosphere.theme.accentSecondary, opacity: reactionPulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.13] }) }]} /> : null}
-      {!reducedMotion && atmosphere.theme.ambientEffect === "spotlight" ? <Animated.View style={[styles.spotlight, { backgroundColor: atmosphere.theme.accentPrimary, opacity: intensity.interpolate({ inputRange: [0, 1], outputRange: [0.02, 0.12] }) }]} /> : null}
       {showEmbers ? <View style={styles.ambient}>{[0, 1, 2, 3].map((item) => <View key={item} style={[styles.ember, { backgroundColor: item % 2 ? atmosphere.theme.accentPrimary : atmosphere.theme.accentSecondary, left: `${18 + item * 21}%` }]} />)}</View> : null}
       {showConfetti ? <View style={styles.ambient}>{[0, 1, 2, 3].map((item) => <View key={item} style={[styles.confetti, { backgroundColor: item % 2 ? atmosphere.theme.accentPrimary : atmosphere.theme.accentSecondary, left: `${12 + item * 24}%`, top: 45 + (item % 2) * 18 }]} />)}</View> : null}
       {atmosphere.callout ? <Animated.View accessibilityLiveRegion="polite" style={[styles.callout, { borderColor: atmosphere.theme.accentPrimary, opacity: calloutOpacity, transform: [{ scale: calloutScale }] }]}><Text style={[styles.calloutText, { color: atmosphere.theme.accentPrimary }]}>{atmosphere.callout}</Text></Animated.View> : null}
@@ -69,7 +68,6 @@ export default memo(ArenaEffects);
 
 const styles = StyleSheet.create({
   layer: { ...StyleSheet.absoluteFillObject, overflow: "hidden", zIndex: 900 }, tint: { ...StyleSheet.absoluteFillObject }, flash: { ...StyleSheet.absoluteFillObject },
-  spotlight: { alignSelf: "center", borderBottomLeftRadius: 160, borderBottomRightRadius: 160, height: "52%", position: "absolute", top: -120, transform: [{ scaleX: 0.55 }], width: 260 },
   ambient: { ...StyleSheet.absoluteFillObject }, ember: { borderRadius: 4, bottom: "16%", height: 4, opacity: 0.58, position: "absolute", width: 4 }, confetti: { height: 8, opacity: 0.72, position: "absolute", transform: [{ rotate: "18deg" }], width: 3 },
   callout: { alignSelf: "center", backgroundColor: "rgba(12,7,8,0.9)", borderRadius: 10, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 7, position: "absolute", top: "25%" }, calloutText: { fontSize: 15, fontStyle: "italic", fontWeight: "900", letterSpacing: 1 },
 });

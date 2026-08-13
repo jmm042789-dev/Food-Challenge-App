@@ -12,15 +12,15 @@ test("terminal result flow is deterministic across slow responses and repeated r
   state = transitionResultFlow(state, { type: "FINISH" });
   assert.equal(state.phase, "FINISHED");
   assert.strictEqual(transitionResultFlow(state, { type: "FINISH" }), state);
-  state = transitionResultFlow(state, { type: "SUBMIT" });
+  state = transitionResultFlow(state, { type: "SUBMIT", startedAt: 1000, timeoutMs: 15000 });
   assert.equal(state.phase, "SUBMITTING_RESULT");
   assert.equal(state.attempt, 1);
-  assert.strictEqual(transitionResultFlow(state, { type: "SUBMIT" }), state);
+  assert.strictEqual(transitionResultFlow(state, { type: "SUBMIT", startedAt: 2000, timeoutMs: 15000 }), state);
   const official = { coin_reward: 25, match_id: "synthetic" };
-  state = transitionResultFlow(state, { type: "ACCEPT", result: official });
+  state = transitionResultFlow(state, { type: "ACCEPT", generation: 1, result: official });
   assert.equal(state.phase, "OFFICIAL_RESULT_RECEIVED");
   assert.strictEqual(state.officialResult, official);
-  assert.strictEqual(transitionResultFlow(state, { type: "ACCEPT", result: official }), state);
+  assert.strictEqual(transitionResultFlow(state, { type: "ACCEPT", generation: 1, result: official }), state);
   state = transitionResultFlow(state, { type: "SHOW_RESULT" });
   assert.equal(state.phase, "NAVIGATING_RESULT");
   state = transitionResultFlow(state, { type: "SHOW_RESULT" });
@@ -31,15 +31,15 @@ test("terminal result flow is deterministic across slow responses and repeated r
 test("network, 5xx, and validation failures require an explicit safe retry", () => {
   for (const error of [new TypeError("Network request failed"), { status: 503 }, { status: 422 }]) {
     let state = transitionResultFlow(initialResultFlow(), { type: "FINISH" });
-    state = transitionResultFlow(state, { type: "SUBMIT" });
-    state = transitionResultFlow(state, { type: "REJECT", error });
+    state = transitionResultFlow(state, { type: "SUBMIT", startedAt: 1000, timeoutMs: 15000 });
+    state = transitionResultFlow(state, { type: "REJECT", generation: 1, error });
     assert.equal(state.phase, "RESULT_ERROR");
-    assert.strictEqual(transitionResultFlow(state, { type: "SUBMIT" }), state);
+    assert.strictEqual(transitionResultFlow(state, { type: "SUBMIT", startedAt: 2000, timeoutMs: 15000 }), state);
     state = transitionResultFlow(state, { type: "RETRY" });
-    state = transitionResultFlow(state, { type: "SUBMIT" });
+    state = transitionResultFlow(state, { type: "SUBMIT", startedAt: 2000, timeoutMs: 15000 });
     assert.equal(state.phase, "SUBMITTING_RESULT");
     assert.equal(state.attempt, 2);
-    state = transitionResultFlow(state, { type: "ACCEPT", result: { accepted: true } });
+    state = transitionResultFlow(state, { type: "ACCEPT", generation: 2, result: { accepted: true } });
     assert.equal(state.phase, "OFFICIAL_RESULT_RECEIVED");
   }
 });
@@ -67,10 +67,10 @@ test("late completion after timeout cannot become an accepted coordinator result
   const pending = verifyResultWithTimeout(() => new Promise((resolve) => { lateResolve = resolve; }), 10);
   await assert.rejects(pending, ResultVerificationTimeoutError);
   lateResolve({ accepted: true });
-  let state = transitionResultFlow(transitionResultFlow(initialResultFlow(), { type: "FINISH" }), { type: "SUBMIT" });
-  state = transitionResultFlow(state, { type: "REJECT", error: new ResultVerificationTimeoutError(10) });
+  let state = transitionResultFlow(transitionResultFlow(initialResultFlow(), { type: "FINISH" }), { type: "SUBMIT", startedAt: 0, timeoutMs: 10 });
+  state = transitionResultFlow(state, { type: "REJECT", generation: 1, error: new ResultVerificationTimeoutError(10) });
   assert.equal(state.phase, "RESULT_ERROR");
-  assert.strictEqual(transitionResultFlow(state, { type: "ACCEPT", result: { accepted: true } }), state);
+  assert.strictEqual(transitionResultFlow(state, { type: "ACCEPT", generation: 1, result: { accepted: true } }), state);
 });
 
 test("the game clock performs terminal work outside React state updaters", () => {

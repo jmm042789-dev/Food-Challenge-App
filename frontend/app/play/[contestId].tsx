@@ -53,7 +53,7 @@ import {
 } from "../../src/game/authoritativeOpponent";
 import type { Opponent } from "../../src/game/ai/types";
 import { initialResultFlow, transitionResultFlow } from "../../src/game/resultFlow";
-import { ResultVerificationTimeoutError, verifyResultWithTimeout } from "../../src/game/resultVerification";
+import { RESULT_VERIFICATION_TIMEOUT_MS, RESULT_VERIFICATION_UI_TOLERANCE_MS, ResultVerificationTimeoutError, ResultVerificationUnavailableError, remainingResultDeadlineMs, verifyResultWithTimeout } from "../../src/game/resultVerification";
 import { requestIdForError } from "../../src/requestDiagnostics";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
@@ -157,6 +157,7 @@ export default function ContestScreen() {
   const coins = usePlayerBalance();
   const [resultAchievements, setResultAchievements] = useState<AchievementCompletionNotification[]>([]);
   const [resultTournament, setResultTournament] = useState<VictoryTournamentPresentation | null>(null);
+  const [resultElapsedMs, setResultElapsedMs] = useState(0);
   const antacidPulse = useRef(new Animated.Value(0)).current;
   const antacidAcknowledgementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraRef = useRef<CameraControllerHandle>(null);
@@ -334,8 +335,38 @@ export default function ContestScreen() {
   }, [state.status]);
 
   useEffect(() => {
-    if (resultFlow.phase === "FINISHED") dispatchResultFlow({ type: "SUBMIT" });
+    if (resultFlow.phase === "FINISHED") dispatchResultFlow({ type: "SUBMIT", startedAt: Date.now(), timeoutMs: RESULT_VERIFICATION_TIMEOUT_MS });
   }, [resultFlow.phase]);
+
+  useEffect(() => {
+    if (resultFlow.phase !== "SUBMITTING_RESULT" || resultFlow.deadlineAt === null) return;
+    const generation = resultFlow.generation;
+    const timeout = setTimeout(() => {
+      resultAttemptGeneration.current += 1;
+      resultAbortController.current?.abort();
+      resultRequestInFlight.current = false;
+      dispatchResultFlow({ type: "REJECT", generation, reason: "COORDINATOR_TIMEOUT", error: new ResultVerificationTimeoutError(RESULT_VERIFICATION_TIMEOUT_MS) });
+    }, remainingResultDeadlineMs(resultFlow.deadlineAt));
+    return () => clearTimeout(timeout);
+  }, [resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase]);
+
+  useEffect(() => {
+    if (resultFlow.phase !== "SUBMITTING_RESULT" || resultFlow.deadlineAt === null || resultFlow.startedAt === null) {
+      setResultElapsedMs(0);
+      return;
+    }
+    const generation = resultFlow.generation;
+    const updateElapsed = () => setResultElapsedMs(Math.max(0, Date.now() - resultFlow.startedAt!));
+    updateElapsed();
+    const ticker = setInterval(updateElapsed, 250);
+    const failsafe = setTimeout(() => {
+      resultAttemptGeneration.current += 1;
+      resultAbortController.current?.abort();
+      resultRequestInFlight.current = false;
+      dispatchResultFlow({ type: "REJECT", generation, reason: "UI_FAILSAFE_TIMEOUT", uiFailsafe: true, error: new ResultVerificationTimeoutError(Date.now() - resultFlow.startedAt!) });
+    }, remainingResultDeadlineMs(resultFlow.deadlineAt) + RESULT_VERIFICATION_UI_TOLERANCE_MS);
+    return () => { clearInterval(ticker); clearTimeout(failsafe); };
+  }, [resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultFlow.startedAt]);
 
   useEffect(() => {
     if (resultFlow.phase === "OFFICIAL_RESULT_RECEIVED" || resultFlow.phase === "NAVIGATING_RESULT") {
@@ -347,7 +378,10 @@ export default function ContestScreen() {
     if (resultFlow.phase !== "SUBMITTING_RESULT" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
     const opponentId = serverOpponentId.current;
     const matchId = serverMatchId.current;
-    if (!opponentId || !matchId) return;
+    if (!opponentId || !matchId) {
+      dispatchResultFlow({ type: "REJECT", generation: resultFlow.generation, reason: "MATCH_CONTEXT_MISSING", error: new ResultVerificationUnavailableError() });
+      return;
+    }
 
     resultRequestInFlight.current = true;
     const attemptGeneration = ++resultAttemptGeneration.current;
@@ -357,6 +391,7 @@ export default function ContestScreen() {
     const duration = matchStartedAt.current === null
       ? matchDurationSeconds
       : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
+    const requestTimeoutMs = resultFlow.deadlineAt === null ? RESULT_VERIFICATION_TIMEOUT_MS : remainingResultDeadlineMs(resultFlow.deadlineAt);
     void verifyResultWithTimeout((signal) => api.submitResult({
       match_id: matchId,
       contest_id: selectedContestId,
@@ -370,7 +405,7 @@ export default function ContestScreen() {
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
       completion_reason: "timer_completed",
       is_tournament: Boolean(tournamentOccurrenceId),
-    }, signal), undefined, attemptController).then((response) => {
+    }, signal), requestTimeoutMs, attemptController).then((response) => {
       if (attemptGeneration !== resultAttemptGeneration.current || activeResultKey.current !== matchRouteKey) return;
       const reward = response as {
         coin_reward?: unknown;
@@ -408,7 +443,7 @@ export default function ContestScreen() {
       };
       setResultReward(officialResult);
       submittedResultKey.current = matchRouteKey;
-      dispatchResultFlow({ type: "ACCEPT", result: officialResult });
+      dispatchResultFlow({ type: "ACCEPT", generation: resultFlow.generation, result: officialResult });
     }).catch((error: unknown) => {
       if (attemptGeneration !== resultAttemptGeneration.current || activeResultKey.current !== matchRouteKey) return;
       if (__DEV__) console.error("Result verification failed", {
@@ -421,14 +456,14 @@ export default function ContestScreen() {
         attempt: resultFlow.attempt,
         matchState: state.status,
       });
-      dispatchResultFlow({ type: "REJECT", error });
+      dispatchResultFlow({ type: "REJECT", generation: resultFlow.generation, reason: error instanceof ResultVerificationTimeoutError ? "REQUEST_TIMEOUT" : "REQUEST_FAILED", error });
     }).finally(() => {
       if (attemptGeneration === resultAttemptGeneration.current) {
         resultRequestInFlight.current = false;
         resultAbortController.current = null;
       }
     });
-  }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultFlow.attempt, resultFlow.phase, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, tournamentOccurrenceId]);
+  }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, tournamentOccurrenceId]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
@@ -1085,6 +1120,7 @@ export default function ContestScreen() {
       {state.status === "FINISHED" && resultFlow.phase === "SUBMITTING_RESULT" ? (
         <View accessibilityViewIsModal style={styles.resultPending}>
           <FireLoading title="Verifying Result" subtitle="Waiting for the arena's official score and rewards." />
+          <Text style={styles.pendingDiagnostic}>PHASE {resultFlow.phase} · ATTEMPT {resultFlow.attempt} · GEN {resultFlow.generation} · {Math.floor(resultElapsedMs / 1000)}S / {RESULT_VERIFICATION_TIMEOUT_MS / 1000}S</Text>
         </View>
       ) : null}
     </View>
@@ -1106,6 +1142,7 @@ const styles = StyleSheet.create({
   },
   resultDiagnostic: { bottom: 108, color: "#C9A98D", fontSize: 8, fontWeight: "900", letterSpacing: 0.7, position: "absolute", textAlign: "center", width: "100%" },
   resultPending: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(7,4,5,0.9)", justifyContent: "center", zIndex: 200 },
+  pendingDiagnostic: { color: "#8E7B70", fontSize: 8, fontWeight: "800", letterSpacing: 0.55, marginTop: 14, textAlign: "center" },
   overlay: {
     flex: 1,
     minHeight: 0,
