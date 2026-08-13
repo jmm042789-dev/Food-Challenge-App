@@ -920,6 +920,10 @@ async function req(
   if (isMutation) coinMutationGeneration += 1;
   const mutationGenerationAtStart = coinMutationGeneration;
   const controller = new AbortController();
+  const externalSignal = opts.signal;
+  const abortFromExternal = () => controller.abort();
+  if (externalSignal?.aborted) controller.abort();
+  else externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let url = `${API}${path}`;
   let requestPath = path;
@@ -1064,6 +1068,7 @@ async function req(
     throw err;
   } finally {
     clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromExternal);
   }
 }
 
@@ -1348,10 +1353,11 @@ export const api = {
     tums_used: number;
     completion_reason: "timer_completed" | "challenge_completed" | "player_exited" | "other";
     is_tournament?: boolean;
-  }) => {
+  }, signal?: AbortSignal) => {
     const id = await getDeviceId();
     return req(`/match/result`, {
       method: "POST",
+      signal,
       body: JSON.stringify({
         device_id: id,
         is_tournament: false,

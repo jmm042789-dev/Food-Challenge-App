@@ -53,6 +53,8 @@ import {
 } from "../../src/game/authoritativeOpponent";
 import type { Opponent } from "../../src/game/ai/types";
 import { initialResultFlow, transitionResultFlow } from "../../src/game/resultFlow";
+import { ResultVerificationTimeoutError, verifyResultWithTimeout } from "../../src/game/resultVerification";
+import { requestIdForError } from "../../src/requestDiagnostics";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
 
@@ -167,6 +169,8 @@ export default function ContestScreen() {
   const abandonRequestInFlight = useRef(false);
   const resultNavigationInFlight = useRef(false);
   const submittedResultKey = useRef<string | null>(null);
+  const resultAttemptGeneration = useRef(0);
+  const resultAbortController = useRef<AbortController | null>(null);
   const previousStatus = useRef(state.status);
   const lastCameraCombo = useRef(state.combo);
   const lastBiteHapticAt = useRef(0);
@@ -236,6 +240,9 @@ export default function ContestScreen() {
   }, [hapticsEnabled, playAudioEvent, presentationEvents, reducedMotion]);
 
   useEffect(() => () => {
+    resultAttemptGeneration.current += 1;
+    resultAbortController.current?.abort();
+    resultAbortController.current = null;
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
   }, []);
@@ -310,6 +317,9 @@ export default function ContestScreen() {
     serverMatchId.current = null;
     resultRequestInFlight.current = false;
     submittedResultKey.current = null;
+    resultAttemptGeneration.current += 1;
+    resultAbortController.current?.abort();
+    resultAbortController.current = null;
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
     antacidAcknowledgementTimer.current = null;
     setAntacidAcknowledging(false);
@@ -340,10 +350,14 @@ export default function ContestScreen() {
     if (!opponentId || !matchId) return;
 
     resultRequestInFlight.current = true;
+    const attemptGeneration = ++resultAttemptGeneration.current;
+    const attemptController = new AbortController();
+    resultAbortController.current = attemptController;
+    const verificationStartedAt = Date.now();
     const duration = matchStartedAt.current === null
       ? matchDurationSeconds
       : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
-    void api.submitResult({
+    void verifyResultWithTimeout((signal) => api.submitResult({
       match_id: matchId,
       contest_id: selectedContestId,
       score: state.score,
@@ -356,7 +370,8 @@ export default function ContestScreen() {
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
       completion_reason: "timer_completed",
       is_tournament: Boolean(tournamentOccurrenceId),
-    }).then((response) => {
+    }, signal), undefined, attemptController).then((response) => {
+      if (attemptGeneration !== resultAttemptGeneration.current || activeResultKey.current !== matchRouteKey) return;
       const reward = response as {
         coin_reward?: unknown;
         xp_reward?: unknown;
@@ -395,9 +410,23 @@ export default function ContestScreen() {
       submittedResultKey.current = matchRouteKey;
       dispatchResultFlow({ type: "ACCEPT", result: officialResult });
     }).catch((error: unknown) => {
+      if (attemptGeneration !== resultAttemptGeneration.current || activeResultKey.current !== matchRouteKey) return;
+      if (__DEV__) console.error("Result verification failed", {
+        phase: "RESULT_ERROR",
+        route: "/match/result",
+        status: error && typeof error === "object" && "status" in error ? error.status : "not received",
+        code: error && typeof error === "object" && "code" in error ? error.code : null,
+        requestId: requestIdForError(error, null),
+        elapsedMs: Date.now() - verificationStartedAt,
+        attempt: resultFlow.attempt,
+        matchState: state.status,
+      });
       dispatchResultFlow({ type: "REJECT", error });
     }).finally(() => {
-      resultRequestInFlight.current = false;
+      if (attemptGeneration === resultAttemptGeneration.current) {
+        resultRequestInFlight.current = false;
+        resultAbortController.current = null;
+      }
     });
   }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultFlow.attempt, resultFlow.phase, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, tournamentOccurrenceId]);
 
@@ -851,13 +880,15 @@ export default function ContestScreen() {
         <FireEmptyState
           icon="!"
           title="Result Not Verified"
-          message={`${playerFacingErrorMessage(resultFlow.error)} No rewards were applied. Retry safely for this match's official result.`}
+          message={`${resultFlow.error instanceof ResultVerificationTimeoutError ? resultFlow.error.message : playerFacingErrorMessage(resultFlow.error)} No rewards were applied.`}
           buttonLabel="RETRY RESULT"
           onPress={() => {
+            resultAbortController.current?.abort();
             dispatchResultFlow({ type: "RETRY" });
           }}
         />
-        <FireButton title="RETURN TO ARENA" onPress={() => router.replace("/(tabs)/contests")} variant="secondary" style={styles.recoveryButton} />
+        <Text style={styles.resultDiagnostic}>PHASE {resultFlow.phase} · ATTEMPT {resultFlow.attempt} · {resultFlow.error instanceof ResultVerificationTimeoutError ? `${Math.round(resultFlow.error.elapsedMs / 1000)}S TIMEOUT` : "REQUEST FAILED"}</Text>
+        <FireButton title="RETURN TO ARENA" onPress={() => { resultAttemptGeneration.current += 1; resultAbortController.current?.abort(); router.replace("/(tabs)/contests"); }} variant="secondary" style={styles.recoveryButton} />
       </View>
     );
   }
@@ -1073,6 +1104,7 @@ const styles = StyleSheet.create({
     bottom: 48,
     position: "absolute",
   },
+  resultDiagnostic: { bottom: 108, color: "#C9A98D", fontSize: 8, fontWeight: "900", letterSpacing: 0.7, position: "absolute", textAlign: "center", width: "100%" },
   resultPending: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(7,4,5,0.9)", justifyContent: "center", zIndex: 200 },
   overlay: {
     flex: 1,

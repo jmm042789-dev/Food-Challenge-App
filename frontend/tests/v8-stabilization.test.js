@@ -5,6 +5,7 @@ const test = require("node:test");
 
 const { initialResultFlow, transitionResultFlow } = require("../src/game/resultFlow.ts");
 const { resolveFoodArtworkKey } = require("../src/assets/foodArtworkKeys.ts");
+const { RESULT_VERIFICATION_TIMEOUT_MS, ResultVerificationTimeoutError, verifyResultWithTimeout } = require("../src/game/resultVerification.ts");
 
 test("terminal result flow is deterministic across slow responses and repeated renders", () => {
   let state = initialResultFlow();
@@ -41,6 +42,35 @@ test("network, 5xx, and validation failures require an explicit safe retry", () 
     state = transitionResultFlow(state, { type: "ACCEPT", result: { accepted: true } });
     assert.equal(state.phase, "OFFICIAL_RESULT_RECEIVED");
   }
+});
+
+test("result verification succeeds quickly and slowly before its production deadline", async () => {
+  assert.equal(RESULT_VERIFICATION_TIMEOUT_MS, 15_000);
+  assert.equal(await verifyResultWithTimeout(async () => "quick", 50), "quick");
+  assert.equal(await verifyResultWithTimeout(() => new Promise((resolve) => setTimeout(() => resolve("slow"), 15)), 100), "slow");
+});
+
+test("a never-resolving request is aborted and rejects with a bounded timeout", async () => {
+  let aborted = false;
+  await assert.rejects(
+    verifyResultWithTimeout((signal) => {
+      signal.addEventListener("abort", () => { aborted = true; });
+      return new Promise(() => {});
+    }, 15),
+    (error) => error instanceof ResultVerificationTimeoutError && error.code === "RESULT_VERIFICATION_TIMEOUT",
+  );
+  assert.equal(aborted, true);
+});
+
+test("late completion after timeout cannot become an accepted coordinator result", async () => {
+  let lateResolve;
+  const pending = verifyResultWithTimeout(() => new Promise((resolve) => { lateResolve = resolve; }), 10);
+  await assert.rejects(pending, ResultVerificationTimeoutError);
+  lateResolve({ accepted: true });
+  let state = transitionResultFlow(transitionResultFlow(initialResultFlow(), { type: "FINISH" }), { type: "SUBMIT" });
+  state = transitionResultFlow(state, { type: "REJECT", error: new ResultVerificationTimeoutError(10) });
+  assert.equal(state.phase, "RESULT_ERROR");
+  assert.strictEqual(transitionResultFlow(state, { type: "ACCEPT", result: { accepted: true } }), state);
 });
 
 test("the game clock performs terminal work outside React state updaters", () => {
