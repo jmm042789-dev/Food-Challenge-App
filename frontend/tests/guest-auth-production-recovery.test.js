@@ -213,10 +213,10 @@ test("safe request IDs are retained without accepting secret-like values", () =>
   assert.doesNotMatch(startupSource, /authToken|installationId|recovery_nonce|auth_token/);
 });
 
-test("Expo config enables precise SecureStore backup rules and versionCode 9", () => {
+test("Expo config enables precise SecureStore backup rules and versionCode 10", () => {
   assert.equal(appConfig.expo.version, "1.0.0");
   assert.equal(appConfig.expo.android.package, "com.firefeast.app");
-  assert.equal(appConfig.expo.android.versionCode, 9);
+  assert.equal(appConfig.expo.android.versionCode, 10);
   assert.ok(appConfig.expo.plugins.some((plugin) => Array.isArray(plugin)
     && plugin[0] === "expo-secure-store"
     && plugin[1]?.configureAndroidBackup === true));
