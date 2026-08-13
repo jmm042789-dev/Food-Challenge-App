@@ -36,8 +36,8 @@ export default function AchievementPanel({ state, onClaim }: Props) {
 }
 
 const styles = StyleSheet.create({
-  filters: { flexDirection: "row", gap: 4, marginBottom: 8 },
-  filter: { backgroundColor: "rgba(32,20,18,0.8)", borderColor: "rgba(195,111,39,0.42)", borderRadius: 7, borderWidth: 1, flex: 1, paddingHorizontal: 3, paddingVertical: 6 },
+  filters: { flexDirection: "row", gap: 4, marginBottom: 6 },
+  filter: { alignItems: "center", backgroundColor: "rgba(32,20,18,0.8)", borderColor: "rgba(195,111,39,0.42)", borderRadius: 7, borderWidth: 1, flex: 1, justifyContent: "center", minHeight: 40, paddingHorizontal: 3, paddingVertical: 4 },
   filterActive: { backgroundColor: "#793511", borderColor: "#E89B43" },
   filterText: { color: "#A98B75", fontSize: 6, fontWeight: "900", textAlign: "center" },
   filterTextActive: { color: "#FFF0D1" },

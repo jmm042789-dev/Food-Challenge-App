@@ -31,15 +31,15 @@ export default function AchievementCard({ definition, progress, onClaim }: Props
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "rgba(18,12,13,0.94)", borderColor: "rgba(208,120,39,0.48)", borderRadius: 11, borderWidth: 1, marginBottom: 7, padding: 9 },
+  card: { backgroundColor: "rgba(18,12,13,0.94)", borderColor: "rgba(208,120,39,0.48)", borderRadius: 10, borderWidth: 1, marginBottom: 5, paddingHorizontal: 8, paddingVertical: 6 },
   completeCard: { borderColor: "rgba(246,193,82,0.82)" },
-  header: { alignItems: "flex-start", flexDirection: "row", marginBottom: 7 },
+  header: { alignItems: "flex-start", flexDirection: "row", marginBottom: 4 },
   titleBlock: { flex: 1, minWidth: 0, paddingRight: 7 },
   title: { color: "#FFF0D8", fontSize: 11, fontWeight: "900" },
-  description: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 2 },
+  description: { color: "#A99482", fontSize: 8, lineHeight: 10, marginTop: 1 },
   status: { color: "#B9844B", fontSize: 6, fontWeight: "900", letterSpacing: 0.6 },
   completeStatus: { color: "#FFD169" },
-  footer: { alignItems: "center", flexDirection: "row", marginTop: 5 },
+  footer: { alignItems: "center", flexDirection: "row", marginTop: 3, minHeight: 44 },
   progress: { color: "#D9C2A8", fontSize: 8, fontWeight: "900" },
   reward: { color: "#E8A94E", flex: 1, fontSize: 7, fontWeight: "900", marginLeft: 8 },
   claim: { marginBottom: 0, marginTop: 0 },

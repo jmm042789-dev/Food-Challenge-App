@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   gearDescription: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 4 },
   loading: { color: "#E8AD55", fontSize: 8, fontWeight: "900", letterSpacing: 1, marginTop: 10, textAlign: "center" },
   loadError: { alignItems: "center", gap: 8, marginTop: 8 },
-  achievementSection: { marginTop: 12 },
+  achievementSection: { marginTop: 8 },
   restaurantSection: { marginTop: 12 },
   titleSection: { marginTop: 12 },
   accountSection: { backgroundColor: "rgba(35,10,11,0.88)", borderColor: "rgba(184,66,61,0.7)", borderRadius: 11, borderWidth: 1, marginTop: 14, padding: 11 },

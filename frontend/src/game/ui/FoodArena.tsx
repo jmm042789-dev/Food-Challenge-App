@@ -19,6 +19,7 @@ import {
 } from "react-native";
 
 import { getFoodArtwork } from "../../assets/foodArtwork";
+import { foodConsumptionPresentation, PRESENTATION_BITES_PER_ITEM } from "./foodConsumptionPresentation";
 import type { BiteMechanic } from "../../api";
 import type { FoodBiteReaction, FoodProfile } from "../food/FoodProfiles";
 import type { HeatTier } from "../heartburn";
@@ -89,7 +90,6 @@ const CRUMBS = [
   { x: -54, y: 7, size: 3 },
   { x: 55, y: 10, size: 4 },
 ] as const;
-const PRESENTATION_BITES_PER_ITEM = 10;
 const COMPLETION_BURST = require("../../assets/ui/effects/combo-explosion.png");
 const DESSERT_SPARKLE = require("../../assets/ui/effects/sparkle.png");
 const DESSERT_BITE_REACTION: FoodBiteReaction = {
@@ -104,21 +104,6 @@ const PASTRAMI_BITE_REACTION: FoodBiteReaction = {
   spread: 1.02,
   shineColor: "#FFE0B0",
 };
-const FOOD_SEGMENTS = [
-  { column: 0, row: 0 },
-  { column: 1, row: 0 },
-  { column: 0, row: 1 },
-  { column: 1, row: 1 },
-] as const;
-const SEGMENT_REMOVAL_ORDER: Record<FoodProfile["biteStyle"], readonly number[]> = {
-  heavy: [1, 3, 0, 2],
-  quick: [1, 0, 3, 2],
-  rapid: [3, 2, 1, 0],
-  wobble: [0, 1, 2, 3],
-  slurp: [1, 3, 0, 2],
-  spicy: [3, 1, 2, 0],
-};
-const SEGMENT_REMOVAL_THRESHOLDS = [0.2, 0.44, 0.68, 0.9] as const;
 
 type FoodPresentationEvent = {
   id: number;
@@ -708,19 +693,18 @@ function FoodArena({
     const completedItemsBefore = Math.floor(previousBiteCount / PRESENTATION_BITES_PER_ITEM);
     const completedItemsAfter = Math.floor(nextBiteCount / PRESENTATION_BITES_PER_ITEM);
     const itemCompleted = completedItemsAfter > completedItemsBefore;
-    const progressWithinItem = (nextBiteCount % PRESENTATION_BITES_PER_ITEM) / PRESENTATION_BITES_PER_ITEM;
-    const presentationProgress = itemCompleted && progressWithinItem === 0 ? 1 : progressWithinItem;
+    const presentation = foodConsumptionPresentation(nextBiteCount);
     consumptionScale.stopAnimation();
     consumptionProgress.stopAnimation();
     Animated.parallel([
       Animated.timing(consumptionScale, {
-        toValue: 1 - presentationProgress * 0.1,
+        toValue: presentation.scale,
         duration: reducedMotion ? 80 : 170,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(consumptionProgress, {
-        toValue: presentationProgress,
+        toValue: presentation.progress,
         duration: reducedMotion ? 80 : 170,
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
@@ -1266,52 +1250,16 @@ function FoodArena({
               ]}
             />
 
-            <View
+            <Animated.View
               pointerEvents="none"
               style={{
                 height: size * foodArtwork.scale,
+                opacity: consumptionProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] }),
                 width: size * foodArtwork.scale,
               }}
             >
-              {FOOD_SEGMENTS.map((segment, segmentIndex) => {
-                const artworkSize = size * foodArtwork.scale;
-                const segmentSize = artworkSize / 2;
-                const removalPosition = SEGMENT_REMOVAL_ORDER[foodProfile.biteStyle].indexOf(segmentIndex);
-                const threshold = SEGMENT_REMOVAL_THRESHOLDS[removalPosition];
-                const transitionStart = Math.max(0, threshold - 0.14);
-
-                return (
-                  <Animated.View
-                    key={`${segment.column}-${segment.row}`}
-                    style={[
-                      styles.foodSegment,
-                      {
-                        height: segmentSize + 1,
-                        left: segment.column * segmentSize,
-                        opacity: consumptionProgress.interpolate({
-                          inputRange: [0, transitionStart, threshold, 1],
-                          outputRange: [1, 1, 0, 0],
-                        }),
-                        top: segment.row * segmentSize,
-                        width: segmentSize + 1,
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={foodArtwork.source}
-                      resizeMode="contain"
-                      style={{
-                        height: artworkSize,
-                        left: -segment.column * segmentSize,
-                        position: "absolute",
-                        top: -segment.row * segmentSize,
-                        width: artworkSize,
-                      }}
-                    />
-                  </Animated.View>
-                );
-              })}
-            </View>
+              <Image source={foodArtwork.source} resizeMode="contain" style={styles.foodImage} />
+            </Animated.View>
 
             <Animated.View
               pointerEvents="none"
@@ -1603,10 +1551,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "visible",
   },
-  foodSegment: {
-    overflow: "hidden",
-    position: "absolute",
-  },
+  foodImage: { height: "100%", width: "100%" },
   completionBurst: { height: "130%", position: "absolute", width: "130%" },
   foodProgress: { alignItems: "center", bottom: 1, position: "absolute", width: 148, zIndex: 6 },
   foodProgressTrack: { backgroundColor: "rgba(18,7,6,0.96)", borderColor: "rgba(255,188,83,0.58)", borderRadius: 5, borderWidth: 1, height: 7, overflow: "hidden", width: "100%" },
