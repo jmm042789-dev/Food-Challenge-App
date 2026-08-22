@@ -32,7 +32,7 @@ from services.player_service import (
     TutorialIncompleteError,
     WelcomeRewardUnavailableError,
 )
-from services.leaderboard_service import get_leaderboard
+from services.leaderboard_service import contest_catalog, get_contest_leaderboard, get_leaderboard
 from services.daily_reward_service import (
     DailySpinUnavailableError,
     claim_daily_spin,
@@ -133,6 +133,7 @@ account_deletion_limit = rate_limit(
     requests=3,
     window_seconds=60 * 60,
 )
+leaderboard_limit = rate_limit("leaderboard-read", requests=90, window_seconds=60)
 
 
 @app.middleware("http")
@@ -670,10 +671,22 @@ def equip_cosmetic_endpoint(
         raise HTTPException(status_code=400, detail="you do not own that cosmetic")
 
 
-@app.get("/api/leaderboard")
-def leaderboard_endpoint():
-    return get_leaderboard()
+@app.get("/api/leaderboard", dependencies=[Depends(leaderboard_limit)])
+def leaderboard_endpoint(authorization: str | None = Header(default=None)):
+    return get_leaderboard(authenticated_bearer_player(authorization))
 
+
+@app.get("/api/leaderboard/contests", dependencies=[Depends(leaderboard_limit)])
+def leaderboard_contests_endpoint(authorization: str | None = Header(default=None)):
+    return contest_catalog(authenticated_bearer_player(authorization))
+
+
+@app.get("/api/leaderboard/contest/{contest_id}", dependencies=[Depends(leaderboard_limit)])
+def contest_leaderboard_endpoint(contest_id: str, authorization: str | None = Header(default=None)):
+    try:
+        return get_contest_leaderboard(authenticated_bearer_player(authorization), contest_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="contest leaderboard not found")
 # =========================
 # DEBUG
 # =========================

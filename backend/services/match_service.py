@@ -183,6 +183,7 @@ def recover_match(device_id: str) -> dict:
             "match_id": active.get("id"),
             "contest_id": active.get("contest_id"),
             "started_at": active.get("started_at"),
+            "server_time": _utc_now().isoformat(),
         }
     previous = player.get("last_match_lifecycle") or {}
     status = previous.get("status")
@@ -285,6 +286,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
         "perk_modifiers": perk_modifiers,
         "authoritative_duration_sec": allowed_duration,
         "server_started_at": started_at.isoformat(),
+        "server_time": started_at.isoformat(),
         "expires_at": expires_at.isoformat(),
     }
     match = {
@@ -673,6 +675,7 @@ def submit_result(result) -> dict:
     new_xp = old_xp + xp_reward
     old_belt = belt_for_xp(old_xp)
     new_belt = belt_for_xp(new_xp)
+    contest_best_achieved_at = _utc_now().isoformat()
     response = {
         "verified": True,
         "match_id": active["id"],
@@ -705,6 +708,28 @@ def submit_result(result) -> dict:
                 "draws": {"$add": [{"$ifNull": ["$draws", 0]}, 1 if drawn else 0]},
                 "matches": {"$add": [{"$ifNull": ["$matches", 0]}, 1]},
                 "best_score": response["new_best"],
+                "contest_best_scores": {
+                    "$let": {
+                        "vars": {"bests": {"$ifNull": ["$contest_best_scores", []]}},
+                        "in": {
+                            "$cond": [
+                                {"$anyElementTrue": {"$map": {"input": "$$bests", "as": "best", "in": {"$eq": ["$$best.contest_id", active["contest_id"]]}}}},
+                                {"$map": {"input": "$$bests", "as": "best", "in": {
+                                    "$cond": [
+                                        {"$eq": ["$$best.contest_id", active["contest_id"]]},
+                                        {"$cond": [
+                                            {"$gt": [accepted_score, {"$ifNull": ["$$best.score", 0]}]},
+                                            {"contest_id": active["contest_id"], "score": accepted_score, "achieved_at": contest_best_achieved_at},
+                                            "$$best",
+                                        ]},
+                                        "$$best",
+                                    ]
+                                }}},
+                                {"$concatArrays": ["$$bests", [{"contest_id": active["contest_id"], "score": accepted_score, "achieved_at": contest_best_achieved_at}]]},
+                            ]
+                        },
+                    }
+                },
                 "antacid": response["new_tums"],
                 "elo": {"$add": [{"$ifNull": ["$elo", 1000]}, 25 if won else -10]},
                 "last_match_result": {

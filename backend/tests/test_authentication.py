@@ -181,7 +181,7 @@ class GuestAuthenticationTests(unittest.TestCase):
                 }
             ],
         ):
-            entry = leaderboard_service.get_leaderboard()["leaderboard"][0]
+            entry = leaderboard_service.get_leaderboard({"public_id": "viewer", "public_handle": "viewer", "public_handle_normalized": "viewer"})["leaderboard"][0]
         self.assertNotIn("device_id", entry)
         self.assertNotIn("player_id", entry)
         self.assertNotIn("auth_token", entry)

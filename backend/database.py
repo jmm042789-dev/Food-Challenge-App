@@ -98,6 +98,19 @@ def initialize_database(config: BackendConfig) -> None:
             sparse=True,
             name="player_auth_token_unique",
         )
+        players.create_index(
+            [("public_id", ASCENDING)], unique=True, sparse=True, name="player_public_id_unique"
+        )
+        players.create_index(
+            [("public_handle_normalized", ASCENDING)],
+            unique=True,
+            sparse=True,
+            name="player_public_handle_unique",
+        )
+        players.create_index(
+            [("contest_best_scores.contest_id", ASCENDING)],
+            name="player_contest_best_lookup",
+        )
         settings.update_one(
             {"_id": "global"},
             {"$setOnInsert": DEFAULT_SETTINGS},
@@ -243,6 +256,14 @@ def find_internal_player_by_auth_hash(auth_token_hash: str) -> Optional[dict]:
     return _players().find_one({"auth_token_hash": auth_token_hash})
 
 
+def assign_public_identity(device_id: str, public_id: str, handle: str) -> Optional[dict]:
+    return _players().find_one_and_update(
+        {"device_id": device_id, "public_id": {"$exists": False}},
+        {"$set": {"public_id": public_id, "public_handle": handle, "public_handle_normalized": handle}},
+        return_document=ReturnDocument.AFTER,
+    )
+
+
 def delete_guest_player(player_id: str, auth_token_hash: str) -> None:
     """Delete all current-schema data linked to an authenticated guest.
 
@@ -358,13 +379,53 @@ def transition_player_match(
     )
 
 
+def _leaderboard_projection() -> dict:
+    return {"_id": 0, "public_id": 1, "public_handle": 1, "public_display_name": 1, "public_avatar": 1, "username": 1, "best_score": 1, "xp": 1, "level": 1}
+
+
 def leaderboard_players(limit: int = 200) -> list:
     cursor = _players().find(
-        {"best_score": {"$gt": 0}},
-        {"_id": 0, "active_match": 0, "last_match_result": 0},
-    ).sort([("best_score", -1), ("xp", -1), ("device_id", 1)]).limit(limit)
+        {"best_score": {"$gt": 0}, "public_id": {"$exists": True}},
+        _leaderboard_projection(),
+    ).sort([("best_score", -1), ("xp", -1), ("public_id", 1)]).limit(limit)
     return list(cursor)
 
+
+def contest_leaderboard_players(contest_id: str, limit: int = 100) -> list:
+    pipeline = [
+        {"$match": {"contest_best_scores.contest_id": contest_id, "public_id": {"$exists": True}}},
+        {"$unwind": "$contest_best_scores"},
+        {"$match": {"contest_best_scores.contest_id": contest_id, "contest_best_scores.score": {"$gt": 0}, "public_id": {"$exists": True}}},
+        {"$sort": {"contest_best_scores.score": -1, "contest_best_scores.achieved_at": 1, "public_id": 1}},
+        {"$limit": max(1, min(int(limit), 100))},
+        {"$project": _leaderboard_projection() | {"contest_score": "$contest_best_scores.score", "achieved_at": "$contest_best_scores.achieved_at"}},
+    ]
+    return list(_players().aggregate(pipeline))
+
+
+def contest_player_rank(contest_id: str, public_id: str) -> Optional[dict]:
+    own_rows = list(_players().aggregate([
+        {"$match": {"public_id": public_id}}, {"$unwind": "$contest_best_scores"},
+        {"$match": {"contest_best_scores.contest_id": contest_id}},
+        {"$project": _leaderboard_projection() | {"contest_score": "$contest_best_scores.score", "achieved_at": "$contest_best_scores.achieved_at"}},
+        {"$limit": 1},
+    ]))
+    if not own_rows:
+        return None
+    own = own_rows[0]
+    score, achieved = int(own["contest_score"]), own["achieved_at"]
+    ahead = list(_players().aggregate([
+        {"$match": {"contest_best_scores.contest_id": contest_id, "public_id": {"$exists": True}}},
+        {"$unwind": "$contest_best_scores"},
+        {"$match": {"contest_best_scores.contest_id": contest_id, "public_id": {"$exists": True}, "$or": [
+            {"contest_best_scores.score": {"$gt": score}},
+            {"contest_best_scores.score": score, "contest_best_scores.achieved_at": {"$lt": achieved}},
+            {"contest_best_scores.score": score, "contest_best_scores.achieved_at": achieved, "public_id": {"$lt": public_id}},
+        ]}},
+        {"$count": "count"},
+    ]))
+    own["position"] = int(ahead[0]["count"] if ahead else 0) + 1
+    return own
 
 def get_settings() -> dict:
     document = _settings().find_one({"_id": "global"})

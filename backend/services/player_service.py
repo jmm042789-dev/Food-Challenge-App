@@ -210,6 +210,7 @@ def _new_player(device_id: str):
         "matches": 0,
 
         "best_score": 0,
+        "contest_best_scores": [],
 
         "longest_combo": 0,
 

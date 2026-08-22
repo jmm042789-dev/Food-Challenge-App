@@ -1,5 +1,5 @@
 import unicodedata
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 from config import DEFAULT_STARTING_COINS
@@ -96,6 +96,7 @@ class Player(BaseModel):
     matches: int = 0
 
     best_score: int = 0
+    contest_best_scores: List[Dict[str, Any]] = Field(default_factory=list)
     longest_combo: int = 0
 
     owned_gear: List[str] = Field(default_factory=list)

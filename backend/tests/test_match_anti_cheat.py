@@ -131,12 +131,19 @@ class MatchAntiCheatTests(unittest.TestCase):
             response = match_service.start_match("player-a", "nathans")
         self.assertEqual(len(stored["match_seed"]), 64)
         self.assertEqual(stored["validation_version"], 2)
+        self.assertEqual(response["server_time"], response["server_started_at"])
         self.assertNotIn("match_seed", response)
         self.assertNotIn(stored["match_seed"], repr(response))
+        recovery_now = datetime.fromisoformat(stored["started_at"]) + timedelta(seconds=1)
         with patch.object(match_service, "find_internal_player", return_value={"active_match": stored}), \
-                patch.object(match_service, "expire_stale_match", return_value=False):
+                patch.object(match_service, "expire_stale_match", return_value=False), \
+                patch.object(match_service, "_utc_now", return_value=recovery_now):
             recovery = match_service.recover_match("player-a")
-        self.assertIn("server_time", recovery)
+        self.assertEqual(recovery["server_time"], recovery_now.isoformat())
+        self.assertGreaterEqual(
+            datetime.fromisoformat(recovery["server_time"]),
+            datetime.fromisoformat(recovery["started_at"]),
+        )
         self.assertNotIn("match_seed", recovery)
 
     def test_valid_log_replays_official_score_and_combo(self):

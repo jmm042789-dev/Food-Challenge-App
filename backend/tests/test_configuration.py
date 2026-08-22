@@ -139,6 +139,9 @@ class ConfigurationTests(unittest.TestCase):
                 "player_id_unique",
                 "player_installation_unique",
                 "player_auth_token_unique",
+                "player_public_id_unique",
+                "player_public_handle_unique",
+                "player_contest_best_lookup",
             },
         )
         settings = client.databases[config.db_name].collections["settings"]
