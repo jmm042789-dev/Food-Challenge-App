@@ -13,6 +13,9 @@ from config import BackendConfig
 mongo_client: Optional[MongoClient] = None
 player_collection: Optional[Collection] = None
 settings_collection: Optional[Collection] = None
+social_relationship_collection: Optional[Collection] = None
+pvp_challenge_collection: Optional[Collection] = None
+pvp_match_collection: Optional[Collection] = None
 
 DATABASE_READINESS_TIMEOUT_MS = 3_000
 
@@ -64,9 +67,27 @@ def _settings() -> Collection:
     return settings_collection
 
 
+def social_relationships() -> Collection:
+    if social_relationship_collection is None:
+        raise RuntimeError("database is not initialized")
+    return social_relationship_collection
+
+
+def pvp_challenges() -> Collection:
+    if pvp_challenge_collection is None:
+        raise RuntimeError("database is not initialized")
+    return pvp_challenge_collection
+
+
+def pvp_matches() -> Collection:
+    if pvp_match_collection is None:
+        raise RuntimeError("database is not initialized")
+    return pvp_match_collection
+
+
 def initialize_database(config: BackendConfig) -> None:
     """Verify MongoDB and create the indexes/default documents we rely on."""
-    global mongo_client, player_collection, settings_collection
+    global mongo_client, player_collection, settings_collection, social_relationship_collection, pvp_challenge_collection, pvp_match_collection
     close_database()
     client = MongoClient(
         config.mongo_url,
@@ -77,6 +98,9 @@ def initialize_database(config: BackendConfig) -> None:
         database = client[config.db_name]
         players = database["players"]
         settings = database["settings"]
+        relationships = database["social_relationships"]
+        challenges = database["pvp_challenges"]
+        matches = database["pvp_matches"]
         players.create_index(
             [("device_id", ASCENDING)], unique=True, name="player_device_id_unique"
         )
@@ -111,6 +135,30 @@ def initialize_database(config: BackendConfig) -> None:
             [("contest_best_scores.contest_id", ASCENDING)],
             name="player_contest_best_lookup",
         )
+        relationships.create_index(
+            [("pair_key", ASCENDING)], unique=True, name="social_pair_unique"
+        )
+        relationships.create_index(
+            [("requester_public_id", ASCENDING), ("status", ASCENDING)],
+            name="social_requester_status",
+        )
+        relationships.create_index(
+            [("recipient_public_id", ASCENDING), ("status", ASCENDING)],
+            name="social_recipient_status",
+        )
+        challenges.create_index([("challenge_id", ASCENDING)], unique=True, name="pvp_challenge_id_unique")
+        challenges.create_index(
+            [("pair_contest_key", ASCENDING)], unique=True,
+            partialFilterExpression={"status": "PENDING"}, name="pvp_pending_pair_contest_unique",
+        )
+        challenges.create_index([("recipient_public_id", ASCENDING), ("status", ASCENDING)], name="pvp_challenge_incoming")
+        challenges.create_index([("challenger_public_id", ASCENDING), ("status", ASCENDING)], name="pvp_challenge_outgoing")
+        challenges.create_index([("expires_at", ASCENDING)], name="pvp_challenge_expiry")
+        challenges.create_index([("rematch_of", ASCENDING), ("status", ASCENDING)], name="pvp_rematch_status")
+        matches.create_index([("match_id", ASCENDING)], unique=True, name="pvp_match_id_unique")
+        matches.create_index([("challenge_id", ASCENDING)], unique=True, name="pvp_match_challenge_unique")
+        matches.create_index([("participant_public_ids", ASCENDING), ("status", ASCENDING)], name="pvp_participant_status")
+        matches.create_index([("participant_public_ids", ASCENDING), ("status", ASCENDING), ("finalized_at", -1)], name="pvp_recent_opponents")
         settings.update_one(
             {"_id": "global"},
             {"$setOnInsert": DEFAULT_SETTINGS},
@@ -122,15 +170,21 @@ def initialize_database(config: BackendConfig) -> None:
     mongo_client = client
     player_collection = players
     settings_collection = settings
+    social_relationship_collection = relationships
+    pvp_challenge_collection = challenges
+    pvp_match_collection = matches
 
 
 def close_database() -> None:
     """Release MongoDB and ephemeral process state during graceful shutdown."""
-    global mongo_client, player_collection, settings_collection
+    global mongo_client, player_collection, settings_collection, social_relationship_collection, pvp_challenge_collection, pvp_match_collection
     client = mongo_client
     mongo_client = None
     player_collection = None
     settings_collection = None
+    social_relationship_collection = None
+    pvp_challenge_collection = None
+    pvp_match_collection = None
     queue.clear()
     active_matches.clear()
     if client is not None:
@@ -256,12 +310,47 @@ def find_internal_player_by_auth_hash(auth_token_hash: str) -> Optional[dict]:
     return _players().find_one({"auth_token_hash": auth_token_hash})
 
 
+def find_internal_player_by_public_id(public_id: str) -> Optional[dict]:
+    return _players().find_one({"public_id": public_id})
+
+
+def find_internal_player_by_handle(normalized_handle: str) -> Optional[dict]:
+    return _players().find_one({"public_handle_normalized": normalized_handle})
+
+
 def assign_public_identity(device_id: str, public_id: str, handle: str) -> Optional[dict]:
     return _players().find_one_and_update(
         {"device_id": device_id, "public_id": {"$exists": False}},
         {"$set": {"public_id": public_id, "public_handle": handle, "public_handle_normalized": handle}},
         return_document=ReturnDocument.AFTER,
     )
+
+
+def update_public_identity(device_id: str, values: dict) -> Optional[dict]:
+    return _players().find_one_and_update(
+        {"device_id": device_id},
+        {"$set": values},
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+def search_public_players(prefix: str, exclude_public_id: str, limit: int) -> list:
+    import re
+
+    cursor = _players().find(
+        {
+            "public_handle_normalized": {"$regex": f"^{re.escape(prefix)}"},
+            "public_id": {"$ne": exclude_public_id},
+        },
+        {"_id": 0},
+    ).sort("public_handle_normalized", ASCENDING).limit(limit)
+    return list(cursor)
+
+
+def public_players_by_ids(public_ids: list[str]) -> list:
+    if not public_ids:
+        return []
+    return list(_players().find({"public_id": {"$in": public_ids}}, {"_id": 0}))
 
 
 def delete_guest_player(player_id: str, auth_token_hash: str) -> None:
@@ -292,6 +381,18 @@ def delete_guest_player(player_id: str, auth_token_hash: str) -> None:
     for match_id in stale_match_ids:
         active_matches.pop(match_id, None)
 
+    internal = _players().find_one({"device_id": player_id, "auth_token_hash": auth_token_hash})
+    public_id = internal.get("public_id") if internal else None
+    if public_id:
+        social_relationships().delete_many(
+            {"$or": [{"requester_public_id": public_id}, {"recipient_public_id": public_id}]}
+        )
+        if pvp_challenge_collection is not None:
+            pvp_challenges().delete_many(
+                {"$or": [{"challenger_public_id": public_id}, {"recipient_public_id": public_id}]}
+            )
+        if pvp_match_collection is not None:
+            pvp_matches().delete_many({"participant_public_ids": public_id})
     _players().delete_one(
         {
             "device_id": player_id,

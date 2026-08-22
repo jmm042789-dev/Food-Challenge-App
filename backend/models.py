@@ -75,6 +75,16 @@ class PlayerProfileUpdate(RequestModel):
         return _clean_display_text(value)
 
 
+class SocialProfileUpdate(RequestModel):
+    handle: Optional[str] = Field(default=None, min_length=3, max_length=20)
+    display_name: str = Field(min_length=3, max_length=20)
+    avatar: Dict[str, Any] = Field(default_factory=dict)
+
+
+class SocialPlayerAction(RequestModel):
+    public_id: Identifier
+
+
 class AccountDeletionRequest(RequestModel):
     """Explicit confirmation for permanent guest-account deletion."""
 
@@ -165,6 +175,45 @@ class MatchResult(RequestModel):
 class MatchStart(RequestModel):
     device_id: Identifier
     contest_id: Identifier
+
+
+class PvpChallengeCreate(RequestModel):
+    recipient_public_id: Identifier
+    contest_id: Identifier
+
+
+class PvpChallengeAction(RequestModel):
+    challenge_id: Identifier
+
+
+class PvpRematchRequest(RequestModel):
+    match_id: Identifier
+
+
+class PvpQuipSend(RequestModel):
+    match_id: Identifier
+    quip_id: Identifier
+    category: Literal["PRE_MATCH", "IN_GAME", "POST_MATCH"]
+    client_event_id: Identifier
+
+
+class PvpAttemptStart(RequestModel):
+    match_id: Identifier
+
+
+class PvpAttemptResult(RequestModel):
+    match_id: Identifier
+    attempt_id: Identifier
+    contest_id: Identifier
+    score: int = Field(ge=0, le=10_000_000)
+    duration_sec: int = Field(ge=0, le=86_400)
+    accepted_taps: int = Field(ge=0, le=100_000)
+    completed_progress: float = Field(ge=0, le=1_000_000, allow_inf_nan=False)
+    maximum_combo: int = Field(ge=0, le=100_000)
+    tums_used: int = Field(default=0, ge=0, le=10_000)
+    completion_reason: Literal["timer_completed"] = "timer_completed"
+    validation_version: Literal[2]
+    input_events: List[MatchInputEvent] = Field(min_length=0, max_length=2_000)
 
 
 class PurchaseRequest(RequestModel):

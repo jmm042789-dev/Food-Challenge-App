@@ -51,5 +51,12 @@ class InputGeometryV2Tests(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 MatchInputEvent(seq=1, t_ms=1, type="BITE", source="CONTROL", x=value, y=0.5)
 
+    def test_same_replay_contract_is_used_for_pvp_and_score_claim_is_diagnostic(self):
+        # PvP imports this exact replay function; there is no alternate geometry path.
+        from services import pvp_service
+        self.assertIs(pvp_service.replay_input_log, replay_input_log)
+        official = replay_input_log(active_match(), [event()])["replayed_score"]
+        self.assertGreaterEqual(official, 0)
+
 
 if __name__ == "__main__": unittest.main()

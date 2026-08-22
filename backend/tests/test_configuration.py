@@ -49,6 +49,9 @@ class _Database:
         self.collections = {
             "players": _Collection(),
             "settings": _Collection(),
+            "social_relationships": _Collection(),
+            "pvp_challenges": _Collection(),
+            "pvp_matches": _Collection(),
         }
 
     def __getitem__(self, name):
@@ -143,6 +146,21 @@ class ConfigurationTests(unittest.TestCase):
                 "player_public_handle_unique",
                 "player_contest_best_lookup",
             },
+        )
+        relationships = client.databases[config.db_name].collections["social_relationships"]
+        self.assertEqual(
+            {options["name"] for _fields, options in relationships.indexes},
+            {"social_pair_unique", "social_requester_status", "social_recipient_status"},
+        )
+        challenges = client.databases[config.db_name].collections["pvp_challenges"]
+        self.assertEqual(
+            {options["name"] for _fields, options in challenges.indexes},
+            {"pvp_challenge_id_unique", "pvp_pending_pair_contest_unique", "pvp_challenge_incoming", "pvp_challenge_outgoing", "pvp_challenge_expiry", "pvp_rematch_status"},
+        )
+        matches = client.databases[config.db_name].collections["pvp_matches"]
+        self.assertEqual(
+            {options["name"] for _fields, options in matches.indexes},
+            {"pvp_match_id_unique", "pvp_match_challenge_unique", "pvp_participant_status", "pvp_recent_opponents"},
         )
         settings = client.databases[config.db_name].collections["settings"]
         self.assertEqual(len(settings.updates), 1)

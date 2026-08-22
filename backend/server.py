@@ -1,7 +1,7 @@
 import logging
 from time import perf_counter
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import time
@@ -71,12 +71,50 @@ from models import (
     GuestRecoveryRequest,
     MatchResult,
     MatchStart,
+    PvpAttemptResult,
+    PvpAttemptStart,
+    PvpChallengeAction,
+    PvpChallengeCreate,
+    PvpQuipSend,
+    PvpRematchRequest,
     PlayerCreate,
     PlayerProfileUpdate,
+    SocialPlayerAction,
+    SocialProfileUpdate,
     PurchaseRequest,
 )
 from auth import authenticated_bearer_player, authenticated_player
 from rate_limit import rate_limit
+from services.social_service import (
+    SocialError,
+    accept_request,
+    cancel_request,
+    decline_request,
+    get_profile as get_social_profile,
+    handle_availability,
+    list_relationships,
+    own_public_profile,
+    remove_friend,
+    search as search_social_players,
+    send_request,
+    update_profile as update_social_profile,
+)
+from services.pvp_service import (
+    PvpError,
+    accept_challenge,
+    active_match as active_pvp_match,
+    compatible_contests as pvp_compatible_contests,
+    create_challenge,
+    create_rematch,
+    get_match as get_pvp_match,
+    list_challenges,
+    recent_opponents,
+    rivalry_record,
+    send_quip,
+    start_attempt,
+    submit_attempt,
+    transition_challenge,
+)
 from observability import (
     REQUEST_ID_HEADER,
     request_id_for,
@@ -133,14 +171,39 @@ account_deletion_limit = rate_limit(
     requests=3,
     window_seconds=60 * 60,
 )
+social_search_limit = rate_limit("social-search", requests=30, window_seconds=60)
+social_request_limit = rate_limit("social-request", requests=20, window_seconds=60)
+social_action_limit = rate_limit("social-action", requests=40, window_seconds=60)
+social_profile_limit = rate_limit("social-profile", requests=12, window_seconds=60)
+pvp_challenge_limit = rate_limit("pvp-challenge", requests=12, window_seconds=60)
+pvp_action_limit = rate_limit("pvp-action", requests=30, window_seconds=60)
+pvp_status_limit = rate_limit("pvp-status", requests=90, window_seconds=60)
+pvp_start_limit = rate_limit("pvp-start", requests=12, window_seconds=60)
+pvp_result_limit = rate_limit("pvp-result", requests=20, window_seconds=60)
+pvp_rematch_limit = rate_limit("pvp-rematch", requests=8, window_seconds=60)
+pvp_quip_limit = rate_limit("pvp-quip", requests=20, window_seconds=60)
 leaderboard_limit = rate_limit("leaderboard-read", requests=90, window_seconds=60)
+
+
+def social_error(error: SocialError):
+    raise HTTPException(
+        status_code=error.status_code,
+        detail={"code": error.code, "message": "The social request could not be completed."},
+    )
+
+
+def pvp_error(error: PvpError):
+    raise HTTPException(
+        status_code=error.status_code,
+        detail={"code": error.code, "message": "The PvP request could not be completed."},
+    )
 
 
 @app.middleware("http")
 async def reject_oversized_requests(request: Request, call_next):
     request_limit = (
         MAX_MATCH_RESULT_REQUEST_BYTES
-        if request.url.path == "/api/match/result"
+        if request.url.path in {"/api/match/result", "/api/pvp/result"}
         else MAX_REQUEST_BYTES
     )
     content_length = request.headers.get("content-length")
@@ -457,6 +520,221 @@ def update_player_endpoint(
     if not player:
         raise HTTPException(status_code=404, detail="player not found")
     return player
+
+
+@app.get("/api/social/me")
+def own_social_profile_endpoint(authorization: str | None = Header(default=None)):
+    try:
+        return own_public_profile(authenticated_bearer_player(authorization))
+    except SocialError as error:
+        social_error(error)
+
+
+@app.patch("/api/social/me", dependencies=[Depends(social_profile_limit)])
+def update_social_profile_endpoint(
+    data: SocialProfileUpdate,
+    authorization: str | None = Header(default=None),
+):
+    try:
+        return update_social_profile(
+            authenticated_bearer_player(authorization),
+            data.handle,
+            data.display_name,
+            data.avatar,
+        )
+    except SocialError as error:
+        social_error(error)
+
+
+@app.get("/api/social/search", dependencies=[Depends(social_search_limit)])
+def social_search_endpoint(
+    q: str = Query(min_length=3, max_length=20),
+    authorization: str | None = Header(default=None),
+):
+    try:
+        return {"players": search_social_players(authenticated_bearer_player(authorization), q)}
+    except SocialError as error:
+        social_error(error)
+
+
+@app.get("/api/social/handle/availability", dependencies=[Depends(social_search_limit)])
+def social_handle_availability_endpoint(
+    q: str = Query(min_length=3, max_length=20),
+    authorization: str | None = Header(default=None),
+):
+    try:
+        return handle_availability(authenticated_bearer_player(authorization), q)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.get("/api/social/players/{public_id}")
+def social_profile_endpoint(
+    public_id: str,
+    authorization: str | None = Header(default=None),
+):
+    try:
+        return get_social_profile(authenticated_bearer_player(authorization), public_id)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.get("/api/social/friends")
+def social_friends_endpoint(authorization: str | None = Header(default=None)):
+    try:
+        return list_relationships(authenticated_bearer_player(authorization))
+    except SocialError as error:
+        social_error(error)
+
+
+@app.post("/api/social/friends/request", dependencies=[Depends(social_request_limit)])
+def social_send_request_endpoint(data: SocialPlayerAction, authorization: str | None = Header(default=None)):
+    try:
+        return send_request(authenticated_bearer_player(authorization), data.public_id)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.post("/api/social/friends/accept", dependencies=[Depends(social_action_limit)])
+def social_accept_endpoint(data: SocialPlayerAction, authorization: str | None = Header(default=None)):
+    try:
+        return accept_request(authenticated_bearer_player(authorization), data.public_id)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.post("/api/social/friends/decline", dependencies=[Depends(social_action_limit)])
+def social_decline_endpoint(data: SocialPlayerAction, authorization: str | None = Header(default=None)):
+    try:
+        return decline_request(authenticated_bearer_player(authorization), data.public_id)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.post("/api/social/friends/cancel", dependencies=[Depends(social_action_limit)])
+def social_cancel_endpoint(data: SocialPlayerAction, authorization: str | None = Header(default=None)):
+    try:
+        return cancel_request(authenticated_bearer_player(authorization), data.public_id)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.post("/api/social/friends/remove", dependencies=[Depends(social_action_limit)])
+def social_remove_endpoint(data: SocialPlayerAction, authorization: str | None = Header(default=None)):
+    try:
+        return remove_friend(authenticated_bearer_player(authorization), data.public_id)
+    except SocialError as error:
+        social_error(error)
+
+
+@app.get("/api/pvp/contests")
+def pvp_contests_endpoint(authorization: str | None = Header(default=None)):
+    authenticated_bearer_player(authorization)
+    return {"contests": pvp_compatible_contests()}
+
+
+@app.get("/api/pvp/challenges", dependencies=[Depends(pvp_status_limit)])
+def pvp_challenges_endpoint(authorization: str | None = Header(default=None)):
+    try:
+        return list_challenges(authenticated_bearer_player(authorization))
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/challenges", dependencies=[Depends(pvp_challenge_limit)])
+def pvp_create_challenge_endpoint(data: PvpChallengeCreate, authorization: str | None = Header(default=None)):
+    try:
+        return create_challenge(authenticated_bearer_player(authorization), data.recipient_public_id, data.contest_id)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/challenges/accept", dependencies=[Depends(pvp_action_limit)])
+def pvp_accept_challenge_endpoint(data: PvpChallengeAction, authorization: str | None = Header(default=None)):
+    try:
+        return accept_challenge(authenticated_bearer_player(authorization), data.challenge_id)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/challenges/decline", dependencies=[Depends(pvp_action_limit)])
+def pvp_decline_challenge_endpoint(data: PvpChallengeAction, authorization: str | None = Header(default=None)):
+    try:
+        return transition_challenge(authenticated_bearer_player(authorization), data.challenge_id, "DECLINED")
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/challenges/cancel", dependencies=[Depends(pvp_action_limit)])
+def pvp_cancel_challenge_endpoint(data: PvpChallengeAction, authorization: str | None = Header(default=None)):
+    try:
+        return transition_challenge(authenticated_bearer_player(authorization), data.challenge_id, "CANCELLED")
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/rematch", dependencies=[Depends(pvp_rematch_limit)])
+def pvp_rematch_endpoint(data: PvpRematchRequest, authorization: str | None = Header(default=None)):
+    try:
+        return create_rematch(authenticated_bearer_player(authorization), data.match_id)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.get("/api/pvp/rivalry/{opponent_public_id}", dependencies=[Depends(pvp_status_limit)])
+def pvp_rivalry_endpoint(opponent_public_id: str, authorization: str | None = Header(default=None)):
+    try:
+        return rivalry_record(authenticated_bearer_player(authorization), opponent_public_id)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.get("/api/pvp/recent", dependencies=[Depends(pvp_status_limit)])
+def pvp_recent_endpoint(authorization: str | None = Header(default=None)):
+    try:
+        return recent_opponents(authenticated_bearer_player(authorization))
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/quips", dependencies=[Depends(pvp_quip_limit)])
+def pvp_quip_endpoint(data: PvpQuipSend, authorization: str | None = Header(default=None)):
+    try:
+        return send_quip(authenticated_bearer_player(authorization), data)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.get("/api/pvp/matches/active", dependencies=[Depends(pvp_status_limit)])
+def pvp_active_match_endpoint(authorization: str | None = Header(default=None)):
+    try:
+        return active_pvp_match(authenticated_bearer_player(authorization))
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.get("/api/pvp/matches/{match_id}", dependencies=[Depends(pvp_status_limit)])
+def pvp_match_status_endpoint(match_id: str, authorization: str | None = Header(default=None)):
+    try:
+        return get_pvp_match(authenticated_bearer_player(authorization), match_id)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/attempt/start", dependencies=[Depends(pvp_start_limit)])
+def pvp_start_attempt_endpoint(data: PvpAttemptStart, authorization: str | None = Header(default=None)):
+    try:
+        return start_attempt(authenticated_bearer_player(authorization), data.match_id)
+    except PvpError as error:
+        pvp_error(error)
+
+
+@app.post("/api/pvp/result", dependencies=[Depends(pvp_result_limit)])
+def pvp_result_endpoint(data: PvpAttemptResult, authorization: str | None = Header(default=None)):
+    try:
+        return submit_attempt(authenticated_bearer_player(authorization), data)
+    except PvpError as error:
+        pvp_error(error)
 
 
 @app.delete(

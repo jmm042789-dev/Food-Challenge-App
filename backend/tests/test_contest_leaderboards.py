@@ -74,6 +74,14 @@ class ContestBestSettlementContractTests(unittest.TestCase):
         self.assertIn('"active_match": "$$REMOVE"', source)
         self.assertLess(source.index('validation, validation_outcome = _validate_result'), source.index('"contest_best_scores": {'))
 
+    def test_pvp_does_not_feed_single_player_contest_board(self):
+        source = Path("services/pvp_service.py").read_text(encoding="utf-8")
+        self.assertNotIn('contest_best_scores', source)
+
+    def test_validation_v2_contract_remains_required(self):
+        source = Path("models.py").read_text(encoding="utf-8")
+        self.assertGreaterEqual(source.count('validation_version: Literal[2]'), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
