@@ -116,6 +116,7 @@ app.add_middleware(
 logger = logging.getLogger(__name__)
 
 MAX_REQUEST_BYTES = 16 * 1024
+MAX_MATCH_RESULT_REQUEST_BYTES = 384 * 1024
 
 bootstrap_limit = rate_limit("guest-bootstrap", requests=10, window_seconds=60)
 matchmaking_join_limit = rate_limit("matchmaking-join", requests=30, window_seconds=60)
@@ -136,16 +137,30 @@ account_deletion_limit = rate_limit(
 
 @app.middleware("http")
 async def reject_oversized_requests(request: Request, call_next):
+    request_limit = (
+        MAX_MATCH_RESULT_REQUEST_BYTES
+        if request.url.path == "/api/match/result"
+        else MAX_REQUEST_BYTES
+    )
     content_length = request.headers.get("content-length")
     if content_length:
         try:
             parsed_length = int(content_length)
             if parsed_length < 0:
                 return JSONResponse(status_code=400, content={"detail": "invalid request"})
-            if parsed_length > MAX_REQUEST_BYTES:
+            if parsed_length > request_limit:
                 return JSONResponse(status_code=413, content={"detail": "request too large"})
         except ValueError:
             return JSONResponse(status_code=400, content={"detail": "invalid request"})
+    chunks = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > request_limit:
+            return JSONResponse(status_code=413, content={"detail": "request too large"})
+        chunks.append(chunk)
+    # Starlette reuses this bounded cached body for downstream model parsing.
+    request._body = b"".join(chunks)
     return await call_next(request)
 
 
@@ -591,13 +606,13 @@ def match_result(
     try:
         return submit_result(data)
     except PlayerNotFoundError:
-        raise HTTPException(status_code=404, detail="player not found")
+        raise HTTPException(status_code=404, detail={"code": "MATCH_PLAYER_NOT_FOUND", "message": "player not found"})
     except MatchNotFoundError:
-        raise HTTPException(status_code=409, detail="no matching active match")
+        raise HTTPException(status_code=409, detail={"code": "MATCH_NOT_ACTIVE", "message": "no matching active match"})
     except MatchExpiredError:
-        raise HTTPException(status_code=409, detail="match has expired")
+        raise HTTPException(status_code=409, detail={"code": "MATCH_EXPIRED", "message": "match has expired"})
     except MatchValidationError:
-        raise HTTPException(status_code=400, detail="match result does not match the active match")
+        raise HTTPException(status_code=400, detail={"code": "MATCH_RESULT_REJECTED", "message": "match result could not be verified"})
 
 # =========================
 # SHOP / GEAR

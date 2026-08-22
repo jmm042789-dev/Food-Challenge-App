@@ -28,6 +28,8 @@ def active_match(*, age_seconds=0, match_id="match-a", started_at=None):
         start_datetime = NOW
     return {
         "schema_version": match_service.MATCH_SCHEMA_VERSION,
+        "validation_version": 2,
+        "match_seed": "b" * 64,
         "id": match_id,
         "device_id": "player-a",
         "contest_id": "nathans",
@@ -42,7 +44,7 @@ def active_match(*, age_seconds=0, match_id="match-a", started_at=None):
         "starting_antacid": 3,
         "equipped_gear": None,
         "perk_modifiers": dict(match_service.BASE_PERK_MODIFIERS),
-        "challenge_config": {"prize_pool": 500, "heat_per_tap": 5},
+        "challenge_config": {"prize_pool": 500, "heat_per_tap": 5, "bite_mechanic": "tap"},
         "opponent_config": {
             "seed": 123,
             "final_score": 50,
@@ -59,20 +61,30 @@ def active_match(*, age_seconds=0, match_id="match-a", started_at=None):
 
 
 def result(**overrides):
+    timestamp = 0
+    events = []
+    for index in range(60):
+        if index and index % 10 == 0:
+            timestamp += 2_500
+        timestamp += 600
+        events.append(SimpleNamespace(seq=index + 1, t_ms=timestamp, type="BITE", source="CONTROL", x=0.5, y=0.5))
+    replay = match_service.replay_input_log(active_match(age_seconds=60), events)
     values = {
         "device_id": "player-a",
         "match_id": "match-a",
         "contest_id": "nathans",
         "opponent_id": "opponent-a",
-        "score": 100,
+        "score": replay["replayed_score"],
         "opponent_score": 50,
         "duration_sec": 60,
-        "accepted_taps": 60,
-        "completed_progress": 60,
-        "maximum_combo": 20,
+        "accepted_taps": replay["accepted_taps"],
+        "completed_progress": replay["completed_progress"],
+        "maximum_combo": replay["maximum_combo"],
         "tums_used": 0,
         "completion_reason": "timer_completed",
         "is_tournament": False,
+        "validation_version": 2,
+        "input_events": events,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -171,10 +183,9 @@ class MatchLifecycleTests(unittest.TestCase):
             patch.object(match_service, "expire_stale_match", return_value=False),
             patch.object(match_service, "settle_player_match") as settle,
         ):
-            self.assertEqual(
-                match_service.submit_result(result()),
-                {"coin_reward": 50},
-            )
+            duplicate = match_service.submit_result(result())
+            self.assertEqual(duplicate["coin_reward"], 50)
+            self.assertTrue(duplicate["already_finalized"])
         settle.assert_not_called()
 
     def test_conflicting_duplicate_result_is_rejected(self):
@@ -346,17 +357,24 @@ class MatchLifecycleTests(unittest.TestCase):
         match["perk_modifiers"] = dict(
             match_service.GEAR_PERK_MODIFIERS["tap_boost"]
         )
+        events = []
+        for cycle in range(11):
+            cycle_start = cycle * 5_400
+            for offset in range(19):
+                events.append(SimpleNamespace(seq=len(events) + 1, t_ms=cycle_start + (offset + 1) * 100, type="BITE", source="CONTROL", x=0.5, y=0.5))
+        replay = match_service.replay_input_log(match, events)
         bounds, outcome = match_service._validate_result(
             match,
             result(
-                accepted_taps=600,
-                completed_progress=1100,
-                maximum_combo=599,
-                score=5000,
+                accepted_taps=replay["accepted_taps"],
+                completed_progress=replay["completed_progress"],
+                maximum_combo=replay["maximum_combo"],
+                score=replay["replayed_score"],
+                input_events=events,
             ),
             NOW,
         )
-        self.assertGreaterEqual(bounds["maximum_taps"], 600)
+        self.assertGreaterEqual(bounds["maximum_taps"], len(events))
         self.assertIn(outcome, {"accepted", "suspicious_but_accepted"})
 
     def test_impossible_taps_reject_and_close_match(self):
@@ -447,9 +465,10 @@ class MatchLifecycleTests(unittest.TestCase):
         self.assertEqual(raised.exception.reason, "impossible_progress")
 
     def test_plausible_low_activity_score_is_accepted(self):
+        events = [SimpleNamespace(seq=1, t_ms=1000, type="BITE", source="CONTROL", x=0.5, y=0.5)]
         _, outcome = match_service._validate_result(
             active_match(age_seconds=60),
-            result(score=1, accepted_taps=1, completed_progress=1, maximum_combo=0),
+            result(score=1, accepted_taps=1, completed_progress=1, maximum_combo=0, input_events=events),
             NOW,
         )
         self.assertEqual(outcome, "accepted")
@@ -569,20 +588,24 @@ class MatchLifecycleTests(unittest.TestCase):
                 return_value=settled_document,
             ) as settle,
         ):
-            response = match_service.submit_result(result(tums_used=1))
+            response = match_service.submit_result(result())
         self.assertEqual(response["coin_reward"], 500)
         self.assertEqual(response["xp_reward"], 50)
         self.assertEqual(response["new_tums"], 2)
+        self.assertTrue(response["verified"])
+        self.assertEqual(response["match_id"], "match-a")
+        self.assertFalse(response["already_finalized"])
         settle.assert_called_once()
         update = settle.call_args.args[2][0]["$set"]
         self.assertEqual(update["last_match_result"]["response"]["coin_reward"], 500)
         self.assertEqual(
             update["antacid"]["$max"][1]["$subtract"][1],
-            1,
+            0,
         )
 
     def test_server_derives_loss_from_scores_not_client_authority(self):
         match = active_match(age_seconds=60)
+        match["opponent_config"]["final_score"] = 200
         player = {
             "device_id": "player-a",
             "coins": 100,
@@ -612,12 +635,14 @@ class MatchLifecycleTests(unittest.TestCase):
             patch.object(match_service, "get_contest", return_value={"id": "nathans"}),
             patch.object(match_service, "settle_player_match", side_effect=settle),
         ):
-            match_service.submit_result(result(score=40, opponent_score=50))
+            match_service.submit_result(result(opponent_score=200))
         self.assertEqual(captured["last_match_result"]["response"]["coin_reward"], 10)
         self.assertEqual(captured["last_match_result"]["response"]["xp_reward"], 15)
 
     def test_authoritative_opponent_score_controls_tie_and_response(self):
         match = active_match(age_seconds=60)
+        replay_score = result().score
+        match["opponent_config"]["final_score"] = replay_score
         player = {
             "device_id": "player-a",
             "coins": 100,
@@ -627,8 +652,10 @@ class MatchLifecycleTests(unittest.TestCase):
             "active_match": match,
         }
         captured = {}
+        captured_update = {}
 
         def settle(_device, _match, pipeline):
+            captured_update.update(pipeline[0]["$set"])
             response = pipeline[0]["$set"]["last_match_result"]["response"]
             captured.update(response)
             return {"last_match_result": {"response": response}}
@@ -641,12 +668,14 @@ class MatchLifecycleTests(unittest.TestCase):
             patch.object(match_service, "settle_player_match", side_effect=settle),
         ):
             match_service.submit_result(
-                result(score=50, opponent_score=49)
+                result(opponent_score=replay_score)
             )
-        self.assertEqual(captured["authoritative_opponent_score"], 50)
+        self.assertEqual(captured["authoritative_opponent_score"], replay_score)
         self.assertEqual(captured["authoritative_outcome"], "tie")
         self.assertFalse(captured["won"])
         self.assertEqual(captured["coin_reward"], 10)
+        self.assertEqual(captured_update["draws"]["$add"][1], 1)
+        self.assertEqual(captured_update["losses"]["$add"][1], 0)
 
     def test_database_settlement_is_conditioned_on_player_and_active_match(self):
         collection = Mock()

@@ -1,9 +1,14 @@
 """Server-authoritative AI match lifecycle and progression updates."""
 
 import random
+import secrets
 import uuid
 import logging
 import os
+import math
+import time
+import hashlib
+import json
 from datetime import datetime, timedelta, timezone
 
 from data.contests import get_contest
@@ -31,6 +36,9 @@ from services.match_validation import (
     minimum_progress_for_taps,
     progress_epsilon,
     trusted_heat_per_tap,
+    replay_input_log,
+    InputReplayError,
+    VALIDATION_VERSION,
 )
 
 
@@ -39,9 +47,10 @@ MATCHMAKING_QUEUE_TTL_SECONDS = 2 * 60
 MATCH_SUBMISSION_GRACE_SECONDS = 2 * 60
 MATCH_START_CLOCK_TOLERANCE_SECONDS = 8
 MATCH_DURATION_TOLERANCE_SECONDS = 8
-MATCH_SCHEMA_VERSION = 3
+MATCH_SCHEMA_VERSION = 4
 logger = logging.getLogger(__name__)
 COIN_DEBUG_LOGGING = os.environ.get("FIRE_FEAST_ENV", "development").lower() == "development"
+MATCH_DIAGNOSTICS_ENABLED = os.environ.get("FIRE_FEAST_ENV", "development").lower() != "production"
 
 
 BELT_RANKS = [
@@ -253,6 +262,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
     entry_fee = int(contest.get("entry_fee", 0))
     new_coins = int(player.get("coins", 0)) - entry_fee
     match_id = str(uuid.uuid4())
+    match_seed = secrets.token_hex(32)
     opponent_seed = uuid.UUID(match_id).int & 0xFFFFFFFF
     started_at = _utc_now()
     allowed_duration = int(contest.get("duration_sec", 0))
@@ -279,6 +289,8 @@ def start_match(device_id: str, contest_id: str) -> dict:
     }
     match = {
         "schema_version": MATCH_SCHEMA_VERSION,
+        "validation_version": VALIDATION_VERSION,
+        "match_seed": match_seed,
         "id": match_id,
         "device_id": device_id,
         "player_id": player.get("player_id", device_id),
@@ -332,7 +344,15 @@ def start_match(device_id: str, contest_id: str) -> dict:
     raise MatchAlreadyActiveError
 
 
-def _fingerprint(result) -> dict:
+def _result_payload(result) -> dict:
+    input_events = [
+        {
+            "seq": event.seq,
+            "t_ms": event.t_ms,
+            "type": event.type,
+        }
+        for event in result.input_events
+    ]
     return {
         "contest_id": result.contest_id,
         "score": result.score,
@@ -345,7 +365,24 @@ def _fingerprint(result) -> dict:
         "tums_used": result.tums_used,
         "completion_reason": result.completion_reason,
         "is_tournament": result.is_tournament,
+        "validation_version": result.validation_version,
+        "input_events": input_events,
     }
+
+
+def _fingerprint(result) -> dict:
+    canonical = json.dumps(_result_payload(result), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return {
+        "version": 1,
+        "sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    }
+
+
+def _validation_telemetry(result) -> dict:
+    telemetry = _result_payload(result)
+    events = telemetry.pop("input_events")
+    telemetry["input_event_count"] = len(events)
+    return telemetry
 
 
 def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict) -> None:
@@ -357,12 +394,16 @@ def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict) ->
         now,
         rejection_reason=reason,
     )
+    safe_telemetry = {
+        key: value for key, value in telemetry.items() if key != "input_events"
+    }
+    safe_telemetry.setdefault("input_event_count", len(telemetry.get("input_events", [])))
     logger.warning(
         "Match validation player=%s match=%s outcome=rejected reason=%s telemetry=%s",
         device_id,
         active.get("id"),
         reason,
-        telemetry,
+        safe_telemetry,
     )
     raise MatchValidationError(reason)
 
@@ -420,9 +461,16 @@ def _plausibility_bounds(active: dict, result, server_elapsed: float) -> dict:
 
 
 def _validate_result(active: dict, result, now: datetime) -> tuple[dict, str]:
-    telemetry = _fingerprint(result)
+    telemetry = _validation_telemetry(result)
     if active.get("schema_version") != MATCH_SCHEMA_VERSION:
         _reject_match(result.device_id, active, "invalid_match_state", telemetry)
+    if (
+        active.get("validation_version") != VALIDATION_VERSION
+        or result.validation_version != VALIDATION_VERSION
+        or not isinstance(active.get("match_seed"), str)
+        or len(active["match_seed"]) < 64
+    ):
+        _reject_match(result.device_id, active, "invalid_validation_context", telemetry)
     if active.get("device_id") != result.device_id:
         _reject_match(result.device_id, active, "ownership_mismatch", telemetry)
     if active.get("status") != "active":
@@ -506,23 +554,43 @@ def _validate_result(active: dict, result, now: datetime) -> tuple[dict, str]:
             telemetry,
         )
 
+    try:
+        replay = replay_input_log(active, result.input_events)
+    except InputReplayError as error:
+        _reject_match(result.device_id, active, error.reason, telemetry)
+    if replay["accepted_taps"] != result.accepted_taps:
+        _reject_match(result.device_id, active, "input_count_mismatch", telemetry)
+    if replay["antacids_used"] != result.tums_used:
+        _reject_match(result.device_id, active, "antacid_count_mismatch", telemetry)
+    if replay["maximum_combo"] != result.maximum_combo:
+        _reject_match(result.device_id, active, "combo_replay_mismatch", telemetry)
+    if abs(replay["completed_progress"] - result.completed_progress) > progress_epsilon(result.accepted_taps):
+        _reject_match(result.device_id, active, "progress_replay_mismatch", telemetry)
+    score_delta = result.score - replay["replayed_score"]
+    score_tolerance = max(5, math.ceil(max(1, replay["replayed_score"]) * 0.02))
+    if abs(score_delta) > score_tolerance:
+        _reject_match(result.device_id, active, "score_replay_mismatch", telemetry)
+
     outcome = (
         "suspicious_but_accepted"
-        if bounds["maximum_score"] > 0
-        and result.score >= bounds["maximum_score"] * 0.9
+        if replay["status"] == "SUSPICIOUS" or score_delta != 0
         else "accepted"
     )
+    replay["submitted_score"] = result.score
+    replay["score_delta"] = score_delta
+    bounds["replay"] = replay
     logger.info(
         "Match validation player=%s match=%s outcome=%s duration=%s "
-        "score=%s taps=%s progress=%s bounds=%s",
+        "submitted_score=%s replayed_score=%s score_delta=%s events=%s peak_rate=%s",
         result.device_id,
         active.get("id"),
         outcome,
         result.duration_sec,
         result.score,
-        result.accepted_taps,
-        result.completed_progress,
-        bounds,
+        replay["replayed_score"],
+        score_delta,
+        replay["input_event_count"],
+        replay["peak_input_rate"],
     )
     return bounds, outcome
 
@@ -536,6 +604,17 @@ def submit_result(result) -> dict:
     requested_match_id = result.match_id
     if not requested_match_id:
         raise MatchValidationError
+    previous = player.get("last_match_result") or {}
+    if (
+        previous.get("match_id") == requested_match_id
+        and previous.get("fingerprint") == fingerprint
+    ):
+        logger.info(
+            "Match validation match_id=%s player=%s outcome=already_settled",
+            requested_match_id,
+            result.device_id,
+        )
+        return {**dict(previous["response"]), "already_finalized": True}
     if expire_stale_match(result.device_id):
         raise MatchExpiredError
     player = find_internal_player(result.device_id)
@@ -553,7 +632,7 @@ def submit_result(result) -> dict:
                 requested_match_id,
                 result.device_id,
             )
-            return dict(previous["response"])
+            return {**dict(previous["response"]), "already_finalized": True}
         lifecycle = player.get("last_match_lifecycle") or {}
         if (
             lifecycle.get("match_id") == requested_match_id
@@ -571,17 +650,23 @@ def submit_result(result) -> dict:
 
     contest = get_contest(active.get("contest_id"))
     if not contest:
-        _reject_match(result.device_id, active, "invalid_match_state", fingerprint)
-    _, validation_outcome = _validate_result(active, result, _utc_now())
+        _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
+    validation_started = time.perf_counter()
+    validation, validation_outcome = _validate_result(active, result, _utc_now())
+    replay = validation["replay"]
+    replay["validation_elapsed_ms"] = round((time.perf_counter() - validation_started) * 1000, 3)
+    accepted_score = replay["replayed_score"]
     opponent_score = authoritative_opponent_score(active)
     if opponent_score is None:
-        _reject_match(result.device_id, active, "invalid_match_state", fingerprint)
+        _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
     authoritative_outcome = (
         "win"
-        if result.score > opponent_score
-        else "tie" if result.score == opponent_score else "loss"
+        if accepted_score > opponent_score
+        else "tie" if accepted_score == opponent_score else "loss"
     )
     won = authoritative_outcome == "win"
+    lost = authoritative_outcome == "loss"
+    drawn = authoritative_outcome == "tie"
     coin_reward = int(active["challenge_config"].get("prize_pool", 0)) if won else 10
     xp_reward = 50 if won else 15
     old_xp = int(player.get("xp", 0))
@@ -589,29 +674,35 @@ def submit_result(result) -> dict:
     old_belt = belt_for_xp(old_xp)
     new_belt = belt_for_xp(new_xp)
     response = {
+        "verified": True,
+        "match_id": active["id"],
+        "already_finalized": False,
         "coin_reward": coin_reward,
         "xp_reward": xp_reward,
         "new_coins": {"$add": [{"$ifNull": ["$coins", 0]}, coin_reward]},
         "new_xp": {"$add": [{"$ifNull": ["$xp", 0]}, xp_reward]},
-        "new_best": {"$max": [{"$ifNull": ["$best_score", 0]}, result.score]},
+        "new_best": {"$max": [{"$ifNull": ["$best_score", 0]}, accepted_score]},
         "new_tums": {
-            "$max": [0, {"$subtract": [{"$ifNull": ["$antacid", 0]}, result.tums_used]}]
+            "$max": [0, {"$subtract": [{"$ifNull": ["$antacid", 0]}, replay["antacids_used"]]}]
         },
-        "accepted_score": result.score,
+        "accepted_score": accepted_score,
         "authoritative_opponent_score": opponent_score,
         "authoritative_outcome": authoritative_outcome,
         "won": won,
-        "validation_outcome": validation_outcome,
         "leveled_up": old_belt["key"] != new_belt["key"],
         "new_belt": new_belt,
     }
+    if MATCH_DIAGNOSTICS_ENABLED:
+        response["validation_outcome"] = validation_outcome
+        response["anti_cheat"] = replay
     update_pipeline = [
         {
             "$set": {
                 "coins": response["new_coins"],
                 "xp": response["new_xp"],
                 "wins": {"$add": [{"$ifNull": ["$wins", 0]}, 1 if won else 0]},
-                "losses": {"$add": [{"$ifNull": ["$losses", 0]}, 0 if won else 1]},
+                "losses": {"$add": [{"$ifNull": ["$losses", 0]}, 1 if lost else 0]},
+                "draws": {"$add": [{"$ifNull": ["$draws", 0]}, 1 if drawn else 0]},
                 "matches": {"$add": [{"$ifNull": ["$matches", 0]}, 1]},
                 "best_score": response["new_best"],
                 "antacid": response["new_tums"],
@@ -622,6 +713,7 @@ def submit_result(result) -> dict:
                     "response": response,
                     "completed_at": datetime.now(timezone.utc).isoformat(),
                     "validation_outcome": validation_outcome,
+                    "anti_cheat": replay,
                 },
                 "last_match_lifecycle": {
                     "match_id": active["id"],
@@ -635,6 +727,9 @@ def submit_result(result) -> dict:
     settled = settle_player_match(result.device_id, active["id"], update_pipeline)
     if settled:
         settled_response = dict(settled["last_match_result"]["response"])
+        settled_response.setdefault("verified", True)
+        settled_response.setdefault("match_id", requested_match_id)
+        settled_response.setdefault("already_finalized", False)
         if COIN_DEBUG_LOGGING:
             logger.info(
                 "Coin match reward player=%s reward=%s before=%s after=%s",

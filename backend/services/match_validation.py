@@ -33,6 +33,23 @@ PERFECT_COOLDOWN_HEAT_REQUIREMENT = 85
 # one-point diagnostic difference is needed for end-of-timer ordering.
 OPPONENT_SCORE_DIAGNOSTIC_TOLERANCE = 1
 
+VALIDATION_VERSION = 2
+MAX_INPUT_EVENTS = 2_000
+INVALID_INPUTS_PER_SECOND = 30
+SUSPICIOUS_INPUTS_PER_SECOND = 18
+INPUT_END_GRACE_MS = 750
+COOLING_DELAY_MS = 450
+OVERHEAT_WARNING_MS = 2_000
+OVERHEAT_RESET_HEAT = 68
+OVERHEAT_PENALTY_MS = 1_500
+REPEATED_OVERHEAT_WINDOW_MS = 5_000
+HEAT_MULTIPLIERS = {
+    "COOL": 1.0,
+    "WARM": 1.1,
+    "HOT": 1.25,
+    "CRITICAL": 1.5,
+}
+
 
 BASE_PERK_MODIFIERS = {
     "tap_power": 1.0,
@@ -65,7 +82,9 @@ FOOD_HEAT_BY_CONTEST = {
     "nathans-hotdogs": 5,
     "wing-bowl": 7,
     "pizza-hut-stuffed": 6,
-    "katz-pastrami": 7,
+    # The current client has no Katz alias and therefore resolves this contest
+    # through DEFAULT_HEARTBURN (5). Keep replay aligned without changing play.
+    "katz-pastrami": 5,
     "ben-jerry-icecream": 5,
     "in-n-out-burgers": 6,
 }
@@ -249,3 +268,236 @@ def maximum_score_for_telemetry(
 
 def minimum_progress_for_taps(accepted_taps: int, tap_power: float) -> float:
     return accepted_taps * tap_power * MIN_TAP_EFFECTIVENESS
+
+
+class InputReplayError(ValueError):
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(reason)
+
+
+def _event_value(event, key: str):
+    return event.get(key) if isinstance(event, dict) else getattr(event, key, None)
+
+
+def _finite_normalized(event, key: str):
+    value = _event_value(event, key)
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value < 0 or value > 1:
+        raise InputReplayError("invalid_input_geometry")
+    return float(value)
+
+
+def _validate_action_geometry(event, mechanic: str, contest_id: str) -> None:
+    action = _event_value(event, "type")
+    if action == "ANTACID":
+        return
+    source = _event_value(event, "source")
+    if source not in {"CONTROL", "FOOD"}:
+        raise InputReplayError("invalid_input_geometry")
+    if mechanic in {"slice", "swipe"}:
+        if action != "SLICE" or source != "CONTROL":
+            raise InputReplayError("action_mode_mismatch")
+        sx, sy = _finite_normalized(event, "start_x"), _finite_normalized(event, "start_y")
+        ex, ey = _finite_normalized(event, "end_x"), _finite_normalized(event, "end_y")
+        duration = _event_value(event, "duration_ms")
+        if not isinstance(duration, int) or isinstance(duration, bool):
+            raise InputReplayError("invalid_input_geometry")
+        distance = abs(ex - sx)
+        off_axis = abs(ey - sy) / max(distance, 0.0001)
+        is_wings = contest_id == "wing-bowl"
+        min_distance, min_duration, max_duration, max_off_axis = ((0.18, 50, 320, 0.6) if is_wings else (0.30, 140, 700, 0.75))
+        if distance < min_distance or duration < min_duration or duration > max_duration or off_axis > max_off_axis:
+            raise InputReplayError("invalid_slice_geometry")
+        return
+    if action != "BITE":
+        raise InputReplayError("action_mode_mismatch")
+    if mechanic == "hold_release":
+        if source != "CONTROL":
+            raise InputReplayError("action_mode_mismatch")
+        _finite_normalized(event, "start_x"); _finite_normalized(event, "start_y")
+        _finite_normalized(event, "end_x"); _finite_normalized(event, "end_y")
+        duration = _event_value(event, "duration_ms")
+        if not isinstance(duration, int) or isinstance(duration, bool) or duration < 300 or duration > 900:
+            raise InputReplayError("invalid_hold_geometry")
+        return
+    x, y = _finite_normalized(event, "x"), _finite_normalized(event, "y")
+    if source == "FOOD" and (((x - 0.5) / 0.5) ** 2 + ((y - 0.5) / 0.46) ** 2 > 1):
+        raise InputReplayError("outside_food_hitbox")
+
+
+def _heat_tier(heat: float) -> str:
+    if heat >= 85:
+        return "CRITICAL"
+    if heat >= 65:
+        return "HOT"
+    if heat >= 40:
+        return "WARM"
+    return "COOL"
+
+
+def replay_input_log(active: dict, events) -> dict:
+    """Replay accepted gameplay inputs using the authoritative match snapshot."""
+    if not isinstance(events, (list, tuple)) or len(events) > MAX_INPUT_EVENTS:
+        raise InputReplayError("input_log_size")
+    challenge = active.get("challenge_config") or {}
+    perk = active.get("perk_modifiers") or BASE_PERK_MODIFIERS
+    duration_ms = int(active.get("allowed_duration_sec", 0)) * 1000
+    mechanic = str(challenge.get("bite_mechanic") or "tap").lower()
+    contest_id = str(challenge.get("contest_id") or active.get("contest_id") or "")
+    expected_action = "SLICE" if mechanic in {"slice", "swipe"} else "BITE"
+    tap_power_base = float(perk.get("tap_power", 1.0))
+    combo_window_base = int(perk.get("combo_window_ms", 700))
+    score_multiplier = float(perk.get("score_multiplier", 1.0))
+    heat_generation = float(perk.get("heat_generation_multiplier", 1.0))
+    heat_per_tap = float(challenge.get("heat_per_tap", 0.0))
+    inventory = int(active.get("starting_antacid", 0))
+
+    score = 0.0
+    progress = 0.0
+    combo = 0
+    maximum_combo = 0
+    heat = 0.0
+    peak_heat = 0.0
+    antacids_used = 0
+    bite_count = 0
+    last_timestamp = -1
+    last_bite_at = None
+    last_cooling_at = 0
+    shield_until = 0
+    fresh_until = 0
+    warning_until = 0
+    penalty_until = 0
+    last_overheat_at = -10_000
+    critical_cycle = False
+    perfect_eligible = False
+    recent_inputs = []
+    peak_rate = 0
+
+    for index, event in enumerate(events):
+        seq = _event_value(event, "seq")
+        timestamp = _event_value(event, "t_ms")
+        action = _event_value(event, "type")
+        if not isinstance(seq, int) or isinstance(seq, bool) or seq != index + 1:
+            raise InputReplayError("malformed_sequence")
+        if not isinstance(timestamp, int) or isinstance(timestamp, bool):
+            raise InputReplayError("malformed_timestamp")
+        if timestamp < 0:
+            raise InputReplayError("malformed_timestamp")
+        if timestamp < last_timestamp:
+            raise InputReplayError("out_of_order_timestamp")
+        if timestamp > duration_ms + INPUT_END_GRACE_MS:
+            raise InputReplayError("action_after_match_end")
+        if action not in {"BITE", "SLICE", "ANTACID"}:
+            raise InputReplayError("unsupported_action")
+        if action != "ANTACID" and action != expected_action:
+            raise InputReplayError("action_mode_mismatch")
+        _validate_action_geometry(event, mechanic, contest_id)
+
+        recent_inputs = [value for value in recent_inputs if timestamp - value < 1000]
+        recent_inputs.append(timestamp)
+        peak_rate = max(peak_rate, len(recent_inputs))
+        if peak_rate > INVALID_INPUTS_PER_SECOND:
+            raise InputReplayError("impossible_input_rate")
+
+        if warning_until and timestamp >= warning_until:
+            combo = 0
+            last_overheat_at = warning_until
+            heat = float(OVERHEAT_RESET_HEAT)
+            # The warning window does not cool. Cooling resumes from the
+            # authoritative burnout start, matching the client's frame loop.
+            last_cooling_at = warning_until
+            penalty_until = warning_until + OVERHEAT_PENALTY_MS
+            shield_until = max(shield_until, penalty_until)
+            warning_until = 0
+            critical_cycle = False
+            perfect_eligible = False
+
+        # The client does not accept or log any action while burnout is active.
+        # Seeing one in an official log therefore proves payload manipulation;
+        # ignoring it would allow a modified client to hide invalid actions.
+        if penalty_until and timestamp < penalty_until:
+            raise InputReplayError("action_during_burnout")
+        if penalty_until and timestamp >= penalty_until:
+            penalty_until = 0
+
+        if last_bite_at is not None and not warning_until and heat > 0:
+            cooling_from = max(last_cooling_at, last_bite_at + COOLING_DELAY_MS)
+            if timestamp > cooling_from:
+                old_heat = heat
+                heat = max(0.0, heat - NATURAL_COOLING_PER_SECOND * (timestamp - cooling_from) / 1000)
+                if perfect_eligible and critical_cycle and old_heat >= 70 and heat < 70:
+                    score += PERFECT_COOLDOWN_BONUS
+                    perfect_eligible = False
+                if heat < 70 and not perfect_eligible:
+                    critical_cycle = False
+                last_cooling_at = timestamp
+
+        if action == "ANTACID":
+            if inventory <= 0 or heat <= 0 or timestamp < shield_until:
+                raise InputReplayError("invalid_antacid_use")
+            inventory -= 1
+            antacids_used += 1
+            heat = max(0.0, heat - (30 if heat >= 100 else 40))
+            shield_until = timestamp + 2_000
+            fresh_until = timestamp + 5_000
+            warning_until = 0
+            critical_cycle = False
+            perfect_eligible = False
+            last_timestamp = timestamp
+            continue
+
+        if action != expected_action:
+            raise InputReplayError("action_mode_mismatch")
+        pre_heat_effectiveness = 0.75 if heat >= 100 else 0.9 if heat >= 80 else 1.0
+        tap_power = tap_power_base * pre_heat_effectiveness
+        combo_window = round(combo_window_base * (0.85 if heat >= 100 else 1.0))
+        delta = 0 if last_bite_at is None else timestamp - last_bite_at
+        combo = combo + 1 if delta > 0 and delta <= combo_window else 0
+        maximum_combo = max(maximum_combo, combo)
+        gain = 3.0 if combo >= 20 else 2.0 if combo >= 10 else 1.5 if combo >= 5 else 1.0
+        progress = round(progress + tap_power, 6)
+        bite_count += 1
+        if timestamp >= shield_until and not warning_until:
+            old_tier = _heat_tier(heat)
+            heat = min(100.0, heat + heat_per_tap * heat_generation)
+            new_tier = _heat_tier(heat)
+            if old_tier != "CRITICAL" and new_tier == "CRITICAL":
+                critical_cycle = True
+                perfect_eligible = True
+            if heat >= 100:
+                warning_until = timestamp + OVERHEAT_WARNING_MS
+                perfect_eligible = False
+        tier_multiplier = HEAT_MULTIPLIERS["CRITICAL" if warning_until else _heat_tier(heat)]
+        overheat_score_multiplier = 0.9 if heat >= 100 else 1.0
+        fresh_multiplier = 1.1 if timestamp < fresh_until else 1.0
+        score += gain * tap_power * tier_multiplier * score_multiplier * fresh_multiplier * overheat_score_multiplier
+        peak_heat = max(peak_heat, heat)
+        last_bite_at = timestamp
+        last_cooling_at = timestamp
+        last_timestamp = timestamp
+
+    if last_bite_at is not None and not warning_until and heat > 0:
+        cooling_from = max(last_cooling_at, last_bite_at + COOLING_DELAY_MS)
+        if duration_ms > cooling_from:
+            old_heat = heat
+            heat = max(0.0, heat - NATURAL_COOLING_PER_SECOND * (duration_ms - cooling_from) / 1000)
+            if perfect_eligible and critical_cycle and old_heat >= 70 and heat < 70:
+                score += PERFECT_COOLDOWN_BONUS
+
+    flags = []
+    if peak_rate > SUSPICIOUS_INPUTS_PER_SECOND:
+        flags.append("borderline_input_rate")
+    return {
+        "validation_version": VALIDATION_VERSION,
+        "status": "SUSPICIOUS" if flags else "VALID",
+        "reason_codes": flags,
+        "input_event_count": len(events),
+        "accepted_taps": bite_count,
+        "antacids_used": antacids_used,
+        "maximum_combo": maximum_combo,
+        "completed_progress": progress,
+        "replayed_score": math.floor(score),
+        "peak_input_rate": peak_rate,
+        "peak_heat": round(peak_heat, 3),
+        "final_heat": round(heat, 3),
+    }

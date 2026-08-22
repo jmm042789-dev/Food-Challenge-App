@@ -124,6 +124,20 @@ class QueuePlayer(BaseModel):
     joined_at: float
 
 
+class MatchInputEvent(RequestModel):
+    seq: int = Field(ge=1, le=2_000, strict=True)
+    t_ms: int = Field(ge=0, le=86_400_000, strict=True)
+    type: Literal["BITE", "SLICE", "ANTACID"]
+    source: Optional[Literal["CONTROL", "FOOD"]] = None
+    x: Optional[float] = Field(default=None, ge=0, le=1, allow_inf_nan=False, strict=True)
+    y: Optional[float] = Field(default=None, ge=0, le=1, allow_inf_nan=False, strict=True)
+    start_x: Optional[float] = Field(default=None, ge=0, le=1, allow_inf_nan=False, strict=True)
+    start_y: Optional[float] = Field(default=None, ge=0, le=1, allow_inf_nan=False, strict=True)
+    end_x: Optional[float] = Field(default=None, ge=0, le=1, allow_inf_nan=False, strict=True)
+    end_y: Optional[float] = Field(default=None, ge=0, le=1, allow_inf_nan=False, strict=True)
+    duration_ms: Optional[int] = Field(default=None, ge=0, le=5_000, strict=True)
+
+
 class MatchResult(RequestModel):
     device_id: Identifier
     match_id: Identifier
@@ -143,6 +157,8 @@ class MatchResult(RequestModel):
         "other",
     ] = "timer_completed"
     is_tournament: bool = False
+    validation_version: Literal[2]
+    input_events: List[MatchInputEvent] = Field(min_length=0, max_length=2_000)
 
 
 class MatchStart(RequestModel):

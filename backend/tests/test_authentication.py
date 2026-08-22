@@ -233,6 +233,8 @@ class GuestAuthenticationTests(unittest.TestCase):
                     accepted_taps=1,
                     completed_progress=1,
                     maximum_combo=0,
+                    validation_version=2,
+                    input_events=[],
                 ),
                 None,
             ),
