@@ -739,6 +739,9 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
         "score_delta": score_delta,
         "score_tolerance": score_tolerance,
     }
+    replay_state_diagnostics = replay.get("diagnostics")
+    if isinstance(replay_state_diagnostics, dict):
+        replay_diagnostics.update(replay_state_diagnostics)
     if result.completed_progress - replay["completed_progress"] > replay_progress_epsilon:
         telemetry.update(replay_diagnostics)
         _reject_match(result.device_id, active, "progress_replay_mismatch", telemetry, request_id=request_id, started=started)
@@ -751,9 +754,11 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
         if replay["status"] == "SUSPICIOUS" or score_delta != 0
         else "accepted"
     )
-    replay["submitted_score"] = result.score
-    replay["score_delta"] = score_delta
-    bounds["replay"] = replay
+    replay_for_response = dict(replay)
+    replay_for_response.pop("diagnostics", None)
+    replay_for_response["submitted_score"] = result.score
+    replay_for_response["score_delta"] = score_delta
+    bounds["replay"] = replay_for_response
     logger.info(
         "Match validation player=%s match=%s outcome=%s duration=%s "
         "submitted_score=%s replayed_score=%s score_delta=%s events=%s peak_rate=%s",

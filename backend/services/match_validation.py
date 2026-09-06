@@ -41,6 +41,7 @@ SUSPICIOUS_INPUTS_PER_SECOND = 18
 INPUT_END_GRACE_MS = 750
 TERMINAL_BURNOUT_BOUNDARY_SKEW_MS = min(INPUT_END_GRACE_MS, 750)
 PREVIOUS_EVENT_BURNOUT_BOUNDARY_SKEW_MS = 100
+MAX_REPLAY_DIAGNOSTIC_EVENTS = 10
 COOLING_DELAY_MS = 450
 OVERHEAT_WARNING_MS = 2_000
 OVERHEAT_RESET_HEAT = 68
@@ -397,6 +398,78 @@ def _heat_tier(heat: float) -> str:
     return "COOL"
 
 
+
+
+def _empty_replay_diagnostics() -> dict:
+    return {
+        "terminal_compat_used": False,
+        "terminal_event_index": None,
+        "antacid_event_index": None,
+        "antacid_t_ms": None,
+        "fresh_until_ms": None,
+        "shield_until_ms": None,
+        "hot_tap_count": 0,
+        "critical_tap_count": 0,
+        "overheated_tap_count": 0,
+        "tap_power_bucket_counts": {},
+        "score_bucket_counts": {},
+        "warning_started_at_ms": None,
+        "burnout_started_at_ms": None,
+        "warning_transition_count": 0,
+        "burnout_transition_count": 0,
+        "event_windows": [],
+    }
+
+
+def _bucket_increment(bucket: dict, value: float) -> None:
+    key = f"{value:.3f}"
+    bucket[key] = bucket.get(key, 0) + 1
+
+
+def _diagnostic_snapshot(
+    *,
+    window: str,
+    index: int,
+    action: str,
+    timestamp: int,
+    heat_before: float,
+    heat_after: float,
+    tap_power: float | None = None,
+    progress_after: float | None = None,
+    score_after: float | None = None,
+    combo: int | None = None,
+    warning_until: int = 0,
+    penalty_until: int = 0,
+) -> dict:
+    snapshot = {
+        "window": window,
+        "event_index": index + 1,
+        "action_type": action,
+        "t_ms": timestamp,
+        "heat_before": round(heat_before, 3),
+        "heat_after": round(heat_after, 3),
+        "warning_active": bool(warning_until and timestamp < warning_until),
+        "burnout_active": bool(penalty_until and timestamp < penalty_until),
+    }
+    if tap_power is not None:
+        snapshot["tap_power"] = round(tap_power, 6)
+    if progress_after is not None:
+        snapshot["progress_after"] = round(progress_after, 6)
+    if score_after is not None:
+        snapshot["score_after"] = math.floor(score_after)
+    if combo is not None:
+        snapshot["combo"] = combo
+    return snapshot
+
+
+def _add_diagnostic_snapshot(diagnostics: dict, seen: set, snapshot: dict) -> None:
+    key = (snapshot.get("window"), snapshot.get("event_index"), snapshot.get("action_type"))
+    if key in seen or len(diagnostics["event_windows"]) >= MAX_REPLAY_DIAGNOSTIC_EVENTS:
+        return
+    seen.add(key)
+    diagnostics["event_windows"].append(snapshot)
+
+
 def replay_input_log(active: dict, events) -> dict:
     """Replay accepted gameplay inputs using the authoritative match snapshot."""
     if not isinstance(events, (list, tuple)) or len(events) > MAX_INPUT_EVENTS:
@@ -434,8 +507,14 @@ def replay_input_log(active: dict, events) -> dict:
     critical_cycle = False
     perfect_eligible = False
     terminal_burnout_boundary_skew_used = False
+    terminal_burnout_boundary_skew_event_index = None
     recent_scoring_inputs = []
     peak_rate = 0
+    diagnostics = _empty_replay_diagnostics()
+    diagnostic_seen = set()
+    previous_scoring_snapshot = None
+    antacid_following_scoring_events = 0
+    warning_following_scoring_events = 0
 
     for index, event in enumerate(events):
         seq = _event_value(event, "seq")
@@ -465,6 +544,8 @@ def replay_input_log(active: dict, events) -> dict:
                 raise InputReplayError("impossible_input_rate")
 
         if warning_until and timestamp >= warning_until:
+            diagnostics["burnout_started_at_ms"] = diagnostics["burnout_started_at_ms"] or warning_until
+            diagnostics["burnout_transition_count"] += 1
             combo = 0
             last_overheat_at = warning_until
             heat = float(OVERHEAT_RESET_HEAT)
@@ -473,6 +554,7 @@ def replay_input_log(active: dict, events) -> dict:
             last_cooling_at = warning_until
             penalty_until = warning_until + OVERHEAT_PENALTY_MS
             shield_until = max(shield_until, penalty_until)
+            diagnostics["shield_until_ms"] = shield_until or None
             warning_until = 0
             critical_cycle = False
             perfect_eligible = False
@@ -495,6 +577,11 @@ def replay_input_log(active: dict, events) -> dict:
                 already_tolerated=terminal_burnout_boundary_skew_used,
             ):
                 terminal_burnout_boundary_skew_used = True
+                terminal_burnout_boundary_skew_event_index = index + 1
+                diagnostics["terminal_compat_used"] = True
+                diagnostics["terminal_event_index"] = index + 1
+                if previous_scoring_snapshot:
+                    _add_diagnostic_snapshot(diagnostics, diagnostic_seen, dict(previous_scoring_snapshot, window="terminal"))
             else:
                 raise InputReplayError("action_during_burnout", {
                     "event_index": index + 1,
@@ -524,6 +611,7 @@ def replay_input_log(active: dict, events) -> dict:
                 last_cooling_at = timestamp
 
         if action == "ANTACID":
+            heat_before_action = heat
             if inventory <= 0 or heat <= 0 or timestamp < shield_until:
                 raise InputReplayError("invalid_antacid_use")
             inventory -= 1
@@ -531,6 +619,17 @@ def replay_input_log(active: dict, events) -> dict:
             heat = max(0.0, heat - (30 if heat >= 100 else 40))
             shield_until = timestamp + 2_000
             fresh_until = timestamp + 5_000
+            diagnostics["antacid_event_index"] = diagnostics["antacid_event_index"] or index + 1
+            diagnostics["antacid_t_ms"] = diagnostics["antacid_t_ms"] or timestamp
+            diagnostics["fresh_until_ms"] = fresh_until
+            diagnostics["shield_until_ms"] = shield_until
+            if previous_scoring_snapshot:
+                _add_diagnostic_snapshot(diagnostics, diagnostic_seen, dict(previous_scoring_snapshot, window="antacid"))
+            _add_diagnostic_snapshot(diagnostics, diagnostic_seen, _diagnostic_snapshot(
+                window="antacid", index=index, action=action, timestamp=timestamp,
+                heat_before=heat_before_action, heat_after=heat, warning_until=warning_until, penalty_until=penalty_until,
+            ))
+            antacid_following_scoring_events = 2
             warning_until = 0
             critical_cycle = False
             perfect_eligible = False
@@ -540,8 +639,16 @@ def replay_input_log(active: dict, events) -> dict:
 
         if action != expected_action:
             raise InputReplayError("action_mode_mismatch")
+        heat_before_action = heat
         pre_heat_effectiveness = 0.75 if heat >= 100 else 0.9 if heat >= 80 else 1.0
         tap_power = tap_power_base * pre_heat_effectiveness
+        if heat_before_action >= 100:
+            diagnostics["overheated_tap_count"] += 1
+        elif heat_before_action >= 85:
+            diagnostics["critical_tap_count"] += 1
+        elif heat_before_action >= 65:
+            diagnostics["hot_tap_count"] += 1
+        _bucket_increment(diagnostics["tap_power_bucket_counts"], tap_power)
         combo_window = round(combo_window_base * (0.85 if heat >= 100 else 1.0))
         delta = 0 if last_bite_at is None else timestamp - last_bite_at
         combo = combo + 1 if delta > 0 and delta <= combo_window else 0
@@ -558,11 +665,33 @@ def replay_input_log(active: dict, events) -> dict:
                 perfect_eligible = True
             if heat >= 100:
                 warning_until = timestamp + OVERHEAT_WARNING_MS
+                diagnostics["warning_started_at_ms"] = diagnostics["warning_started_at_ms"] or timestamp
+                diagnostics["warning_transition_count"] += 1
+                if previous_scoring_snapshot:
+                    _add_diagnostic_snapshot(diagnostics, diagnostic_seen, dict(previous_scoring_snapshot, window="warning"))
+                warning_following_scoring_events = 2
                 perfect_eligible = False
         tier_multiplier = HEAT_MULTIPLIERS["CRITICAL" if warning_until else _heat_tier(heat)]
         overheat_score_multiplier = 0.9 if heat >= 100 else 1.0
         fresh_multiplier = 1.1 if timestamp < fresh_until else 1.0
-        score += gain * tap_power * tier_multiplier * score_multiplier * fresh_multiplier * overheat_score_multiplier
+        score_increment = gain * tap_power * tier_multiplier * score_multiplier * fresh_multiplier * overheat_score_multiplier
+        score += score_increment
+        _bucket_increment(diagnostics["score_bucket_counts"], score_increment)
+        scoring_snapshot = _diagnostic_snapshot(
+            window="scoring", index=index, action=action, timestamp=timestamp,
+            heat_before=heat_before_action, heat_after=heat, tap_power=tap_power,
+            progress_after=progress, score_after=score, combo=combo,
+            warning_until=warning_until, penalty_until=penalty_until,
+        )
+        if antacid_following_scoring_events > 0:
+            _add_diagnostic_snapshot(diagnostics, diagnostic_seen, dict(scoring_snapshot, window="antacid"))
+            antacid_following_scoring_events -= 1
+        if warning_following_scoring_events > 0:
+            _add_diagnostic_snapshot(diagnostics, diagnostic_seen, dict(scoring_snapshot, window="warning"))
+            warning_following_scoring_events -= 1
+        if terminal_burnout_boundary_skew_event_index == index + 1:
+            _add_diagnostic_snapshot(diagnostics, diagnostic_seen, dict(scoring_snapshot, window="terminal"))
+        previous_scoring_snapshot = scoring_snapshot
         peak_heat = max(peak_heat, heat)
         last_bite_at = timestamp
         last_cooling_at = timestamp
@@ -593,4 +722,5 @@ def replay_input_log(active: dict, events) -> dict:
         "peak_input_rate": peak_rate,
         "peak_heat": round(peak_heat, 3),
         "final_heat": round(heat, 3),
+        "diagnostics": {**diagnostics, "final_heat": round(heat, 3), "peak_heat": round(peak_heat, 3)},
     }

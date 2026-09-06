@@ -328,6 +328,7 @@ class MatchAntiCheatTests(unittest.TestCase):
         self.assertEqual(first["authoritative_outcome"], "win")
         self.assertEqual(first["authoritative_opponent_score"], 50)
         self.assertEqual(first["anti_cheat"]["validation_version"], 2)
+        self.assertNotIn("diagnostics", first["anti_cheat"])
         self.assertTrue(duplicate["already_finalized"])
         self.assertEqual(len(settle_calls), 1)
 
@@ -447,6 +448,110 @@ class MatchAntiCheatTests(unittest.TestCase):
         self.assertIn("burnout_start_ms", logs)
         self.assertIn("burnout_end_ms", logs)
         self.assertIn("previous_event_delta_ms", logs)
+
+
+    def test_replay_diagnostics_summarize_heat_and_score_buckets(self):
+        events = bite_events(count=30, spacing=300)
+        replay = replay_input_log(active_match(), events)
+        diagnostics = replay["diagnostics"]
+
+        self.assertEqual(diagnostics["terminal_compat_used"], False)
+        self.assertIsNone(diagnostics["terminal_event_index"])
+        self.assertGreater(diagnostics["hot_tap_count"] + diagnostics["critical_tap_count"] + diagnostics["overheated_tap_count"], 0)
+        self.assertIn("1.000", diagnostics["tap_power_bucket_counts"])
+        self.assertTrue(diagnostics["score_bucket_counts"])
+        self.assertEqual(diagnostics["final_heat"], replay["final_heat"])
+        self.assertEqual(diagnostics["peak_heat"], replay["peak_heat"])
+        self.assertLessEqual(len(diagnostics["event_windows"]), 10)
+
+    def test_antacid_replay_diagnostics_populate_bounded_window(self):
+        events = [
+            {"seq": 1, "t_ms": 100, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+            {"seq": 2, "t_ms": 700, "type": "ANTACID"},
+            {"seq": 3, "t_ms": 900, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+            {"seq": 4, "t_ms": 1100, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+            {"seq": 5, "t_ms": 1300, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+        ]
+        replay = replay_input_log(active_match(), events)
+        diagnostics = replay["diagnostics"]
+        antacid_window = [item for item in diagnostics["event_windows"] if item["window"] == "antacid"]
+
+        self.assertEqual(diagnostics["antacid_event_index"], 2)
+        self.assertEqual(diagnostics["antacid_t_ms"], 700)
+        self.assertEqual(diagnostics["fresh_until_ms"], 5700)
+        self.assertEqual(diagnostics["shield_until_ms"], 2700)
+        self.assertEqual([item["event_index"] for item in antacid_window], [1, 2, 3, 4])
+        for item in antacid_window:
+            self.assertNotIn("x", item)
+            self.assertNotIn("y", item)
+
+    def test_no_antacid_replay_diagnostics_are_empty_without_error(self):
+        replay = replay_input_log(active_match(), bite_events(count=5, spacing=700))
+        diagnostics = replay["diagnostics"]
+
+        self.assertIsNone(diagnostics["antacid_event_index"])
+        self.assertIsNone(diagnostics["antacid_t_ms"])
+        self.assertIsNone(diagnostics["fresh_until_ms"])
+        self.assertFalse([item for item in diagnostics["event_windows"] if item["window"] == "antacid"])
+
+    def test_terminal_compatibility_diagnostics_populate_bounded_window(self):
+        replay = replay_input_log(thirty_second_active_match(), terminal_burnout_boundary_events())
+        diagnostics = replay["diagnostics"]
+        terminal_window = [item for item in diagnostics["event_windows"] if item["window"] == "terminal"]
+
+        self.assertTrue(diagnostics["terminal_compat_used"])
+        self.assertEqual(diagnostics["terminal_event_index"], 22)
+        self.assertEqual([item["event_index"] for item in terminal_window], [21, 22])
+        self.assertTrue(all("t_ms" in item for item in terminal_window))
+        self.assertLessEqual(len(diagnostics["event_windows"]), 10)
+
+    def test_progress_replay_rejection_logs_new_replay_state_diagnostics_without_raw_events(self):
+        active = active_match()
+        events = []
+        timestamp = 0
+        for index in range(20):
+            timestamp += 300
+            events.append(SimpleNamespace(seq=len(events) + 1, t_ms=timestamp, type="BITE", source="CONTROL", x=0.5, y=0.5))
+        timestamp += 300
+        events.append(SimpleNamespace(seq=len(events) + 1, t_ms=timestamp, type="ANTACID"))
+        for index in range(10):
+            timestamp += 300
+            events.append(SimpleNamespace(seq=len(events) + 1, t_ms=timestamp, type="BITE", source="CONTROL", x=0.5, y=0.5))
+        replay = replay_input_log(active, events)
+        submitted = valid_result(
+            active,
+            events,
+            completed_progress=round(replay["completed_progress"] + 0.01, 6),
+        )
+
+        with patch.object(match_service, "transition_player_match"), self.assertLogs(match_service.logger, level="WARNING") as captured:
+            with self.assertRaises(match_service.MatchValidationError) as raised:
+                match_service._validate_result(active, submitted, NOW, request_id="req-progress-details", started=0.0)
+
+        logs = " ".join(captured.output)
+        self.assertEqual(raised.exception.reason, "progress_replay_mismatch")
+        for field in (
+            "terminal_compat_used",
+            "terminal_event_index",
+            "antacid_event_index",
+            "antacid_t_ms",
+            "fresh_until_ms",
+            "shield_until_ms",
+            "hot_tap_count",
+            "critical_tap_count",
+            "overheated_tap_count",
+            "tap_power_bucket_counts",
+            "score_bucket_counts",
+            "final_heat",
+            "peak_heat",
+            "warning_started_at_ms",
+            "burnout_started_at_ms",
+            "event_windows",
+        ):
+            self.assertIn(field, logs)
+        self.assertNotIn("input_events", logs)
+        self.assertNotIn("'x':", logs)
+        self.assertNotIn("'y':", logs)
 
 if __name__ == "__main__":
     unittest.main()
