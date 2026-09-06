@@ -34,7 +34,9 @@ PERFECT_COOLDOWN_HEAT_REQUIREMENT = 85
 # one-point diagnostic difference is needed for end-of-timer ordering.
 OPPONENT_SCORE_DIAGNOSTIC_TOLERANCE = 1
 
-VALIDATION_VERSION = 2
+LEGACY_VALIDATION_VERSION = 2
+VALIDATION_VERSION = 3
+SUPPORTED_VALIDATION_VERSIONS = {LEGACY_VALIDATION_VERSION, VALIDATION_VERSION}
 MAX_INPUT_EVENTS = 2_000
 INVALID_INPUTS_PER_SECOND = 30
 SUSPICIOUS_INPUTS_PER_SECOND = 18
@@ -470,8 +472,11 @@ def _add_diagnostic_snapshot(diagnostics: dict, seen: set, snapshot: dict) -> No
     diagnostics["event_windows"].append(snapshot)
 
 
-def replay_input_log(active: dict, events) -> dict:
+def replay_input_log(active: dict, events, validation_version: int | None = None) -> dict:
     """Replay accepted gameplay inputs using the authoritative match snapshot."""
+    replay_version = validation_version if validation_version is not None else active.get("validation_version", VALIDATION_VERSION)
+    if replay_version not in SUPPORTED_VALIDATION_VERSIONS:
+        raise InputReplayError("invalid_validation_context")
     if not isinstance(events, (list, tuple)) or len(events) > MAX_INPUT_EVENTS:
         raise InputReplayError("input_log_size")
     challenge = active.get("challenge_config") or {}
@@ -528,7 +533,8 @@ def replay_input_log(active: dict, events) -> dict:
             raise InputReplayError("malformed_timestamp")
         if timestamp < last_timestamp:
             raise InputReplayError("out_of_order_timestamp")
-        if timestamp > duration_ms + INPUT_END_GRACE_MS:
+        input_end_grace_ms = INPUT_END_GRACE_MS if replay_version == LEGACY_VALIDATION_VERSION else 0
+        if timestamp > duration_ms + input_end_grace_ms:
             raise InputReplayError("action_after_match_end")
         if action not in {"BITE", "SLICE", "ANTACID"}:
             raise InputReplayError("unsupported_action")
@@ -566,7 +572,7 @@ def replay_input_log(active: dict, events) -> dict:
         # shape while preserving normal burnout rejection everywhere else.
         if penalty_until and timestamp < penalty_until:
             burnout_start = penalty_until - OVERHEAT_PENALTY_MS
-            if _is_terminal_burnout_boundary_skew(
+            if replay_version == LEGACY_VALIDATION_VERSION and _is_terminal_burnout_boundary_skew(
                 action=action,
                 timestamp=timestamp,
                 duration_ms=duration_ms,
@@ -710,7 +716,7 @@ def replay_input_log(active: dict, events) -> dict:
     if peak_rate > SUSPICIOUS_INPUTS_PER_SECOND:
         flags.append("borderline_input_rate")
     return {
-        "validation_version": VALIDATION_VERSION,
+        "validation_version": replay_version,
         "status": "SUSPICIOUS" if flags else "VALID",
         "reason_codes": flags,
         "input_event_count": len(events),

@@ -65,7 +65,7 @@ function GameLoopDebugContent() {
 
       <Pressable
         style={styles.button}
-        onPress={tap}
+        onPress={() => tap()}
       >
         <Text style={styles.buttonText}>
           TAP

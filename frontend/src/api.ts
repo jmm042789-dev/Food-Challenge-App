@@ -14,6 +14,7 @@ import {
 } from "./guestAuthDiagnostics";
 import { performLocalGuestReset } from "./guestAuthReset";
 import { pendingSessionDisposition, shouldProbePendingRecovery } from "./guestAuthStartupPolicy";
+import { isOptionalStartupRouteMissing } from "./startupReliability";
 import {
   ApiRequestError,
   readResponseRequestId,
@@ -44,6 +45,9 @@ const BASE = resolveApiBase({
 });
 const API = joinApiPath(BASE, "/api");
 const REQUEST_TIMEOUT_MS = 8000;
+export const GUEST_BOOTSTRAP_TIMEOUT_MS = 20000;
+export const PLAYER_BOOTSTRAP_TIMEOUT_MS = 18000;
+export const STARTUP_RECOVERY_TIMEOUT_MS = 12000;
 export const AUTH_IMPLEMENTATION_VERSION = "guest-auth-state-v6";
 
 // 🔥 DEBUG LOGS (A.0 sanity check)
@@ -62,6 +66,9 @@ const AUTH_TOKEN_KEY = "firefeast_auth_token";
 const LEGACY_PLAYER_ID_KEY = "chompchamps_device_id";
 const DELETION_PENDING_KEY = "firefeast_account_deletion_pending";
 const PLAYER_DATA_KEYS = [
+  "firefeast_active_match_input_log_v2",
+  "fire_feast_player_identity_v1",
+  "fire_feast_pending_social_identity_v1",
   "fire_feast_achievements_v1",
   "fire_feast_daily_missions_v1",
   "fire_feast_restaurant_progress_v1",
@@ -169,6 +176,15 @@ export class AuthenticationError extends Error {
     this.stage = stage;
     this.httpStatus = httpStatus;
     this.backendCode = backendCode;
+  }
+}
+
+export class RequestTimeoutError extends Error {
+  timeoutMs: number;
+  constructor(timeoutMs: number) {
+    super("The game service request timed out.");
+    this.name = "RequestTimeoutError";
+    this.timeoutMs = timeoutMs;
   }
 }
 
@@ -484,7 +500,7 @@ async function finishBootstrapRecovery(credentials: GuestCredentials): Promise<v
     await req("/auth/guest/complete", {
       method: "POST",
       headers: { Authorization: `Bearer ${credentials.authToken}` },
-    }, false, false);
+    }, false, false, STARTUP_RECOVERY_TIMEOUT_MS);
     await AsyncStorage.removeItem(BOOTSTRAP_COMPLETION_PENDING_KEY);
   } catch {
     // Durable bearer credentials remain valid. Retry server cleanup next launch.
@@ -517,7 +533,7 @@ async function verifyFreshBootstrapSession(
     ? "RESET_STAGE_SESSION_VERIFY"
     : "AUTH_STAGE_FRESH_SESSION_VERIFY");
   try {
-    const session = await req("/auth/session", {}, true, false) as { player_id?: unknown };
+    const session = await req("/auth/session", {}, true, false, STARTUP_RECOVERY_TIMEOUT_MS) as { player_id?: unknown };
     if (session.player_id !== credentials.playerId) {
       throw authenticationError(
         "AUTH_SESSION_VERIFY_FAILED",
@@ -546,7 +562,7 @@ async function resolvePendingRecoverySession(
   try {
     const response = await req("/auth/session", {
       headers: { Authorization: `Bearer ${authToken}` },
-    }, false, false) as { player_id?: unknown; player?: unknown };
+    }, false, false, STARTUP_RECOVERY_TIMEOUT_MS) as { player_id?: unknown; player?: unknown };
     if (typeof response.player_id !== "string" || !response.player_id.trim()) {
       throw authenticationError("AUTH_INVALID_RESPONSE", "The guest recovery session response was invalid.");
     }
@@ -632,6 +648,8 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
         }),
       },
       false,
+      false,
+      GUEST_BOOTSTRAP_TIMEOUT_MS,
     ) as GuestBootstrapResponse;
     if (
       !response?.player_id
@@ -682,7 +700,7 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
             recovery_nonce: recovery.nonce,
             new_auth_token: recovery.authToken,
           }),
-        }, false, false) as GuestRecoveryResponse;
+        }, false, false, GUEST_BOOTSTRAP_TIMEOUT_MS) as GuestRecoveryResponse;
         if (typeof recovered.player_id !== "string" || !recovered.player_id.trim()) {
           throw authenticationError("AUTH_INVALID_RESPONSE", "The guest recovery response was invalid.");
         }
@@ -838,7 +856,7 @@ async function recoverCredentialsAfterUnauthorized(
       });
     }
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), STARTUP_RECOVERY_TIMEOUT_MS);
     let response: Response;
     try {
       response = await fetch(`${API}/auth/session`, {
@@ -853,7 +871,7 @@ async function recoverCredentialsAfterUnauthorized(
       if (error instanceof Error && error.name === "AbortError") {
         throw authenticationError(
           "AUTH_NETWORK",
-          `Authentication recovery timed out after ${REQUEST_TIMEOUT_MS}ms.`,
+          "Authentication recovery timed out.",
         );
       }
       throw error;
@@ -913,6 +931,7 @@ async function req(
   opts: RequestInit = {},
   authenticated = true,
   allowAuthenticationRecovery = true,
+  requestTimeoutMs = REQUEST_TIMEOUT_MS,
 ) {
   const sequence = ++requestSequence;
   const method = (opts.method ?? "GET").toUpperCase();
@@ -924,7 +943,7 @@ async function req(
   const abortFromExternal = () => controller.abort();
   if (externalSignal?.aborted) controller.abort();
   else externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
   let url = `${API}${path}`;
   let requestPath = path;
   let status: number | "not received" = "not received";
@@ -937,6 +956,7 @@ async function req(
       : { path, opts };
     requestPath = aligned.path;
     url = `${API}${requestPath}`;
+    if (__DEV__ && requestPath === "/match/result") console.info("Result request about to fetch", { method, url });
     const res = await fetch(url, {
       ...aligned.opts,
       headers: {
@@ -951,6 +971,7 @@ async function req(
     });
 
     status = res.status;
+    if (__DEV__ && requestPath === "/match/result") console.info("Result response received", { status });
     requestId = readResponseRequestId(res);
     const text = await res.text();
     let data;
@@ -988,7 +1009,7 @@ async function req(
             credentials.playerId,
             recovered.playerId,
           );
-          return req(rewritten.path, rewritten.opts, true, false);
+          return req(rewritten.path, rewritten.opts, true, false, requestTimeoutMs);
         }
         throw new AuthenticationError(
           recoveredDeletion
@@ -1043,9 +1064,7 @@ async function req(
     const diagnosticPath = diagnosticRequestPath(requestPath);
 
     if (err?.name === "AbortError") {
-      const timeoutError = new Error(
-        `Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${diagnosticPath}`
-      );
+      const timeoutError = new RequestTimeoutError(requestTimeoutMs);
       if (__DEV__) {
         console.error("API request timed out", {
           method,
@@ -1204,7 +1223,7 @@ async function performConfirmedNewGuestReset(): Promise<unknown> {
   let session: { player_id?: unknown };
   try {
     markAuthStage("RESET_STAGE_SESSION_VERIFY");
-    session = await req("/auth/session", {}, true, false) as { player_id?: unknown };
+    session = await req("/auth/session", {}, true, false, STARTUP_RECOVERY_TIMEOUT_MS) as { player_id?: unknown };
   } catch (error) {
     throw authenticationError(
       diagnosticCodeForUnknown(error) === "AUTH_NETWORK"
@@ -1252,7 +1271,7 @@ export const api = {
   getPlayer: async () => {
     markAuthStage("AUTH_STAGE_PLAYER_VERIFY");
     const id = await getDeviceId();
-    const player = await req(`/player/${encodeURIComponent(id)}`);
+    const player = await req(`/player/${encodeURIComponent(id)}`, {}, true, true, PLAYER_BOOTSTRAP_TIMEOUT_MS);
     markAuthStage("AUTH_STAGE_AUTHENTICATED");
     return player;
   },
@@ -1327,6 +1346,65 @@ export const api = {
     });
   },
 
+  redeemPromotionCode: (code: string) => req(`/promotions/redeem`, {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  }) as Promise<{
+    status: "REDEEMED" | "ALREADY_REDEEMED";
+    campaign: string;
+    duck_number: string;
+    reward: { type: "coins"; value: number };
+    new_coins: number;
+  }>,
+
+  getPublicProfile: () => req(`/social/me`) as Promise<import("./social/types").PublicPlayerProfile>,
+
+  updatePublicProfile: (data: {
+    handle?: string;
+    display_name: string;
+    avatar: import("./profile/PlayerIdentity").AvatarConfiguration;
+  }) => req(`/social/me`, { method: "PATCH", body: JSON.stringify(data) }) as Promise<import("./social/types").PublicPlayerProfile>,
+
+  searchPlayers: (handle: string) => req(`/social/search?q=${encodeURIComponent(handle)}`) as Promise<{ players: import("./social/types").PublicPlayerProfile[] }>,
+  publicHandleAvailability: (handle: string) => req(`/social/handle/availability?q=${encodeURIComponent(handle)}`) as Promise<{ handle: string; available: boolean }>,
+  publicPlayer: (publicId: string) => req(`/social/players/${encodeURIComponent(publicId)}`) as Promise<import("./social/types").PublicPlayerProfile>,
+  friends: () => req(`/social/friends`) as Promise<import("./social/types").FriendLists>,
+  sendFriendRequest: (publicId: string) => req(`/social/friends/request`, { method: "POST", body: JSON.stringify({ public_id: publicId }) }),
+  acceptFriendRequest: (publicId: string) => req(`/social/friends/accept`, { method: "POST", body: JSON.stringify({ public_id: publicId }) }),
+  declineFriendRequest: (publicId: string) => req(`/social/friends/decline`, { method: "POST", body: JSON.stringify({ public_id: publicId }) }),
+  cancelFriendRequest: (publicId: string) => req(`/social/friends/cancel`, { method: "POST", body: JSON.stringify({ public_id: publicId }) }),
+  removeFriend: (publicId: string) => req(`/social/friends/remove`, { method: "POST", body: JSON.stringify({ public_id: publicId }) }),
+
+  pvpContests: () => req(`/pvp/contests`) as Promise<{ contests: import("./social/types").PvpContestSummary[] }>,
+  pvpChallenges: () => req(`/pvp/challenges`) as Promise<import("./social/types").PvpChallengeLists>,
+  createPvpChallenge: (recipient_public_id: string, contest_id: string) => req(`/pvp/challenges`, { method: "POST", body: JSON.stringify({ recipient_public_id, contest_id }) }) as Promise<import("./social/types").PvpChallenge>,
+  acceptPvpChallenge: (challenge_id: string) => req(`/pvp/challenges/accept`, { method: "POST", body: JSON.stringify({ challenge_id }) }) as Promise<import("./social/types").PvpMatchStatus>,
+  declinePvpChallenge: (challenge_id: string) => req(`/pvp/challenges/decline`, { method: "POST", body: JSON.stringify({ challenge_id }) }) as Promise<import("./social/types").PvpChallenge>,
+  cancelPvpChallenge: (challenge_id: string) => req(`/pvp/challenges/cancel`, { method: "POST", body: JSON.stringify({ challenge_id }) }) as Promise<import("./social/types").PvpChallenge>,
+  createPvpRematch: (match_id: string) => req(`/pvp/rematch`, { method: "POST", body: JSON.stringify({ match_id }) }) as Promise<import("./social/types").PvpChallenge>,
+  pvpRivalry: (publicId: string) => req(`/pvp/rivalry/${encodeURIComponent(publicId)}`) as Promise<import("./social/types").PvpRivalry>,
+  recentPvpOpponents: () => req(`/pvp/recent`) as Promise<{ opponents: import("./social/types").PvpRecentOpponent[] }>,
+  sendPvpQuip: (match_id: string, category: import("./social/types").PvpQuipCategory, quip_id: string, client_event_id: string) => req(`/pvp/quips`, { method: "POST", body: JSON.stringify({ match_id, category, quip_id, client_event_id }) }) as Promise<import("./social/types").PvpQuipEvent>,
+  activePvpMatch: () => req(`/pvp/matches/active`) as Promise<import("./social/types").PvpMatchStatus | { status: "absent" }>,
+  startupActivePvpMatch: async () => {
+    try {
+      return await req(`/pvp/matches/active`, {}, true, true, STARTUP_RECOVERY_TIMEOUT_MS) as import("./social/types").PvpMatchStatus | { status: "absent" };
+    } catch (error) {
+      // PvP was added after the core guest/player API. A production deployment
+      // without this optional route must not prevent a valid player from booting.
+      if (isOptionalStartupRouteMissing(error)) return { status: "absent" as const };
+      throw error;
+    }
+  },
+  pvpMatch: (matchId: string) => req(`/pvp/matches/${encodeURIComponent(matchId)}`) as Promise<import("./social/types").PvpMatchStatus>,
+  startPvpAttempt: (match_id: string) => req(`/pvp/attempt/start`, { method: "POST", body: JSON.stringify({ match_id }) }) as Promise<import("./social/types").PvpAttemptStart>,
+  submitPvpResult: async (payload: {
+    match_id: string; attempt_id: string; contest_id: string; score: number; duration_sec: number;
+    accepted_taps: number; completed_progress: number; maximum_combo: number; tums_used: number;
+    completion_reason: "timer_completed"; validation_version: 3;
+    input_events: readonly import("./game/inputLog").MatchInputEvent[];
+  }, signal?: AbortSignal) => req(`/pvp/result`, { method: "POST", signal, body: JSON.stringify(payload) }, true, true, 20_000) as Promise<import("./social/types").PvpMatchStatus>,
+
   // =========================
   // GAME DATA
   // =========================
@@ -1353,6 +1431,8 @@ export const api = {
     tums_used: number;
     completion_reason: "timer_completed" | "challenge_completed" | "player_exited" | "other";
     is_tournament?: boolean;
+    validation_version: 3;
+    input_events: readonly import("./game/inputLog").MatchInputEvent[];
   }, signal?: AbortSignal) => {
     const id = await getDeviceId();
     return req(`/match/result`, {
@@ -1363,7 +1443,7 @@ export const api = {
         is_tournament: false,
         ...payload,
       }),
-    });
+    }, true, true, 20_000);
   },
 
   activeMatch: () => req(`/match/active`) as Promise<{
@@ -1371,13 +1451,24 @@ export const api = {
     match_id?: string;
     contest_id?: string;
     started_at?: string;
+    server_time?: string;
+  }>,
+
+  startupActiveMatch: () => req(`/match/active`, {}, true, true, STARTUP_RECOVERY_TIMEOUT_MS) as Promise<{
+    status: "resumable" | "expired" | "cancelled" | "rejected" | "settled" | "absent";
+    match_id?: string;
+    contest_id?: string;
+    started_at?: string;
+    server_time?: string;
   }>,
 
   abandonMatch: () => req(`/match/abandon`, { method: "POST" }) as Promise<{
     status: "cancelled" | "expired" | "rejected" | "settled" | "absent";
   }>,
 
-  leaderboard: () => req(`/leaderboard`, {}, false),
+  leaderboard: () => req(`/leaderboard`, {}, true),
+  leaderboardContests: () => req(`/leaderboard/contests`, {}, true),
+  contestLeaderboard: (contestId: string) => req(`/leaderboard/contest/${encodeURIComponent(contestId)}`, {}, true),
 
   shop: () => req(`/shop`, {}, false),
   gear: () => req(`/gear`, {}, false),
@@ -1388,6 +1479,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ device_id: id, item_id }),
     });
+  },
+  purchaseGearSet: async (set_id: string) => {
+    const id = await getDeviceId();
+    return req(`/purchase/gear-set`, { method: "POST", body: JSON.stringify({ device_id: id, set_id }) });
   },
 
   trashTalk: (body: {

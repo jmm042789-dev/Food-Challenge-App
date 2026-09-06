@@ -154,6 +154,26 @@ class PvpPhaseThreeTests(unittest.TestCase):
         validated = pvp._validate_attempt(active, result, datetime.now(timezone.utc), "private-a")
         self.assertEqual(validated["replayed_score"], replay["replayed_score"]); self.assertIn(validated["status"], {"VALID", "SUSPICIOUS"})
 
+    def test_attempt_validation_version_must_match_active_attempt(self):
+        now = datetime.now(timezone.utc)
+        active_v2 = active_match(); active_v2["id"] = "pva_test"; active_v2["device_id"] = "private-a"
+        active_v2["started_at"] = (now - timedelta(seconds=active_v2["allowed_duration_sec"])).isoformat()
+        active_v2["expires_at"] = (now + timedelta(minutes=2)).isoformat()
+        active_v3 = copy.deepcopy(active_v2)
+        active_v3["validation_version"] = pvp.VALIDATION_VERSION
+
+        def result_for(active, version=None):
+            replay = pvp.replay_input_log(active, bite_events())
+            return PvpAttemptResult(match_id="pvm_test", attempt_id="pva_test", contest_id=active["contest_id"], score=replay["replayed_score"], duration_sec=active["allowed_duration_sec"], accepted_taps=replay["accepted_taps"], completed_progress=replay["completed_progress"], maximum_combo=replay["maximum_combo"], tums_used=replay["antacids_used"], validation_version=version or active["validation_version"], input_events=event_payloads())
+
+        self.assertEqual(pvp._validate_attempt(active_v2, result_for(active_v2), now, "private-a")["validation_version"], 2)
+        self.assertEqual(pvp._validate_attempt(active_v3, result_for(active_v3), now, "private-a")["validation_version"], pvp.VALIDATION_VERSION)
+
+        with self.assertRaisesRegex(pvp.PvpError, "PVP_VALIDATION_CONTEXT_INVALID"):
+            pvp._validate_attempt(active_v2, result_for(active_v2, pvp.VALIDATION_VERSION), now, "private-a")
+        with self.assertRaisesRegex(pvp.PvpError, "PVP_VALIDATION_CONTEXT_INVALID"):
+            pvp._validate_attempt(active_v3, result_for(active_v3, 2), now, "private-a")
+
     def test_score_tampering_becomes_invalid_and_cannot_win(self):
         active = active_match(); active["id"] = "pva_test"; active["device_id"] = "private-a"
         active["started_at"] = (datetime.now(timezone.utc) - timedelta(seconds=active["allowed_duration_sec"])).isoformat(); active["expires_at"] = (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat()

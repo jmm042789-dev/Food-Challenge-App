@@ -3,6 +3,7 @@ import { AccessibilityInfo, Alert, Animated, AppState, Easing, Image, StyleSheet
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { api, type Contest, parseContests } from "../../src/api";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
@@ -20,8 +21,6 @@ import FireButton from "../../src/components/fire/FireButton";
 import FireEmptyState from "../../src/components/fire/FireEmptyState";
 import FireLoading from "../../src/components/fire/FireLoading";
 import HeatScreenOverlay from "../../src/game/ui/HeatScreenOverlay";
-import HeatTierBanner from "../../src/game/ui/HeatTierBanner";
-import AntacidCoolingFeedback from "../../src/game/ui/AntacidCoolingFeedback";
 import HeatPresentationOverlay from "../../src/game/ui/HeatPresentationOverlay";
 import CameraController, { type CameraControllerHandle } from "../../src/game/CameraController";
 import { getFoodProfile } from "../../src/game/food/FoodProfiles";
@@ -39,6 +38,7 @@ import { beltForXp } from "../../src/ranks";
 import ArenaEffects from "../../src/game/arena/ArenaEffects";
 import { resolveArenaTheme, useArenaAtmosphere } from "../../src/game/arena/ArenaAtmosphere";
 import CommentaryOverlay from "../../src/game/commentary/CommentaryOverlay";
+import { PvpInGameQuickChat } from "../../src/social/PvpQuickChat";
 import { useCommentaryEngine } from "../../src/game/commentary/CommentaryEngine";
 import { useAdaptiveAudio } from "../../src/audio/useAdaptiveAudio";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,8 +53,15 @@ import {
 } from "../../src/game/authoritativeOpponent";
 import type { Opponent } from "../../src/game/ai/types";
 import { initialResultFlow, transitionResultFlow } from "../../src/game/resultFlow";
-import { RESULT_VERIFICATION_TIMEOUT_MS, RESULT_VERIFICATION_UI_TOLERANCE_MS, ResultVerificationTimeoutError, ResultVerificationUnavailableError, remainingResultDeadlineMs, verifyResultWithTimeout } from "../../src/game/resultVerification";
+import { RESULT_VERIFICATION_TIMEOUT_MS, RESULT_VERIFICATION_UI_TOLERANCE_MS, ResultResponseInvalidError, ResultVerificationTimeoutError, ResultVerificationUnavailableError, classifyResultFailure, publicResultDiagnosticCode, remainingResultDeadlineMs, safeResultBackendCode, verifyResultWithTimeout } from "../../src/game/resultVerification";
 import { requestIdForError } from "../../src/requestDiagnostics";
+import { createResultSubmissionCoordinator } from "../../src/game/resultSubmission";
+import { createInputLogBuffer, hasValidInputEvidence, type MatchInputType } from "../../src/game/inputLog";
+import type { GameplayInputEvidence } from "../../src/game/inputContract";
+import { createActiveMatchInputLogPersistence } from "../../src/game/activeMatchInputLog";
+import type { GameplayRecoveryState } from "../../src/game/useGameLoop";
+import { DEFAULT_IDENTITY } from "../../src/profile/PlayerIdentity";
+import { usePlayerIdentity } from "../../src/profile/PlayerIdentityContext";
 
 const ANTACID_ICON = require("../../src/assets/icons/antacid.png");
 
@@ -62,12 +69,16 @@ export default function ContestScreen() {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { preferences } = useAppPreferences();
+  const { identity, hydrated: identityHydrated } = usePlayerIdentity();
+  const presentationIdentity = identity ?? DEFAULT_IDENTITY;
   const router = useRouter();
-  const { contestId, replay: replayParam, tournament: tournamentParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[]; tournament?: string | string[] }>();
+  const { contestId, replay: replayParam, tournament: tournamentParam, pvpMatch: pvpMatchParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[]; tournament?: string | string[]; pvpMatch?: string | string[] }>();
   const selectedContestId = Array.isArray(contestId) ? contestId[0] : contestId ?? "";
   const replayToken = Array.isArray(replayParam) ? replayParam[0] : replayParam ?? "";
   const tournamentOccurrenceId = Array.isArray(tournamentParam) ? tournamentParam[0] : tournamentParam ?? "";
-  const matchRouteKey = `${selectedContestId}:${replayToken}:${tournamentOccurrenceId}`;
+  const pvpMatchId = Array.isArray(pvpMatchParam) ? pvpMatchParam[0] : pvpMatchParam ?? "";
+  const isPvp = Boolean(pvpMatchId);
+  const matchRouteKey = `${selectedContestId}:${replayToken}:${tournamentOccurrenceId}:${pvpMatchId}`;
   const [contest, setContest] = useState<Contest | null>(null);
   const [contestLoaded, setContestLoaded] = useState(false);
   const [matchStartError, setMatchStartError] = useState(false);
@@ -75,9 +86,10 @@ export default function ContestScreen() {
   const [matchStartAttempt, setMatchStartAttempt] = useState(0);
   const [playerAntacidCount, setPlayerAntacidCount] = useState<number | undefined>(undefined);
   const [equippedGear, setEquippedGear] = useState<string | null>(null);
+  const [authoritativeGearModifiers, setAuthoritativeGearModifiers] = useState<null | { tapPower: number; comboWindowMs: number; scoreMultiplier: number; heatGenerationMultiplier: number }>(null);
   const [authoritativeOpponent, setAuthoritativeOpponent] = useState<Opponent | null>(null);
   const [authoritativeOpponentConfig, setAuthoritativeOpponentConfig] = useState<AuthoritativeOpponentConfig | null>(null);
-  const [introPlayer, setIntroPlayer] = useState({ name: "Hungry Hero", rank: beltForXp(0).name, title: undefined as string | undefined });
+  const [introPlayer, setIntroPlayer] = useState({ rank: beltForXp(0).name, title: undefined as string | undefined });
   const matchDurationSeconds = resolveContestDurationSeconds(contest);
   const foodProfile = useMemo(
     () => getFoodProfile(selectedContestId, contest?.food),
@@ -106,11 +118,14 @@ export default function ContestScreen() {
   applyAntacid,
   presentationEvents,
   matchStats,
+  captureRecoveryState,
+  resumeGame,
 } = useGameLoop({
   duration: matchDurationSeconds,
   matchKey: matchRouteKey,
   antacidCount: playerAntacidCount,
-  equippedGear,
+    equippedGear,
+    authoritativeGearModifiers,
   opponent: authoritativeOpponent,
   opponentConfig: authoritativeOpponentConfig,
 
@@ -131,7 +146,6 @@ export default function ContestScreen() {
   const [comboLabel, setComboLabel] = useState("COMBO");
   const [highestCombo, setHighestCombo] = useState(0);
   const [matchTime, setMatchTime] = useState(0);
-  const [nextContestId, setNextContestId] = useState<string | null>(null);
   const [roundLabel, setRoundLabel] = useState("WORLD TOUR EVENT");
   const [coolingTrigger, setCoolingTrigger] = useState(0);
   const [antacidAcknowledging, setAntacidAcknowledging] = useState(false);
@@ -143,6 +157,8 @@ export default function ContestScreen() {
     coins: number;
     xp: number;
     totalXp: number;
+    totalCoins: number;
+    antacid: number;
     won: boolean;
     acceptedScore: number;
     opponentScore: number;
@@ -166,15 +182,34 @@ export default function ContestScreen() {
   const scoreFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const serverOpponentId = useRef<string | null>(null);
   const serverMatchId = useRef<string | null>(null);
+  const pvpAttemptId = useRef<string | null>(null);
   const resultRequestInFlight = useRef(false);
   const abandonRequestInFlight = useRef(false);
   const resultNavigationInFlight = useRef(false);
   const submittedResultKey = useRef<string | null>(null);
   const resultAttemptGeneration = useRef(0);
   const resultAbortController = useRef<AbortController | null>(null);
+  const resultSubmission = useRef(createResultSubmissionCoordinator((payload, signal) => isPvp
+    ? api.submitPvpResult({
+      match_id: pvpMatchId,
+      attempt_id: pvpAttemptId.current ?? "missing",
+      contest_id: payload.contest_id,
+      score: payload.score,
+      duration_sec: payload.duration_sec,
+      accepted_taps: payload.accepted_taps,
+      completed_progress: payload.completed_progress,
+      maximum_combo: payload.maximum_combo,
+      tums_used: payload.tums_used,
+      completion_reason: "timer_completed",
+      validation_version: 3,
+      input_events: payload.input_events,
+    }, signal)
+    : api.submitResult(payload, signal))).current;
+  const inputLog = useRef(createInputLogBuffer()).current;
+  const inputLogPersistence = useRef(createActiveMatchInputLogPersistence(AsyncStorage)).current;
+  const pendingGameplayRecovery = useRef<{ state: GameplayRecoveryState; elapsedMs: number } | null>(null);
   const previousStatus = useRef(state.status);
   const lastCameraCombo = useRef(state.combo);
-  const lastBiteHapticAt = useRef(0);
   const missionRecordedMatch = useRef<string | null>(null);
   const achievementMatchEventId = useRef(`${matchRouteKey}:${Date.now()}:${Math.random().toString(36).slice(2)}`);
   const arenaTheme = useMemo(
@@ -212,10 +247,19 @@ export default function ContestScreen() {
   const activeResultKey = useRef(matchRouteKey);
 
   useEffect(() => {
-    if (!contestLoaded || started.current) return;
+    if (!contestLoaded || !identityHydrated || started.current) return;
     started.current = true;
+    const pending = pendingGameplayRecovery.current;
+    pendingGameplayRecovery.current = null;
+    if (pending) {
+      if (!resumeGame(pending.state, pending.elapsedMs)) {
+        setMatchStartFailureMessage("This recovered match could not be resumed safely.");
+        setMatchStartError(true);
+      }
+      return;
+    }
     startMatchIntro();
-  }, [contestLoaded, startMatchIntro]);
+  }, [contestLoaded, identityHydrated, resumeGame, startMatchIntro]);
 
   useEffect(() => {
     if (!feedbackText) return;
@@ -228,9 +272,11 @@ export default function ContestScreen() {
     if (!newEvents.length) return;
     lastHeatPresentationId.current = newEvents[newEvents.length - 1].id;
     if (newEvents.some((event) => event.type === "OVERHEAT_WARNING_STARTED") && hapticsEnabled && !reducedMotion) {
+      void playAudioEvent("HEAT_WARNING");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     }
     if (newEvents.some((event) => event.type === "OVERHEATED")) {
+      void playAudioEvent("BURNOUT");
       cameraRef.current?.shake(5);
       if (hapticsEnabled && !reducedMotion) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
@@ -238,6 +284,8 @@ export default function ContestScreen() {
       void playAudioEvent("PERFECT_MECHANIC");
       if (hapticsEnabled && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
+    if (newEvents.some((event) => event.type === "ANTACID_SAVE")) void playAudioEvent("ANTACID_SAVE");
+    if (newEvents.some((event) => event.type === "OVERHEAT_PENALTY_ENDED")) void playAudioEvent("RECOVERY");
   }, [hapticsEnabled, playAudioEvent, presentationEvents, reducedMotion]);
 
   useEffect(() => () => {
@@ -246,7 +294,8 @@ export default function ContestScreen() {
     resultAbortController.current = null;
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
-  }, []);
+    void inputLogPersistence.flush(inputLog, captureRecoveryState(inputLog.elapsed()));
+  }, [captureRecoveryState, inputLog, inputLogPersistence]);
 
   useEffect(() => {
     setHighestCombo((current) => Math.max(current, state.combo));
@@ -316,11 +365,16 @@ export default function ContestScreen() {
     activeResultKey.current = matchRouteKey;
     serverOpponentId.current = null;
     serverMatchId.current = null;
+    pvpAttemptId.current = null;
     resultRequestInFlight.current = false;
     submittedResultKey.current = null;
     resultAttemptGeneration.current += 1;
     resultAbortController.current?.abort();
     resultAbortController.current = null;
+    resultSubmission.clear();
+    inputLog.clear();
+    inputLogPersistence.cancel();
+    pendingGameplayRecovery.current = null;
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
     antacidAcknowledgementTimer.current = null;
     setAntacidAcknowledging(false);
@@ -328,7 +382,10 @@ export default function ContestScreen() {
     setResultTournament(null);
     setResultReward(null);
     dispatchResultFlow({ type: "RESET" });
-  }, [matchDurationSeconds, matchRouteKey]);
+    // Contest data resolves asynchronously after match start. A duration change
+    // must not reset the server IDs for the active route.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchRouteKey]);
 
   useEffect(() => {
     if (state.status === "FINISHED") dispatchResultFlow({ type: "FINISH" });
@@ -378,6 +435,7 @@ export default function ContestScreen() {
     if (resultFlow.phase !== "SUBMITTING_RESULT" || submittedResultKey.current === matchRouteKey || resultRequestInFlight.current) return;
     const opponentId = serverOpponentId.current;
     const matchId = serverMatchId.current;
+    if (__DEV__) console.info("Result verification coordinator entered", { attempt: resultFlow.attempt, hasMatchId: Boolean(matchId), hasOpponentId: Boolean(opponentId), hasPayload: resultSubmission.hasPayload(), submissionInFlight: resultRequestInFlight.current });
     if (!opponentId || !matchId) {
       dispatchResultFlow({ type: "REJECT", generation: resultFlow.generation, reason: "MATCH_CONTEXT_MISSING", error: new ResultVerificationUnavailableError() });
       return;
@@ -392,7 +450,9 @@ export default function ContestScreen() {
       ? matchDurationSeconds
       : Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000));
     const requestTimeoutMs = resultFlow.deadlineAt === null ? RESULT_VERIFICATION_TIMEOUT_MS : remainingResultDeadlineMs(resultFlow.deadlineAt);
-    void verifyResultWithTimeout((signal) => api.submitResult({
+    const finalizedInputEvents = inputLog.finish();
+    void inputLogPersistence.flush(inputLog, captureRecoveryState(inputLog.elapsed()), true);
+    const completedPayload = resultSubmission.preserve({
       match_id: matchId,
       contest_id: selectedContestId,
       score: state.score,
@@ -405,16 +465,32 @@ export default function ContestScreen() {
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
       completion_reason: "timer_completed",
       is_tournament: Boolean(tournamentOccurrenceId),
-    }, signal), requestTimeoutMs, attemptController).then((response) => {
+      validation_version: 3,
+      input_events: finalizedInputEvents,
+    });
+    if (__DEV__) console.info("Completed result payload ready", { hasPreservedPayload: resultSubmission.hasPayload(), payloadFrozen: Object.isFrozen(completedPayload), retryReusedPreservedPayload: resultFlow.attempt > 1 });
+    void verifyResultWithTimeout((signal) => {
+      if (__DEV__) console.info("Invoking result API", { submitResultCalled: true, attempt: resultFlow.attempt, retryReusedPreservedPayload: resultFlow.attempt > 1 });
+      return resultSubmission.submit(signal);
+    }, requestTimeoutMs, attemptController).then((response) => {
       if (attemptGeneration !== resultAttemptGeneration.current || activeResultKey.current !== matchRouteKey) return;
+      if (isPvp) {
+        submittedResultKey.current = matchRouteKey;
+        void inputLogPersistence.clear();
+        router.replace(`/pvp/match/${encodeURIComponent(pvpMatchId)}` as never);
+        return;
+      }
       const reward = response as {
         coin_reward?: unknown;
         xp_reward?: unknown;
         new_xp?: unknown;
+        new_coins?: unknown;
+        new_tums?: unknown;
         won?: unknown;
         accepted_score?: unknown;
         authoritative_opponent_score?: unknown;
         authoritative_outcome?: unknown;
+        anti_cheat?: Record<string, unknown>;
       };
       if (
         typeof reward.coin_reward !== "number"
@@ -423,6 +499,10 @@ export default function ContestScreen() {
         || !Number.isFinite(reward.xp_reward)
         || typeof reward.new_xp !== "number"
         || !Number.isFinite(reward.new_xp)
+        || typeof reward.new_coins !== "number"
+        || !Number.isFinite(reward.new_coins)
+        || typeof reward.new_tums !== "number"
+        || !Number.isFinite(reward.new_tums)
         || typeof reward.won !== "boolean"
         || typeof reward.accepted_score !== "number"
         || !Number.isFinite(reward.accepted_score)
@@ -430,43 +510,69 @@ export default function ContestScreen() {
         || !Number.isFinite(reward.authoritative_opponent_score)
         || !["win", "loss", "tie"].includes(String(reward.authoritative_outcome))
       ) {
-        throw new Error("Match reward response was invalid.");
+        throw new ResultResponseInvalidError();
       }
       const officialResult = {
         coins: Math.max(0, reward.coin_reward),
         xp: Math.max(0, reward.xp_reward),
         totalXp: Math.max(0, reward.new_xp),
+        totalCoins: Math.max(0, reward.new_coins),
+        antacid: Math.max(0, reward.new_tums),
         won: reward.won,
         acceptedScore: Math.max(0, reward.accepted_score),
         opponentScore: Math.max(0, reward.authoritative_opponent_score),
         outcome: reward.authoritative_outcome as "win" | "loss" | "tie",
       };
+      if (__DEV__ && reward.anti_cheat) {
+        const audit = reward.anti_cheat;
+        console.info("Match replay diagnostics", {
+          validationStatus: audit.status,
+          validationReasons: audit.reason_codes,
+          eventCount: audit.input_event_count,
+          peakInputRate: audit.peak_input_rate,
+          replayScore: audit.replayed_score,
+          submittedScore: audit.submitted_score,
+          scoreDelta: audit.score_delta,
+          replayCombo: audit.maximum_combo,
+          peakHeat: audit.peak_heat,
+          validationElapsedMs: audit.validation_elapsed_ms,
+        });
+      }
       setResultReward(officialResult);
+      setPlayerAntacidCount(officialResult.antacid);
+      void inputLogPersistence.clear();
       submittedResultKey.current = matchRouteKey;
       dispatchResultFlow({ type: "ACCEPT", generation: resultFlow.generation, result: officialResult });
     }).catch((error: unknown) => {
       if (attemptGeneration !== resultAttemptGeneration.current || activeResultKey.current !== matchRouteKey) return;
+      const diagnosticCode = classifyResultFailure(error);
       if (__DEV__) console.error("Result verification failed", {
         phase: "RESULT_ERROR",
         route: "/match/result",
         status: error && typeof error === "object" && "status" in error ? error.status : "not received",
-        code: error && typeof error === "object" && "code" in error ? error.code : null,
+        diagnosticClass: diagnosticCode,
+        safeCode: publicResultDiagnosticCode(error),
+        backendCode: safeResultBackendCode(error),
         requestId: requestIdForError(error, null),
         elapsedMs: Date.now() - verificationStartedAt,
         attempt: resultFlow.attempt,
         matchState: state.status,
       });
-      dispatchResultFlow({ type: "REJECT", generation: resultFlow.generation, reason: error instanceof ResultVerificationTimeoutError ? "REQUEST_TIMEOUT" : "REQUEST_FAILED", error });
+      dispatchResultFlow({ type: "REJECT", generation: resultFlow.generation, reason: diagnosticCode, error });
     }).finally(() => {
       if (attemptGeneration === resultAttemptGeneration.current) {
         resultRequestInFlight.current = false;
         resultAbortController.current = null;
       }
     });
-  }, [antacidCount, highestCombo, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, tournamentOccurrenceId]);
+  }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active" && (state.status === "COUNTDOWN" || state.status === "PLAYING")) {
+        void inputLogPersistence.flush(inputLog, captureRecoveryState(inputLog.elapsed()));
+        return;
+      }
       if (nextState !== "active" || (state.status !== "COUNTDOWN" && state.status !== "PLAYING")) return;
       void api.activeMatch().then((recovery) => {
         if (
@@ -480,7 +586,12 @@ export default function ContestScreen() {
       });
     });
     return () => subscription.remove();
-  }, [state.status]);
+  }, [captureRecoveryState, inputLog, inputLogPersistence, state.status]);
+
+  useEffect(() => {
+    if (state.status !== "PLAYING") return;
+    inputLogPersistence.schedule(inputLog, () => captureRecoveryState(inputLog.elapsed()));
+  }, [captureRecoveryState, inputLog, inputLogPersistence, state.acceptedTapCount, state.antacidCount, state.status]);
 
   useEffect(() => {
     const priorStatus = previousArenaStatus.current;
@@ -677,13 +788,15 @@ export default function ContestScreen() {
 
   useEffect(() => {
     if (state.status === "PLAYING" && matchStartedAt.current === null) {
-      matchStartedAt.current = Date.now();
+      const originNow = Date.now();
+      matchStartedAt.current = originNow;
+      inputLog.start(matchDurationSeconds * 1000, originNow);
     }
 
     if (state.status === "FINISHED" && matchStartedAt.current !== null) {
       setMatchTime(Math.max(1, Math.round((Date.now() - matchStartedAt.current) / 1000)));
     }
-  }, [state.status]);
+  }, [inputLog, matchDurationSeconds, state.status]);
 
   useEffect(() => {
     let active = true;
@@ -720,10 +833,10 @@ export default function ContestScreen() {
           best_score?: number;
           coins?: number;
         };
-        if (Number(player.coins ?? 0) < selectedContest.entry_fee) {
+        if (!isPvp && Number(player.coins ?? 0) < selectedContest.entry_fee) {
           throw new Error("Not enough coins for this contest");
         }
-        const activeMatch = await api.activeMatch();
+        const activeMatch = isPvp ? { status: "absent" as const } : await api.activeMatch();
         if (
           activeMatch.status === "resumable"
           && activeMatch.contest_id
@@ -733,21 +846,29 @@ export default function ContestScreen() {
         }
         // startMatch is idempotent for the same contest and returns the original
         // opponent/start payload needed to resume without creating a new match.
-        const match = await api.startMatch(selectedContestId);
-        const parsedOpponent = parseAuthoritativeOpponent(match?.opponent_config);
+        const match = isPvp ? await api.startPvpAttempt(pvpMatchId) : await api.startMatch(selectedContestId);
+        const parsedOpponent = isPvp ? {
+          opponent: {
+            id: match.opponent.public_id, name: match.opponent.display_name, avatar: "VS", level: match.opponent.level,
+            difficulty: "Medium" as const, personality: "Balanced" as const, speed: 1, accuracy: 1,
+            comboChance: 0, mistakeChance: 0, aggression: .5, rewardCoins: 0, rewardXP: 0,
+          },
+          config: { seed: 0, finalScore: 0, pacePerSec: 0, durationSec: match.authoritative_duration_sec },
+        } : parseAuthoritativeOpponent(match?.opponent_config);
         if (!parsedOpponent) throw new Error("Match opponent response was incomplete");
 
         if (active) {
           const inventory = Number(match?.player_tums);
           if (Number.isFinite(inventory)) setPlayerAntacidCount(Math.max(0, Math.floor(inventory)));
           setEquippedGear(typeof match?.equipped_gear === "string" ? match.equipped_gear : null);
+          const modifiers = match?.perk_modifiers;
+          setAuthoritativeGearModifiers(modifiers ? { tapPower: Number(modifiers.tap_power ?? 1), comboWindowMs: Number(modifiers.combo_window_ms ?? 700), scoreMultiplier: Number(modifiers.score_multiplier ?? 1), heatGenerationMultiplier: Number(modifiers.heat_generation_multiplier ?? 1) } : null);
           setAuthoritativeOpponent(parsedOpponent.opponent);
           setAuthoritativeOpponentConfig(parsedOpponent.config);
           playerBestScore.current = Math.max(0, Number(player.best_score) || 0);
           setPlayerXp(Math.max(0, Number(player.xp) || 0));
           const equippedTitleId = titleResult.status === "fulfilled" ? titleResult.value.equippedTitleId : null;
           setIntroPlayer({
-            name: player.username?.trim() || "Hungry Hero",
             rank: beltForXp(Number(player.xp || 0)).name,
             title: equippedTitleId ? TITLE_BY_ID.get(equippedTitleId)?.displayName : undefined,
           });
@@ -762,21 +883,49 @@ export default function ContestScreen() {
               ? authoritativeContest as Contest
               : contests[contestIndex],
           );
-          setNextContestId(contests[contestIndex + 1]?.id ?? null);
           setRoundLabel(`ROUND ${contestIndex + 1}`);
         }
         if (active) {
-          const opponentId = String(match?.opponent?.id ?? "");
+          const opponentId = String(isPvp ? match?.opponent?.public_id : match?.opponent?.id ?? "");
           const matchId = String(match?.match_id ?? "");
           if (!opponentId || !matchId) throw new Error("Match start response was incomplete");
           serverOpponentId.current = opponentId;
           serverMatchId.current = matchId;
+          pvpAttemptId.current = isPvp ? String(match?.attempt_id ?? "") : null;
+          const serverStartedAt = activeMatch.status === "resumable"
+            ? activeMatch.started_at
+            : String(match?.server_started_at ?? "");
+          const serverTime = activeMatch.status === "resumable"
+            ? activeMatch.server_time
+            : String(match?.server_time ?? match?.server_started_at ?? "");
+          const persistenceMatchId = isPvp ? String(match?.attempt_id ?? "") : matchId;
+          if (!persistenceMatchId) throw new Error("PvP attempt identity was missing");
+          const recovery = await inputLogPersistence.bind({
+            matchId: persistenceMatchId,
+            contestId: selectedContestId,
+            serverStartedAt: String(serverStartedAt ?? ""),
+            serverTime: String(serverTime ?? ""),
+            durationMs: resolveContestDurationSeconds(match?.contest ?? selectedContest) * 1000,
+          }, inputLog);
+          if (recovery.status === "unsafe" || (activeMatch.status === "resumable" && recovery.status !== "restored")) {
+            throw new Error("The active match input history could not be recovered safely.");
+          }
+          if (recovery.status === "restored") {
+            if (recovery.finalized || !recovery.gameplayState || typeof recovery.authoritativeElapsedMs !== "number") {
+              throw new Error("The completed match must be retried from its existing result state.");
+            }
+            pendingGameplayRecovery.current = {
+              state: recovery.gameplayState as GameplayRecoveryState,
+              elapsedMs: recovery.authoritativeElapsedMs,
+            };
+            const recoveryOrigin = typeof recovery.localOrigin === "number" ? recovery.localOrigin : Date.now();
+            matchStartedAt.current = recoveryOrigin - recovery.authoritativeElapsedMs;
+          }
           setContestLoaded(true);
         }
       } catch (error: unknown) {
         if (active) {
           setContest(null);
-          setNextContestId(null);
           setRoundLabel("WORLD TOUR EVENT");
           setMatchStartFailureMessage(playerFacingErrorMessage(error));
           setMatchStartError(true);
@@ -789,20 +938,25 @@ export default function ContestScreen() {
     return () => {
       active = false;
     };
-  }, [matchRouteKey, matchStartAttempt, selectedContestId]);
+  }, [inputLog, inputLogPersistence, isPvp, matchRouteKey, matchStartAttempt, pvpMatchId, selectedContestId]);
 
-  const handleTap = useCallback(() => {
+  const handleTap = useCallback((evidence: GameplayInputEvidence) => {
+    const actionNow = Date.now();
     const { commentate: commentateLatest, combo, playAudioEvent: playAudioEventLatest, status, tap: tapLatest } = arenaCallbacksRef.current;
     if (status !== "PLAYING") return null;
-    const acceptedActionSequence = tapLatest();
+    const elapsedMs = matchStartedAt.current === null ? 0 : actionNow - matchStartedAt.current;
+    if (matchStartedAt.current !== null && elapsedMs > matchDurationSeconds * 1000) return null;
+    inputLog.start(matchDurationSeconds * 1000, matchStartedAt.current ?? actionNow);
+    if (!inputLog.canRecord()) return null;
+    const mechanic = String(contest?.bite_mechanic ?? "").toLowerCase();
+    const actionType: MatchInputType = mechanic === "slice" || mechanic === "swipe" ? "SLICE" : "BITE";
+    if (!hasValidInputEvidence({ type: actionType, ...evidence })) return null;
+    const acceptedActionSequence = tapLatest(actionNow);
     if (acceptedActionSequence === null) return null;
+    if (!inputLog.record(actionType, evidence, actionNow)) return null;
+    inputLogPersistence.schedule(inputLog, () => captureRecoveryState(inputLog.elapsed()));
     cameraRef.current?.bitePunch();
     void playAudioEventLatest("CORRECT_BITE");
-    const now = Date.now();
-    if (hapticsEnabled && !reducedMotion && now - lastBiteHapticAt.current >= 80) {
-      lastBiteHapticAt.current = now;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    }
     if (!firstBiteCommented.current) {
       firstBiteCommented.current = true;
       commentateLatest({ type: "FIRST_BITE" });
@@ -833,12 +987,18 @@ export default function ContestScreen() {
     if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
     scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
     return acceptedActionSequence;
-  }, [hapticsEnabled, reducedMotion]);
+  }, [captureRecoveryState, contest?.bite_mechanic, inputLog, inputLogPersistence, matchDurationSeconds]);
 
   const handleUseAntacid = useCallback((): boolean => {
+    const actionNow = Date.now();
+    if (matchStartedAt.current !== null && actionNow - matchStartedAt.current > matchDurationSeconds * 1000) return false;
+    inputLog.start(matchDurationSeconds * 1000, matchStartedAt.current ?? actionNow);
+    if (!inputLog.canRecord()) return false;
     const heatReduction = antacidHeatReduction(heartburn);
-    const used = applyAntacid();
+    const used = applyAntacid(actionNow);
     if (!used) return false;
+    if (!inputLog.record("ANTACID", undefined, actionNow)) return false;
+    inputLogPersistence.schedule(inputLog, () => captureRecoveryState(inputLog.elapsed()));
 
     setCoolingTrigger((value) => value + 1);
     setAntacidAcknowledging(true);
@@ -857,18 +1017,15 @@ export default function ContestScreen() {
     }
     setFeedbackText(`-${heatReduction} HEAT`);
     return true;
-  }, [applyAntacid, heartburn, hapticsEnabled, playAudioEvent, reducedMotion]);
-  const replay = () => {
-    if (resultNavigationInFlight.current) return;
-    resultNavigationInFlight.current = true;
-    const tournamentQuery = tournamentOccurrenceId ? `&tournament=${encodeURIComponent(tournamentOccurrenceId)}` : "";
-    router.replace(`/play/${selectedContestId}?replay=${Date.now()}${tournamentQuery}`);
-  };
-
+  }, [applyAntacid, captureRecoveryState, heartburn, hapticsEnabled, inputLog, inputLogPersistence, matchDurationSeconds, playAudioEvent, reducedMotion]);
   const abandonAndReturn = () => {
     if (abandonRequestInFlight.current) return;
     abandonRequestInFlight.current = true;
     void stopGameplayMusic();
+    if (isPvp) {
+      router.replace(`/pvp/match/${encodeURIComponent(pvpMatchId)}` as never);
+      return;
+    }
     void api.abandonMatch()
       .then(() => {
         abandonRequestInFlight.current = false;
@@ -880,10 +1037,10 @@ export default function ContestScreen() {
       });
   };
 
-  const continueToNextContest = () => {
+  const returnToArena = () => {
     if (resultNavigationInFlight.current) return;
     resultNavigationInFlight.current = true;
-    router.replace(nextContestId ? `/play/${nextContestId}` : "/(tabs)/contests");
+    router.replace("/(tabs)/home");
   };
 
   const scenePhase: SceneMotionPhase = state.status === "FINISHED" ? "result" : state.status === "PLAYING" ? "active" : "intro";
@@ -901,12 +1058,12 @@ export default function ContestScreen() {
     foodId: foodProfile.id,
     foodName: contest?.food ?? foodProfile.displayName,
     challengeName: contest?.name ?? `${foodProfile.displayName} Challenge`,
-    playerName: introPlayer.name,
+    playerName: presentationIdentity.gamerName,
     playerTitle: introPlayer.title,
     playerRank: introPlayer.rank,
     opponentName: currentOpponent.name,
     opponentSubtitle: currentOpponent.personality,
-  }), [contest?.food, contest?.name, currentOpponent.name, currentOpponent.personality, foodProfile.displayName, foodProfile.id, introPlayer.name, introPlayer.rank, introPlayer.title, tournamentOccurrenceId]);
+  }), [contest?.food, contest?.name, currentOpponent.name, currentOpponent.personality, foodProfile.displayName, foodProfile.id, introPlayer.rank, introPlayer.title, presentationIdentity.gamerName, tournamentOccurrenceId]);
 
   if (resultFlow.phase === "RESULT_ERROR") {
     return (
@@ -918,11 +1075,17 @@ export default function ContestScreen() {
           message={`${resultFlow.error instanceof ResultVerificationTimeoutError ? resultFlow.error.message : playerFacingErrorMessage(resultFlow.error)} No rewards were applied.`}
           buttonLabel="RETRY RESULT"
           onPress={() => {
+            if (resultRequestInFlight.current) return;
+            if (__DEV__) console.info("Retry result entered", { hasPayload: resultSubmission.hasPayload(), hasMatchId: Boolean(serverMatchId.current) });
+            if (!resultSubmission.hasPayload() || !serverMatchId.current) return;
             resultAbortController.current?.abort();
             dispatchResultFlow({ type: "RETRY" });
           }}
         />
-        <Text style={styles.resultDiagnostic}>PHASE {resultFlow.phase} · ATTEMPT {resultFlow.attempt} · {resultFlow.error instanceof ResultVerificationTimeoutError ? `${Math.round(resultFlow.error.elapsedMs / 1000)}S TIMEOUT` : "REQUEST FAILED"}</Text>
+        <Text style={styles.resultDiagnostic}>
+          CODE {publicResultDiagnosticCode(resultFlow.error)} · ATTEMPT {resultFlow.attempt}
+          {requestIdForError(resultFlow.error, null) ? ` · REQUEST ${requestIdForError(resultFlow.error, null)}` : ""}
+        </Text>
         <FireButton title="RETURN TO ARENA" onPress={() => { resultAttemptGeneration.current += 1; resultAbortController.current?.abort(); router.replace("/(tabs)/contests"); }} variant="secondary" style={styles.recoveryButton} />
       </View>
     );
@@ -958,11 +1121,10 @@ export default function ContestScreen() {
       >
       <ArcadeBackground combo={state.combo} phase={state.status === "FINISHED" ? "result" : state.status === "PLAYING" ? "active" : "intro"} reducedMotion={reducedMotion} />
       <ArenaEffects atmosphere={atmosphere} reducedMotion={reducedMotion} />
-      <CommentaryOverlay item={commentary} reducedMotion={reducedMotion} />
+      <CommentaryOverlay item={commentary} reducedMotion={reducedMotion} suppressed={overheatWarningActive || overheatPenaltyActive || heatTier === "CRITICAL" || heatTier === "OVERHEATED" || showScore} />
       <HeatScreenOverlay heartburn={heartburn} heatTier={heatTier} isOverheated={isOverheated} />
-      <HeatTierBanner heatTier={heatTier} />
-      <AntacidCoolingFeedback trigger={coolingTrigger} />
-      <HeatPresentationOverlay events={presentationEvents} overheatWarningActive={overheatWarningActive} overheatRemainingMs={overheatRemainingMs} />
+      <HeatPresentationOverlay events={presentationEvents} overheatWarningActive={overheatWarningActive} overheatPenaltyActive={overheatPenaltyActive} overheatRemainingMs={overheatRemainingMs} />
+      {isPvp && pvpMatchId ? <PvpInGameQuickChat matchId={pvpMatchId} suppressed={overheatWarningActive || overheatPenaltyActive || heatTier === "CRITICAL" || heatTier === "OVERHEATED"} /> : null}
 
       <MatchIntroOverlay
         visible={state.status === "MATCH_INTRO"}
@@ -978,6 +1140,7 @@ export default function ContestScreen() {
         showCombo={showScore && state.combo >= 5}
         comboText={comboLabel}
         combo={state.combo}
+        suppressed={overheatWarningActive || heatTier === "CRITICAL" || heatTier === "OVERHEATED"}
       />
 
       <CameraController ref={cameraRef} phase={scenePhase} reducedMotion={reducedMotion || !preferences.cameraEffectsEnabled}>
@@ -990,6 +1153,8 @@ export default function ContestScreen() {
           coins={coins}
           timeRemaining={timeRemaining}
           playerScore={resultReward?.acceptedScore ?? state.score}
+          playerName={presentationIdentity.gamerName}
+          playerAvatar={presentationIdentity.avatar}
           opponentScore={resultReward?.opponentScore ?? opponentScore}
           combo={state.combo}
           opponentName={currentOpponent.name}
@@ -1040,7 +1205,7 @@ export default function ContestScreen() {
         </View>
         <View style={styles.gameplayContent}>
           <FoodArena
-            active={state.status === "PLAYING"}
+            active={state.status === "PLAYING" && !overheatPenaltyActive}
             biteMechanic={contest?.bite_mechanic}
             combo={state.combo}
             contestId={selectedContestId}
@@ -1067,6 +1232,8 @@ export default function ContestScreen() {
         food={contest?.food ?? "Featured Feast"}
         difficulty={contest?.difficulty ?? "Elite"}
         roundLabel={roundLabel}
+        playerName={presentationIdentity.gamerName}
+        playerAvatar={presentationIdentity.avatar}
         opponentName={currentOpponent.name}
         opponentAvatar={currentOpponent.avatar}
         opponentPersonality={currentOpponent.personality}
@@ -1085,6 +1252,8 @@ export default function ContestScreen() {
         <VictoryOverlay
           result={result}
           playerScore={resultReward!.acceptedScore}
+          playerName={presentationIdentity.gamerName}
+          playerAvatar={presentationIdentity.avatar}
           opponentScore={resultReward!.opponentScore}
           opponentName={currentOpponent.name}
           opponentAvatar={currentOpponent.avatar}
@@ -1109,12 +1278,12 @@ export default function ContestScreen() {
           xpEarned={resultReward?.xp}
           coinsEarned={resultReward?.coins}
           totalXp={resultReward?.totalXp}
+          stashCoins={resultReward?.totalCoins}
+          antacid={resultReward?.antacid}
           rewardReady={resultReward !== null}
           achievements={resultAchievements}
           tournament={resultTournament}
-          onReplay={replay}
-          onContinue={continueToNextContest}
-          onBackToArena={() => router.replace("/(tabs)/contests")}
+          onReturnToArena={returnToArena}
         />
       ) : null}
       {state.status === "FINISHED" && resultFlow.phase === "SUBMITTING_RESULT" ? (
@@ -1153,9 +1322,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 0,
   },
-  utilityHud: { flexShrink: 0, minHeight: 88, paddingHorizontal: 12, paddingTop: 3, width: "100%", zIndex: 40 },
+  utilityHud: { flexShrink: 0, minHeight: 78, paddingHorizontal: 12, paddingTop: 2, width: "100%", zIndex: 40 },
   matchModifierRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 3, minHeight: 4, paddingBottom: 3, zIndex: 45 },
-  utilityControlsRow: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between", minHeight: 82, width: "100%" },
+  utilityControlsRow: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between", minHeight: 72, width: "100%" },
   perkIndicator: { backgroundColor: "rgba(75,35,8,0.92)", borderColor: "#D89A3C", borderRadius: 6, borderWidth: 1, color: "#FFD879", fontSize: 7, fontWeight: "900", letterSpacing: 0.5, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
   shieldIndicator: { backgroundColor: "rgba(7,49,56,0.94)", borderColor: "#8DE7F3", borderRadius: 6, borderWidth: 1, color: "#DFFFFF", fontSize: 7, fontWeight: "900", letterSpacing: 0.5, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },
   freshIndicator: { backgroundColor: "rgba(45,30,7,0.94)", borderColor: "#FFD66B", borderRadius: 6, borderWidth: 1, color: "#FFF1A8", fontSize: 7, fontWeight: "900", letterSpacing: 0.45, overflow: "hidden", paddingHorizontal: 6, paddingVertical: 3 },

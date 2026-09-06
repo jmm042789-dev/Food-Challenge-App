@@ -39,6 +39,7 @@ from services.match_validation import (
     replay_input_log,
     InputReplayError,
     VALIDATION_VERSION,
+    SUPPORTED_VALIDATION_VERSIONS,
 )
 
 
@@ -620,8 +621,9 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
     if active.get("schema_version") != MATCH_SCHEMA_VERSION:
         _reject_match(result.device_id, active, "invalid_match_state", telemetry)
     if (
-        active.get("validation_version") != VALIDATION_VERSION
-        or result.validation_version != VALIDATION_VERSION
+        active.get("validation_version") not in SUPPORTED_VALIDATION_VERSIONS
+        or result.validation_version not in SUPPORTED_VALIDATION_VERSIONS
+        or active.get("validation_version") != result.validation_version
         or not isinstance(active.get("match_seed"), str)
         or len(active["match_seed"]) < 64
     ):
@@ -710,7 +712,7 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
         )
 
     try:
-        replay = replay_input_log(active, result.input_events)
+        replay = replay_input_log(active, result.input_events, validation_version=result.validation_version)
     except InputReplayError as error:
         telemetry.update(error.details)
         _reject_match(result.device_id, active, error.reason, telemetry, request_id=request_id, started=started)

@@ -78,9 +78,9 @@ class ContestBestSettlementContractTests(unittest.TestCase):
         source = Path("services/pvp_service.py").read_text(encoding="utf-8")
         self.assertNotIn('contest_best_scores', source)
 
-    def test_validation_v2_contract_remains_required(self):
+    def test_validation_v2_v3_contract_remains_explicit(self):
         source = Path("models.py").read_text(encoding="utf-8")
-        self.assertGreaterEqual(source.count('validation_version: Literal[2]'), 2)
+        self.assertGreaterEqual(source.count('validation_version: Literal[2, 3]'), 2)
 
 
 if __name__ == "__main__":

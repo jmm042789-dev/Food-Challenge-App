@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getRandomOpponent } from "./ai/OpponentDatabase";
+import { canAcceptScoringInput } from "./burnoutPolicy";
 import { createOpponentState, updateOpponent, type OpponentState } from "./ai/OpponentAI";
 import type { Opponent } from "./ai/types";
 import {
@@ -37,6 +38,7 @@ import {
   FRESH_STOMACH_SCORE_MULTIPLIER,
   getHeatGameplayModifiers,
   HEAT_SHIELD_DURATION_MS,
+  type DerivedMatchStats,
 } from "./matchModifiers";
 
 export type GameStatus = "IDLE" | "MATCH_INTRO" | "COUNTDOWN" | "PLAYING" | "FINISHED";
@@ -93,8 +95,27 @@ export interface UseGameLoopOptions {
   heatMultiplier?: number;
   extraHeat?: number;
   equippedGear?: string | null;
+  authoritativeGearModifiers?: Partial<Pick<DerivedMatchStats, "tapPower" | "comboWindowMs" | "scoreMultiplier" | "heatGenerationMultiplier">> | null;
   opponent?: Opponent | null;
   opponentConfig?: AuthoritativeOpponentConfig | null;
+}
+
+export interface GameplayRecoveryState {
+  version: 1;
+  capturedElapsedMs: number;
+  scoreRaw: number;
+  combo: number;
+  acceptedTapCount: number;
+  completedProgress: number;
+  heartburn: number;
+  antacidCount: number;
+  lastTapMs: number | null;
+  heatProtectionUntilMs: number;
+  freshStomachUntilMs: number;
+  lastOverheatAtMs: number | null;
+  criticalCycleActive: boolean;
+  perfectCooldownEligible: boolean;
+  recoverable: boolean;
 }
 
 const COUNTDOWN_SECONDS = 3;
@@ -135,10 +156,11 @@ export function useGameLoop({
   heatMultiplier: challengeHeatMultiplier,
   extraHeat,
   equippedGear,
+  authoritativeGearModifiers,
   opponent: authoritativeOpponent,
   opponentConfig,
 }: UseGameLoopOptions = {}) {
-  const matchStats = useMemo(() => deriveMatchStats(equippedGear), [equippedGear]);
+  const matchStats = useMemo(() => deriveMatchStats(equippedGear, authoritativeGearModifiers), [authoritativeGearModifiers, equippedGear]);
   const resolvedMatchDuration = normalizeMatchDurationSeconds(duration);
   const resolvedBiteHeat = resolveFoodHeat(foodId, {
     foodName,
@@ -287,17 +309,20 @@ export function useGameLoop({
     updateHeatState(heartburnRef.current, { overheatPenaltyActive: false });
   }, [createEvent, emitEvents, updateHeatState]);
 
-  const applyOverheatPenalty = useCallback((generation: number) => {
+  const applyOverheatPenalty = useCallback((generation: number, occurredAt?: number) => {
     if (generation !== matchGenerationRef.current || statusRef.current !== "PLAYING") return;
+    const transitionAt = warningEndsAtRef.current || Date.now();
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
     warningTimerRef.current = null;
     warningEndsAtRef.current = 0;
-    const now = Date.now();
+    const now = occurredAt ?? Date.now();
     const comboBefore = comboRef.current;
     comboRef.current = getOverheatCombo(comboBefore, now, lastOverheatAtRef.current);
     lastOverheatAtRef.current = now;
     perfectCooldownEligibleRef.current = false;
     criticalCycleActiveRef.current = false;
-    penaltyEndsAtRef.current = now + OVERHEAT_PENALTY_MS;
+    const penaltyEndsAt = transitionAt + OVERHEAT_PENALTY_MS;
+    penaltyEndsAtRef.current = penaltyEndsAt;
     heatProtectionEndsAtRef.current = penaltyEndsAtRef.current;
     heartburnRef.current = OVERHEAT_RESET_HEAT;
     heatTierRef.current = getHeatTier(OVERHEAT_RESET_HEAT);
@@ -316,18 +341,31 @@ export function useGameLoop({
       overheatPenaltyActive: true,
       heatMultiplier: getHeatMultiplier(getHeatTier(OVERHEAT_RESET_HEAT)),
       overheatRemainingMs: 0,
-      antacidProtectionRemainingMs: OVERHEAT_PENALTY_MS,
+      antacidProtectionRemainingMs: Math.max(0, penaltyEndsAt - now),
       canUseAntacid: false,
     }));
     clearPenaltyTimer();
-    penaltyEndsAtRef.current = now + OVERHEAT_PENALTY_MS;
-    penaltyTimerRef.current = setTimeout(() => finishOverheatPenalty(generation), OVERHEAT_PENALTY_MS);
+    penaltyEndsAtRef.current = penaltyEndsAt;
+    const remainingPenaltyMs = Math.max(0, penaltyEndsAt - now);
+    if (remainingPenaltyMs === 0) finishOverheatPenalty(generation);
+    else penaltyTimerRef.current = setTimeout(() => finishOverheatPenalty(generation), remainingPenaltyMs);
   }, [clearPenaltyTimer, createEvent, emitEvents, finishOverheatPenalty, logEvent]);
 
-  const startOverheatWarning = useCallback(() => {
+  const synchronizeBurnoutBoundary = useCallback((now: number) => {
+    const generation = matchGenerationRef.current;
+    if (warningEndsAtRef.current > 0 && now >= warningEndsAtRef.current) {
+      applyOverheatPenalty(generation);
+    }
+    if (penaltyEndsAtRef.current > 0 && now >= penaltyEndsAtRef.current) {
+      finishOverheatPenalty(generation);
+    }
+  }, [applyOverheatPenalty, finishOverheatPenalty]);
+
+  const startOverheatWarning = useCallback((occurredAt?: number) => {
     if (warningTimerRef.current || warningEndsAtRef.current > 0 || statusRef.current !== "PLAYING") return;
     const generation = matchGenerationRef.current;
-    warningEndsAtRef.current = Date.now() + OVERHEAT_WARNING_DURATION_MS;
+    const now = occurredAt ?? Date.now();
+    warningEndsAtRef.current = now + OVERHEAT_WARNING_DURATION_MS;
     perfectCooldownEligibleRef.current = false;
     logEvent("OVERHEAT WARNING START");
     emitEvents(createEvent("OVERHEAT_WARNING_STARTED"));
@@ -339,18 +377,21 @@ export function useGameLoop({
     warningTimerRef.current = setTimeout(() => applyOverheatPenalty(generation), OVERHEAT_WARNING_DURATION_MS);
   }, [applyOverheatPenalty, createEvent, emitEvents, logEvent, updateHeatState]);
 
-  const applyNaturalCooling = useCallback((elapsedMs: number, now: number) => {
+  const applyReplayCoolingUntil = useCallback((now: number): boolean => {
+    synchronizeBurnoutBoundary(now);
     if (
       statusRef.current !== "PLAYING"
       || warningEndsAtRef.current > now
       || heartburnRef.current <= 0
       || lastTapRef.current === 0
-      || now - lastTapRef.current < COOLING_DELAY_MS
-    ) return;
+    ) return false;
+    const coolingFrom = Math.max(lastCoolingFrameAtRef.current, lastTapRef.current + COOLING_DELAY_MS);
+    if (now <= coolingFrom) return false;
     const oldHeat = heartburnRef.current;
     const oldTier = heatTierRef.current;
-    const nextHeat = coolHeartburn(oldHeat, elapsedMs);
-    if (nextHeat === oldHeat) return;
+    const nextHeat = coolHeartburn(oldHeat, now - coolingFrom);
+    lastCoolingFrameAtRef.current = now;
+    if (nextHeat === oldHeat) return false;
     heartburnRef.current = nextHeat;
     const nextTier = getHeatTier(nextHeat);
     heatTierRef.current = nextTier;
@@ -383,7 +424,12 @@ export function useGameLoop({
         canUseAntacid: canConsumeAntacid(old.antacidCount, statusRef.current, nextHeat, heatProtectionEndsAtRef.current, now),
       }));
     }
-  }, [announceTierChange, createEvent, emitEvents, logEvent]);
+    return true;
+  }, [announceTierChange, createEvent, emitEvents, logEvent, synchronizeBurnoutBoundary]);
+
+  const applyNaturalCooling = useCallback((_elapsedMs: number, now: number) => {
+    applyReplayCoolingUntil(now);
+  }, [applyReplayCoolingUntil]);
 
   const startCoolingLoop = useCallback(() => {
     if (coolingFrameRef.current !== null) cancelAnimationFrame(coolingFrameRef.current);
@@ -396,7 +442,6 @@ export function useGameLoop({
       }
       const now = Date.now();
       const elapsed = Math.max(0, now - lastCoolingFrameAtRef.current);
-      lastCoolingFrameAtRef.current = now;
       applyNaturalCooling(elapsed, now);
       if (warningEndsAtRef.current > now && now - lastWarningRenderAtRef.current >= COOLING_RENDER_INTERVAL_MS) {
         lastWarningRenderAtRef.current = now;
@@ -410,8 +455,8 @@ export function useGameLoop({
     coolingFrameRef.current = requestAnimationFrame(frame);
   }, [applyNaturalCooling]);
 
-  const addHeartburn = useCallback((amount = resolvedBiteHeat): boolean => {
-    const now = Date.now();
+  const addHeartburn = useCallback((amount = resolvedBiteHeat, occurredAt?: number): boolean => {
+    const now = occurredAt ?? Date.now();
     if (statusRef.current !== "PLAYING" || warningEndsAtRef.current > now) return false;
     if (heatProtectionEndsAtRef.current > now) return true;
     const oldTier = heatTierRef.current;
@@ -426,7 +471,7 @@ export function useGameLoop({
     const nextTier = getHeatTier(nextHeartburn);
     heatTierRef.current = nextTier;
     announceTierChange(oldTier, nextTier);
-    if (nextHeartburn >= MAX_HEARTBURN) startOverheatWarning();
+    if (nextHeartburn >= MAX_HEARTBURN) startOverheatWarning(now);
     else updateHeatState(nextHeartburn);
     return true;
   }, [announceTierChange, matchStats.heatGenerationMultiplier, resolvedBiteHeat, startOverheatWarning, updateHeatState]);
@@ -436,10 +481,12 @@ export function useGameLoop({
     [addHeartburn],
   );
 
-  const applyAntacid = useCallback((): boolean => {
-    const now = Date.now();
+  const applyAntacid = useCallback((occurredAt?: number): boolean => {
+    const now = occurredAt ?? Date.now();
+    applyReplayCoolingUntil(now);
     if (
       antacidProcessingRef.current
+      || !canAcceptScoringInput(statusRef.current, penaltyEndsAtRef.current, now, warningEndsAtRef.current)
       || !canConsumeAntacid(antacidCountRef.current, statusRef.current, heartburnRef.current, heatProtectionEndsAtRef.current, now)
     ) return false;
     antacidProcessingRef.current = true;
@@ -483,7 +530,7 @@ export function useGameLoop({
     }));
     antacidProcessingRef.current = false;
     return true;
-  }, [clearWarningTimer, createEvent, emitEvents, logEvent]);
+  }, [applyReplayCoolingUntil, clearWarningTimer, createEvent, emitEvents, logEvent]);
 
   const resetMatch = useCallback(() => {
     stopAllTimers();
@@ -506,6 +553,7 @@ export function useGameLoop({
     perfectCooldownEligibleRef.current = false;
     lastWarningRenderAtRef.current = 0;
     lastCoolingRenderAtRef.current = 0;
+    lastCoolingFrameAtRef.current = 0;
     antacidProcessingRef.current = false;
     currentOpponentRef.current = authoritativeOpponent ?? getRandomOpponent();
     opponentStateRef.current = createOpponentState();
@@ -644,9 +692,103 @@ export function useGameLoop({
     }, 1000);
   }, [endGame, resetMatch, startCoolingLoop, startOpponentLoop]);
 
-  const tap = useCallback((): number | null => {
-    if (statusRef.current !== "PLAYING") return null;
+  const captureRecoveryState = useCallback((elapsedMs: number): GameplayRecoveryState => {
     const now = Date.now();
+    const relativeEndpoint = (absolute: number) => absolute > now ? elapsedMs + (absolute - now) : 0;
+    return {
+      version: 1,
+      capturedElapsedMs: elapsedMs,
+      scoreRaw: scoreRef.current,
+      combo: comboRef.current,
+      acceptedTapCount: acceptedTapCountRef.current,
+      completedProgress: acceptedActionSequenceRef.current,
+      heartburn: heartburnRef.current,
+      antacidCount: antacidCountRef.current,
+      lastTapMs: lastTapRef.current > 0 ? Math.max(0, elapsedMs - (now - lastTapRef.current)) : null,
+      heatProtectionUntilMs: relativeEndpoint(heatProtectionEndsAtRef.current),
+      freshStomachUntilMs: relativeEndpoint(freshStomachEndsAtRef.current),
+      lastOverheatAtMs: lastOverheatAtRef.current > 0 ? Math.max(0, elapsedMs - (now - lastOverheatAtRef.current)) : null,
+      criticalCycleActive: criticalCycleActiveRef.current,
+      perfectCooldownEligible: perfectCooldownEligibleRef.current,
+      recoverable: warningEndsAtRef.current <= now && penaltyEndsAtRef.current <= now,
+    };
+  }, []);
+
+  const resumeGame = useCallback((saved: GameplayRecoveryState, elapsedMs: number): boolean => {
+    if (!saved || saved.version !== 1 || !saved.recoverable || elapsedMs < saved.capturedElapsedMs) return false;
+    const numeric = [saved.scoreRaw, saved.combo, saved.acceptedTapCount, saved.completedProgress, saved.heartburn, saved.antacidCount];
+    if (numeric.some((value) => !Number.isFinite(value) || value < 0)) return false;
+    stopAllTimers();
+    matchGenerationRef.current += 1;
+    const now = Date.now();
+    let recoveredHeat = Math.min(MAX_HEARTBURN, saved.heartburn);
+    let recoveredScore = saved.scoreRaw;
+    if (saved.lastTapMs !== null) {
+      const coolingFrom = Math.max(saved.capturedElapsedMs, saved.lastTapMs + COOLING_DELAY_MS);
+      if (elapsedMs > coolingFrom && saved.heatProtectionUntilMs <= coolingFrom) {
+        const oldHeat = recoveredHeat;
+        recoveredHeat = coolHeartburn(recoveredHeat, elapsedMs - coolingFrom);
+        if (saved.perfectCooldownEligible && saved.criticalCycleActive
+          && shouldAwardPerfectCooldown(true, true, oldHeat, recoveredHeat)) recoveredScore += PERFECT_COOLDOWN_BONUS;
+      }
+    }
+    scoreRef.current = recoveredScore;
+    comboRef.current = saved.combo;
+    acceptedTapCountRef.current = saved.acceptedTapCount;
+    acceptedActionSequenceRef.current = saved.completedProgress;
+    heartburnRef.current = recoveredHeat;
+    heatTierRef.current = getHeatTier(recoveredHeat);
+    antacidCountRef.current = Math.floor(saved.antacidCount);
+    lastTapRef.current = saved.lastTapMs === null ? 0 : now - Math.max(0, elapsedMs - saved.lastTapMs);
+    lastCoolingFrameAtRef.current = now;
+    heatProtectionEndsAtRef.current = saved.heatProtectionUntilMs > elapsedMs ? now + saved.heatProtectionUntilMs - elapsedMs : 0;
+    freshStomachEndsAtRef.current = saved.freshStomachUntilMs > elapsedMs ? now + saved.freshStomachUntilMs - elapsedMs : 0;
+    lastOverheatAtRef.current = saved.lastOverheatAtMs === null ? 0 : now - Math.max(0, elapsedMs - saved.lastOverheatAtMs);
+    criticalCycleActiveRef.current = saved.criticalCycleActive;
+    perfectCooldownEligibleRef.current = saved.perfectCooldownEligible && recoveredHeat >= PERFECT_COOLDOWN_THRESHOLD;
+    warningEndsAtRef.current = 0;
+    penaltyEndsAtRef.current = 0;
+    const remaining = Math.max(0, resolvedMatchDuration - Math.floor(elapsedMs / 1000));
+    timeRemainingRef.current = remaining;
+    statusRef.current = remaining > 0 ? "PLAYING" : "FINISHED";
+    setTimeRemaining(remaining);
+    setShowCountdown(false);
+    setPresentationEvents([]);
+    setState({
+      ...initialState(antacidCountRef.current),
+      score: Math.floor(recoveredScore),
+      combo: comboRef.current,
+      acceptedTapCount: acceptedTapCountRef.current,
+      completedProgress: acceptedActionSequenceRef.current,
+      status: statusRef.current,
+      heartburn: recoveredHeat,
+      heatTier: heatTierRef.current,
+      heatMultiplier: getHeatMultiplier(heatTierRef.current),
+      canUseAntacid: canConsumeAntacid(antacidCountRef.current, statusRef.current, recoveredHeat, heatProtectionEndsAtRef.current, now),
+      antacidProtectionRemainingMs: Math.max(0, heatProtectionEndsAtRef.current - now),
+      freshStomachRemainingMs: Math.max(0, freshStomachEndsAtRef.current - now),
+      freshStomachMultiplier: freshStomachEndsAtRef.current > now ? FRESH_STOMACH_SCORE_MULTIPLIER : 1,
+    });
+    if (remaining > 0) {
+      startOpponentLoop();
+      startCoolingLoop();
+      gameTimerRef.current = setInterval(() => {
+        const nextTime = Math.max(0, timeRemainingRef.current - 1);
+        timeRemainingRef.current = nextTime;
+        setTimeRemaining(nextTime);
+        if (nextTime === 0) endGame();
+      }, 1000);
+    }
+    return true;
+  }, [endGame, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers]);
+
+  const tap = useCallback((occurredAt?: number): number | null => {
+    const now = occurredAt ?? Date.now();
+    synchronizeBurnoutBoundary(now);
+    // Burnout taps are presentation-only physical input: they do not mutate
+    // gameplay and the caller therefore cannot append them to the official log.
+    if (!canAcceptScoringInput(statusRef.current, penaltyEndsAtRef.current, now, warningEndsAtRef.current)) return null;
+    applyReplayCoolingUntil(now);
     const tapPower = effectiveTapPower(matchStats, heartburnRef.current);
     acceptedTapCountRef.current += 1;
     // Weighted progress remains authoritative gameplay telemetry. Keep it
@@ -656,6 +798,7 @@ export function useGameLoop({
     const acceptedActionSequence = acceptedActionSequenceRef.current;
     const delta = lastTapRef.current === 0 ? 0 : now - lastTapRef.current;
     lastTapRef.current = now;
+    lastCoolingFrameAtRef.current = now;
     const comboWindowMs = effectiveComboWindowMs(
       matchStats.comboWindowMs,
       heartburnRef.current,
@@ -675,7 +818,7 @@ export function useGameLoop({
       const nextTier = getHeatTier(nextHeat);
       heatTierRef.current = nextTier;
       announceTierChange(oldTier, nextTier);
-      if (nextHeat >= MAX_HEARTBURN) startOverheatWarning();
+      if (nextHeat >= MAX_HEARTBURN) startOverheatWarning(now);
     }
     const warningActive = warningEndsAtRef.current > now;
     const penaltyActive = penaltyEndsAtRef.current > now;
@@ -710,7 +853,7 @@ export function useGameLoop({
     }));
     debugLog("TAP", scoreRef.current, comboRef.current, heartburnRef.current);
     return acceptedTapCountRef.current;
-  }, [announceTierChange, matchStats, resolvedBiteHeat, startOverheatWarning]);
+  }, [announceTierChange, applyReplayCoolingUntil, matchStats, resolvedBiteHeat, startOverheatWarning, synchronizeBurnoutBoundary]);
 
   const didDraw = state.score === opponentScore;
   const winner = didDraw ? "DRAW" : state.score > opponentScore ? "PLAYER" : "OPPONENT";
@@ -744,5 +887,7 @@ export function useGameLoop({
     addHeartburn,
     addCompletedFoodHeartburn,
     applyAntacid,
+    captureRecoveryState,
+    resumeGame,
   };
 }

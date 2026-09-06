@@ -12,7 +12,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from services import match_service
-from services.match_validation import InputReplayError, replay_input_log
+from services.match_validation import InputReplayError, replay_input_log, VALIDATION_VERSION
 
 NOW = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
 
@@ -83,7 +83,7 @@ def terminal_burnout_boundary_events(previous_timestamp=29_652, terminal_timesta
 def valid_result(active=None, events=None, **overrides):
     active = active or active_match()
     events = events if events is not None else bite_events()
-    replay = replay_input_log(active, events)
+    replay = replay_input_log(active, events, validation_version=active.get("validation_version"))
     values = {
         "device_id": "player-a",
         "match_id": "match-a",
@@ -98,7 +98,7 @@ def valid_result(active=None, events=None, **overrides):
         "tums_used": replay["antacids_used"],
         "completion_reason": "timer_completed",
         "is_tournament": False,
-        "validation_version": 2,
+        "validation_version": active.get("validation_version", 2),
         "input_events": events,
     }
     values.update(overrides)
@@ -219,7 +219,7 @@ class MatchAntiCheatTests(unittest.TestCase):
         ):
             response = match_service.start_match("player-a", "nathans")
         self.assertEqual(len(stored["match_seed"]), 64)
-        self.assertEqual(stored["validation_version"], 2)
+        self.assertEqual(stored["validation_version"], VALIDATION_VERSION)
         self.assertEqual(response["server_time"], response["server_started_at"])
         self.assertNotIn("match_seed", response)
         self.assertNotIn(stored["match_seed"], repr(response))
@@ -234,6 +234,27 @@ class MatchAntiCheatTests(unittest.TestCase):
             datetime.fromisoformat(recovery["started_at"]),
         )
         self.assertNotIn("match_seed", recovery)
+
+    def test_result_validation_version_must_match_active_match(self):
+        events = bite_events(count=5, spacing=700)
+        active_v2 = active_match()
+        active_v3 = active_match()
+        active_v3["validation_version"] = VALIDATION_VERSION
+
+        validation_v2, _ = match_service._validate_result(active_v2, valid_result(active_v2, events), NOW, request_id="req-v2")
+        validation_v3, _ = match_service._validate_result(active_v3, valid_result(active_v3, events), NOW, request_id="req-v3")
+        self.assertEqual(validation_v2["replay"]["validation_version"], 2)
+        self.assertEqual(validation_v3["replay"]["validation_version"], VALIDATION_VERSION)
+
+        with patch.object(match_service, "transition_player_match"):
+            with self.assertRaises(match_service.MatchValidationError) as raised_v2_v3:
+                match_service._validate_result(active_v2, valid_result(active_v2, events, validation_version=VALIDATION_VERSION), NOW, request_id="req-cross-a")
+        self.assertEqual(raised_v2_v3.exception.reason, "invalid_validation_context")
+
+        with patch.object(match_service, "transition_player_match"):
+            with self.assertRaises(match_service.MatchValidationError) as raised_v3_v2:
+                match_service._validate_result(active_v3, valid_result(active_v3, events, validation_version=2), NOW, request_id="req-cross-b")
+        self.assertEqual(raised_v3_v2.exception.reason, "invalid_validation_context")
 
     def test_valid_log_replays_official_score_and_combo(self):
         replay = replay_input_log(active_match(), bite_events())
@@ -555,3 +576,108 @@ class MatchAntiCheatTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class Build19ValidationV3Tests(unittest.TestCase):
+    def v3_active(self, duration=30):
+        active = thirty_second_active_match() if duration == 30 else active_match()
+        active["validation_version"] = VALIDATION_VERSION
+        active["allowed_duration_sec"] = duration
+        active["challenge_config"] = dict(active["challenge_config"], duration_sec=duration)
+        active["opponent_config"] = dict(active["opponent_config"], duration_sec=duration)
+        return active
+
+    def test_v2_production_case_a_is_ambiguous_terminal_clamped_evidence(self):
+        active = thirty_second_active_match()
+        replay = replay_input_log(active, terminal_burnout_boundary_events(29_652, 30_000), validation_version=2)
+        self.assertEqual(replay["validation_version"], 2)
+        self.assertTrue(replay["diagnostics"]["terminal_compat_used"])
+        self.assertEqual(replay["diagnostics"]["terminal_event_index"], 22)
+
+    def test_v2_production_case_b_cannot_be_safely_recovered(self):
+        active = thirty_second_active_match()
+        events = terminal_burnout_boundary_events(28_691, 30_000)
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(active, events, validation_version=2)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+        self.assertEqual(raised.exception.details["previous_event_t_ms"], 28_691)
+        self.assertEqual(raised.exception.details["event_t_ms"], 30_000)
+
+    def test_v2_multi_clamp_evidence_loses_distinct_terminal_timing(self):
+        active = thirty_second_active_match()
+        events = [
+            {"seq": index + 1, "t_ms": 1_000 + index * 350, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}
+            for index in range(75)
+        ]
+        for seq in range(76, 97):
+            events.append({"seq": seq, "t_ms": 30_000, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+        self.assertEqual(events[75]["t_ms"], 30_000)
+        self.assertEqual(len([event for event in events[75:] if event["t_ms"] == 30_000]), 21)
+        with self.assertRaises(InputReplayError):
+            replay_input_log(active, events, validation_version=2)
+
+    def test_v3_does_not_use_legacy_terminal_burnout_compatibility(self):
+        active = self.v3_active()
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(active, terminal_burnout_boundary_events(29_652, 30_000), validation_version=3)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+
+    def test_v3_rejects_action_after_authoritative_deadline_without_grace(self):
+        active = self.v3_active()
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(active, [{"seq": 1, "t_ms": 30_001, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}], validation_version=3)
+        self.assertEqual(raised.exception.reason, "action_after_match_end")
+
+    def test_v3_accepts_exact_deadline_action_but_preserves_strict_burnout(self):
+        active = self.v3_active()
+        replay = replay_input_log(active, [{"seq": 1, "t_ms": 30_000, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}], validation_version=3)
+        self.assertEqual(replay["validation_version"], 3)
+        self.assertEqual(replay["accepted_taps"], 1)
+
+    def test_v3_deadline_boundary_is_exact_and_strict_after_duration(self):
+        for timestamp in (29_999, 30_000):
+            with self.subTest(timestamp=timestamp):
+                replay = replay_input_log(self.v3_active(), [{"seq": 1, "t_ms": timestamp, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}], validation_version=3)
+                self.assertEqual(replay["accepted_taps"], 1)
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(self.v3_active(), [{"seq": 1, "t_ms": 30_001, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}], validation_version=3)
+        self.assertEqual(raised.exception.reason, "action_after_match_end")
+
+    def test_v3_distinct_terminal_timestamps_preserve_combo_and_score_timeline(self):
+        active = self.v3_active(duration=60)
+        events = [
+            {"seq": 1, "t_ms": 29_900, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+            {"seq": 2, "t_ms": 30_020, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+            {"seq": 3, "t_ms": 30_140, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5},
+        ]
+        replay = replay_input_log(active, events, validation_version=3)
+        self.assertEqual(replay["accepted_taps"], 3)
+        self.assertEqual(replay["maximum_combo"], 2)
+        self.assertEqual(replay["completed_progress"], 3)
+
+    def test_v3_antacid_timestamp_controls_shield_and_fresh_windows(self):
+        active = self.v3_active(duration=60)
+        events = [
+            {"seq": index + 1, "t_ms": (index + 1) * 100, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}
+            for index in range(10)
+        ]
+        events.append({"seq": 11, "t_ms": 1_100, "type": "ANTACID"})
+        events.append({"seq": 12, "t_ms": 1_200, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+        replay = replay_input_log(active, events, validation_version=3)
+        diagnostics = replay["diagnostics"]
+        self.assertEqual(diagnostics["antacid_event_index"], 11)
+        self.assertEqual(diagnostics["antacid_t_ms"], 1_100)
+        self.assertEqual(diagnostics["shield_until_ms"], 3_100)
+        self.assertEqual(diagnostics["fresh_until_ms"], 6_100)
+
+    def test_v3_security_regressions_still_reject(self):
+        active = self.v3_active(duration=60)
+        cases = [
+            ([{"seq": i + 1, "t_ms": i, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5} for i in range(31)], "impossible_input_rate"),
+            ([{"seq": 1, "t_ms": 100, "type": "BITE", "source": "CONTROL", "x": 2.0, "y": 0.5}], "invalid_input_geometry"),
+            ([{"seq": 1, "t_ms": 200, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}, {"seq": 2, "t_ms": 199, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}], "out_of_order_timestamp"),
+            ([{"seq": 1, "t_ms": 100, "type": "ANTACID"}], "invalid_antacid_use"),
+        ]
+        for events, reason in cases:
+            with self.subTest(reason=reason), self.assertRaises(InputReplayError) as raised:
+                replay_input_log(active, events, validation_version=3)
+            self.assertEqual(raised.exception.reason, reason)

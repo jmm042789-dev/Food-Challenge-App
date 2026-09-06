@@ -22,6 +22,7 @@ from services.match_service import MATCH_SCHEMA_VERSION
 from services.match_validation import (
     InputReplayError,
     VALIDATION_VERSION,
+    SUPPORTED_VALIDATION_VERSIONS,
     authoritative_perk_config,
     maximum_antacid_uses,
     progress_epsilon,
@@ -316,7 +317,7 @@ def _fingerprint(result) -> str:
 def _validate_attempt(active: dict, result, now: datetime, device_id: str) -> dict:
     if active.get("id") != result.attempt_id or active.get("device_id") != device_id or active.get("contest_id") != result.contest_id:
         raise PvpError("PVP_ATTEMPT_MISMATCH", 403)
-    if active.get("validation_version") != VALIDATION_VERSION or result.validation_version != VALIDATION_VERSION:
+    if active.get("validation_version") not in SUPPORTED_VALIDATION_VERSIONS or result.validation_version not in SUPPORTED_VALIDATION_VERSIONS or active.get("validation_version") != result.validation_version:
         raise PvpError("PVP_VALIDATION_CONTEXT_INVALID")
     started = _parse(active.get("started_at")); expires = _parse(active.get("expires_at")); duration = active.get("allowed_duration_sec")
     if not started or not expires or now >= expires or not isinstance(duration, int):
@@ -327,7 +328,7 @@ def _validate_attempt(active: dict, result, now: datetime, device_id: str) -> di
     if result.tums_used > active["starting_antacid"] or result.tums_used > maximum_antacid_uses(duration):
         raise PvpError("PVP_INVENTORY_INVALID")
     try:
-        replay = replay_input_log(active, result.input_events)
+        replay = replay_input_log(active, result.input_events, validation_version=result.validation_version)
     except InputReplayError as error:
         raise PvpError("PVP_ATTEMPT_INVALID") from error
     if replay["accepted_taps"] != result.accepted_taps or replay["antacids_used"] != result.tums_used or replay["maximum_combo"] != result.maximum_combo:

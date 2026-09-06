@@ -172,7 +172,7 @@ class MatchResult(RequestModel):
         "other",
     ] = "timer_completed"
     is_tournament: bool = False
-    validation_version: Literal[2]
+    validation_version: Literal[2, 3]
     input_events: List[MatchInputEvent] = Field(min_length=0, max_length=2_000)
 
 
@@ -216,7 +216,7 @@ class PvpAttemptResult(RequestModel):
     maximum_combo: int = Field(ge=0, le=100_000)
     tums_used: int = Field(default=0, ge=0, le=10_000)
     completion_reason: Literal["timer_completed"] = "timer_completed"
-    validation_version: Literal[2]
+    validation_version: Literal[2, 3]
     input_events: List[MatchInputEvent] = Field(min_length=0, max_length=2_000)
 
 
