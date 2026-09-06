@@ -90,6 +90,9 @@ class AccountDeletionRequest(RequestModel):
 
     confirmation: Literal["DELETE"]
 
+class PromotionRedemptionRequest(RequestModel):
+    code: str = Field(min_length=12, max_length=40, pattern=r"^[A-Za-z0-9\-\s]+$")
+
 
 class Player(BaseModel):
     device_id: str
@@ -103,6 +106,7 @@ class Player(BaseModel):
 
     wins: int = 0
     losses: int = 0
+    draws: int = 0
     matches: int = 0
 
     best_score: int = 0
@@ -219,6 +223,11 @@ class PvpAttemptResult(RequestModel):
 class PurchaseRequest(RequestModel):
     device_id: Identifier
     item_id: Identifier
+
+
+class GearSetPurchaseRequest(RequestModel):
+    device_id: Identifier
+    set_id: Identifier
 
 
 class EquipRequest(RequestModel):

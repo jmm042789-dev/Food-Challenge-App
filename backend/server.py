@@ -56,16 +56,19 @@ from services.match_service import (
 from services.shop_service import (
     AlreadyOwnedError,
     GearNotOwnedError,
+    GearLockedError,
     InsufficientCoinsError as ShopInsufficientCoinsError,
     ItemNotFoundError,
     WelcomePackAlreadyClaimedError,
     equip_cosmetic,
     equip_item,
     purchase_item,
+    purchase_gear_set,
 )
 from models import (
     CosmeticEquipRequest,
     EquipRequest,
+    GearSetPurchaseRequest,
     AccountDeletionRequest,
     GuestBootstrapRequest,
     GuestRecoveryRequest,
@@ -82,9 +85,11 @@ from models import (
     SocialPlayerAction,
     SocialProfileUpdate,
     PurchaseRequest,
+    PromotionRedemptionRequest,
 )
 from auth import authenticated_bearer_player, authenticated_player
 from rate_limit import rate_limit
+from services.promotion_service import PromotionError, redeem_cruise_duck
 from services.social_service import (
     SocialError,
     accept_request,
@@ -128,7 +133,7 @@ from services.contest_service import featured, categories
 from data.contests import CONTESTS
 
 from data.shop import SHOP_ITEMS
-from data.gear import GEAR
+from data.gear import GEAR, GEAR_SETS
 
 app_config = load_config(require_database=False)
 IS_PRODUCTION = app_config.is_production
@@ -183,6 +188,14 @@ pvp_result_limit = rate_limit("pvp-result", requests=20, window_seconds=60)
 pvp_rematch_limit = rate_limit("pvp-rematch", requests=8, window_seconds=60)
 pvp_quip_limit = rate_limit("pvp-quip", requests=20, window_seconds=60)
 leaderboard_limit = rate_limit("leaderboard-read", requests=90, window_seconds=60)
+promotion_redeem_limit = rate_limit("promotion-redeem", requests=8, window_seconds=60)
+
+@app.post("/api/promotions/redeem", dependencies=[Depends(promotion_redeem_limit)])
+def redeem_promotion_endpoint(data: PromotionRedemptionRequest, authorization: str | None = Header(default=None)):
+    try:
+        return redeem_cruise_duck(authenticated_bearer_player(authorization), data.code)
+    except PromotionError as error:
+        raise HTTPException(status_code=error.status_code, detail={"code": error.code, "message": "The promotion could not be redeemed."})
 
 
 def social_error(error: SocialError):
@@ -799,7 +812,6 @@ def join_queue(
             return {
                 "status": "matched",
                 "match_id": match_id,
-                "opponent": p["device_id"]
             }
 
     return {"status": "waiting"}
@@ -818,7 +830,6 @@ def matchmaking_status(
             return {
                 "status": "matched",
                 "match_id": match_id,
-                "players": match["players"]
             }
 
     return {"status": "searching"}
@@ -904,7 +915,7 @@ def shop():
 
 @app.get("/api/gear")
 def gear():
-    return {"items": GEAR}
+    return {"items": GEAR, "sets": list(GEAR_SETS.values())}
 
 
 @app.post("/api/purchase", dependencies=[Depends(purchase_limit)])
@@ -923,6 +934,21 @@ def purchase_endpoint(
         raise HTTPException(status_code=400, detail="item already owned")
     except WelcomePackAlreadyClaimedError:
         raise HTTPException(status_code=409, detail="welcome pack already redeemed")
+    except GearLockedError:
+        raise HTTPException(status_code=403, detail="gear is locked by progression")
+
+
+@app.post("/api/purchase/gear-set", dependencies=[Depends(purchase_limit)])
+def purchase_gear_set_endpoint(data: GearSetPurchaseRequest, authorization: str | None = Header(default=None)):
+    authenticated_player(data.device_id, authorization)
+    try:
+        return purchase_gear_set(data.device_id, data.set_id)
+    except ItemNotFoundError:
+        raise HTTPException(status_code=404, detail="gear set not found")
+    except ShopInsufficientCoinsError:
+        raise HTTPException(status_code=400, detail="not enough coins")
+    except GearLockedError:
+        raise HTTPException(status_code=403, detail="gear set is locked by progression")
 
 
 @app.post("/api/player/equip")

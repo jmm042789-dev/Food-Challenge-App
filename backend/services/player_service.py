@@ -207,6 +207,8 @@ def _new_player(device_id: str):
 
         "losses": 0,
 
+        "draws": 0,
+
         "matches": 0,
 
         "best_score": 0,
@@ -488,6 +490,8 @@ def player_summary(device_id: str):
         "wins": player["wins"],
 
         "losses": player["losses"],
+
+        "draws": player.get("draws", 0),
 
         "matches": player["matches"],
 

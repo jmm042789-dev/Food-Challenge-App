@@ -116,6 +116,38 @@ class MatchAntiCheatTests(unittest.TestCase):
             replay_input_log(active_match(), threshold_events + [{"seq": 21, "t_ms": 4100, "type": "ANTACID"}])
         self.assertEqual(raised.exception.reason, "action_during_burnout")
 
+    def test_physical_rate_client_gating_never_logs_authoritative_burnout_actions(self):
+        events = []
+        heat = 0
+        warning_until = 0
+        burnout_until = 0
+        last_bite_at = None
+        last_cooling_at = 0
+        for timestamp in range(100, 60_001, 100):
+            if warning_until and timestamp >= warning_until:
+                burnout_until = warning_until + 1_500
+                last_cooling_at = warning_until
+                warning_until = 0
+                heat = 68
+            if burnout_until and timestamp < burnout_until:
+                continue
+            if burnout_until and timestamp >= burnout_until:
+                burnout_until = 0
+            if last_bite_at is not None and not warning_until and heat > 0:
+                cooling_from = max(last_cooling_at, last_bite_at + 450)
+                if timestamp > cooling_from:
+                    heat = max(0, heat - 9 * (timestamp - cooling_from) / 1000)
+                    last_cooling_at = timestamp
+            events.append({"seq": len(events) + 1, "t_ms": timestamp, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+            heat = min(100, heat + 5)
+            if heat >= 100 and not warning_until:
+                warning_until = timestamp + 2_000
+            last_bite_at = timestamp
+            last_cooling_at = timestamp
+        replay = replay_input_log(active_match(), events)
+        self.assertEqual(replay["accepted_taps"], len(events))
+        self.assertGreater(len(events), 92)
+
     def test_start_creates_secret_seed_without_exposing_it(self):
         player = {"device_id": "player-a", "coins": 1000, "antacid": 3, "xp": 0, "elo": 1000}
         stored = {}

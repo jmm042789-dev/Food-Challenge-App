@@ -256,6 +256,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
     active = player.get("active_match")
     if active:
         if active.get("contest_id") == contest_id:
+            _remove_player_matchmaking_state(device_id)
             return dict(active["start_response"])
         raise MatchAlreadyActiveError
 
@@ -271,7 +272,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
         seconds=allowed_duration + MATCH_SUBMISSION_GRACE_SECONDS
     )
     equipped_gear, perk_modifiers = authoritative_perk_config(
-        player.get("equipped_gear")
+        player.get("equipped_gear_slots") or player.get("equipped_gear")
     )
     opponent_config = build_opponent_config(opponent, contest, opponent_seed)
     response = {
@@ -325,6 +326,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
     }
     updated = start_player_match(device_id, entry_fee, match)
     if updated:
+        _remove_player_matchmaking_state(device_id)
         response["player_coins"] = int(updated.get("coins", 0))
         if COIN_DEBUG_LOGGING:
             logger.info(
@@ -340,6 +342,7 @@ def start_match(device_id: str, contest_id: str) -> dict:
         raise PlayerNotFoundError
     latest_active = latest.get("active_match")
     if latest_active and latest_active.get("contest_id") == contest_id:
+        _remove_player_matchmaking_state(device_id)
         return dict(latest_active["start_response"])
     if int(latest.get("coins", 0)) < entry_fee:
         raise InsufficientCoinsError
@@ -730,8 +733,9 @@ def submit_result(result) -> dict:
                         },
                     }
                 },
+                "longest_combo": {"$max": [{"$ifNull": ["$longest_combo", 0]}, replay["maximum_combo"]]},
                 "antacid": response["new_tums"],
-                "elo": {"$add": [{"$ifNull": ["$elo", 1000]}, 25 if won else -10]},
+                "elo": {"$add": [{"$ifNull": ["$elo", 1000]}, 25 if won else -10 if lost else 0]},
                 "last_match_result": {
                     "match_id": active["id"],
                     "fingerprint": fingerprint,
@@ -763,6 +767,12 @@ def submit_result(result) -> dict:
                 player.get("coins"),
                 settled_response.get("new_coins"),
             )
+        _remove_player_matchmaking_state(result.device_id)
+        logger.info(
+            "Match finalization match_id=%s player=%s status=settled idempotent=false",
+            requested_match_id,
+            result.device_id,
+        )
         return settled_response
 
     latest = find_internal_player(result.device_id) or {}
@@ -776,5 +786,6 @@ def submit_result(result) -> dict:
             requested_match_id,
             result.device_id,
         )
-        return dict(previous["response"])
+        _remove_player_matchmaking_state(result.device_id)
+        return {**dict(previous["response"]), "already_finalized": True}
     raise MatchNotFoundError

@@ -16,6 +16,8 @@ settings_collection: Optional[Collection] = None
 social_relationship_collection: Optional[Collection] = None
 pvp_challenge_collection: Optional[Collection] = None
 pvp_match_collection: Optional[Collection] = None
+promotion_code_collection: Optional[Collection] = None
+promotion_redemption_collection: Optional[Collection] = None
 
 DATABASE_READINESS_TIMEOUT_MS = 3_000
 
@@ -84,10 +86,43 @@ def pvp_matches() -> Collection:
         raise RuntimeError("database is not initialized")
     return pvp_match_collection
 
+def promotion_codes() -> Collection:
+    if promotion_code_collection is None: raise RuntimeError("database is not initialized")
+    return promotion_code_collection
+
+def promotion_redemptions() -> Collection:
+    if promotion_redemption_collection is None: raise RuntimeError("database is not initialized")
+    return promotion_redemption_collection
+
+def find_promotion_code(campaign: str, code_hash: str) -> Optional[dict]:
+    return promotion_codes().find_one({"campaign": campaign, "code_hash": code_hash}, {"_id": 0})
+
+def promotion_redemption_for_player(campaign: str, device_id: str) -> Optional[dict]:
+    return promotion_redemptions().find_one({"campaign": campaign, "player_device_id": device_id}, {"_id": 0})
+
+def create_or_get_promotion_redemption(document: dict) -> dict:
+    try:
+        promotion_redemptions().insert_one(document)
+        return dict(document)
+    except DuplicateKeyError:
+        return promotion_redemption_for_player(document["campaign"], document["player_device_id"]) or {}
+
+def claim_promotion_code(campaign: str, code_hash: str, redemption_id: str, device_id: str, claimed_at: str) -> Optional[dict]:
+    return promotion_codes().find_one_and_update({"campaign": campaign, "code_hash": code_hash, "$or": [{"status": "AVAILABLE"}, {"redemption_id": redemption_id}]}, {"$set": {"status": "CLAIMED", "redemption_id": redemption_id, "redeemed_by": device_id, "claimed_at": claimed_at}}, return_document=ReturnDocument.AFTER)
+
+def finalize_promotion_redemption(redemption_id: str, redeemed_at: str) -> None:
+    promotion_redemptions().update_one({"redemption_id": redemption_id}, {"$set": {"status": "REDEEMED", "redeemed_at": redeemed_at}})
+
+def discard_pending_promotion_redemption(redemption_id: str) -> None:
+    promotion_redemptions().delete_one({"redemption_id": redemption_id, "status": "PENDING"})
+
+def finalize_promotion_code(code_hash: str, redemption_id: str, redeemed_at: str) -> None:
+    promotion_codes().update_one({"code_hash": code_hash, "redemption_id": redemption_id}, {"$set": {"status": "REDEEMED", "redeemed_at": redeemed_at}})
+
 
 def initialize_database(config: BackendConfig) -> None:
     """Verify MongoDB and create the indexes/default documents we rely on."""
-    global mongo_client, player_collection, settings_collection, social_relationship_collection, pvp_challenge_collection, pvp_match_collection
+    global mongo_client, player_collection, settings_collection, social_relationship_collection, pvp_challenge_collection, pvp_match_collection, promotion_code_collection, promotion_redemption_collection
     close_database()
     client = MongoClient(
         config.mongo_url,
@@ -101,6 +136,8 @@ def initialize_database(config: BackendConfig) -> None:
         relationships = database["social_relationships"]
         challenges = database["pvp_challenges"]
         matches = database["pvp_matches"]
+        codes = database["promotion_codes"]
+        redemptions = database["promotion_redemptions"]
         players.create_index(
             [("device_id", ASCENDING)], unique=True, name="player_device_id_unique"
         )
@@ -138,14 +175,6 @@ def initialize_database(config: BackendConfig) -> None:
         relationships.create_index(
             [("pair_key", ASCENDING)], unique=True, name="social_pair_unique"
         )
-        relationships.create_index(
-            [("requester_public_id", ASCENDING), ("status", ASCENDING)],
-            name="social_requester_status",
-        )
-        relationships.create_index(
-            [("recipient_public_id", ASCENDING), ("status", ASCENDING)],
-            name="social_recipient_status",
-        )
         challenges.create_index([("challenge_id", ASCENDING)], unique=True, name="pvp_challenge_id_unique")
         challenges.create_index(
             [("pair_contest_key", ASCENDING)], unique=True,
@@ -159,6 +188,18 @@ def initialize_database(config: BackendConfig) -> None:
         matches.create_index([("challenge_id", ASCENDING)], unique=True, name="pvp_match_challenge_unique")
         matches.create_index([("participant_public_ids", ASCENDING), ("status", ASCENDING)], name="pvp_participant_status")
         matches.create_index([("participant_public_ids", ASCENDING), ("status", ASCENDING), ("finalized_at", -1)], name="pvp_recent_opponents")
+        codes.create_index([("code_hash", ASCENDING)], unique=True, name="promotion_code_hash_unique")
+        codes.create_index([("campaign", ASCENDING), ("duck_number", ASCENDING)], unique=True, name="promotion_campaign_duck_unique")
+        redemptions.create_index([("redemption_id", ASCENDING)], unique=True, name="promotion_redemption_id_unique")
+        redemptions.create_index([("campaign", ASCENDING), ("player_device_id", ASCENDING)], unique=True, name="promotion_player_campaign_unique")
+        relationships.create_index(
+            [("requester_public_id", ASCENDING), ("status", ASCENDING)],
+            name="social_requester_status",
+        )
+        relationships.create_index(
+            [("recipient_public_id", ASCENDING), ("status", ASCENDING)],
+            name="social_recipient_status",
+        )
         settings.update_one(
             {"_id": "global"},
             {"$setOnInsert": DEFAULT_SETTINGS},
@@ -173,11 +214,13 @@ def initialize_database(config: BackendConfig) -> None:
     social_relationship_collection = relationships
     pvp_challenge_collection = challenges
     pvp_match_collection = matches
+    promotion_code_collection = codes
+    promotion_redemption_collection = redemptions
 
 
 def close_database() -> None:
     """Release MongoDB and ephemeral process state during graceful shutdown."""
-    global mongo_client, player_collection, settings_collection, social_relationship_collection, pvp_challenge_collection, pvp_match_collection
+    global mongo_client, player_collection, settings_collection, social_relationship_collection, pvp_challenge_collection, pvp_match_collection, promotion_code_collection, promotion_redemption_collection
     client = mongo_client
     mongo_client = None
     player_collection = None
@@ -185,6 +228,8 @@ def close_database() -> None:
     social_relationship_collection = None
     pvp_challenge_collection = None
     pvp_match_collection = None
+    promotion_code_collection = None
+    promotion_redemption_collection = None
     queue.clear()
     active_matches.clear()
     if client is not None:
@@ -363,9 +408,8 @@ def delete_guest_player(player_id: str, auth_token_hash: str) -> None:
     - Process-local matchmaking queue and matched-session references.
 
     Preserved/anonymized:
-    - Nothing. Leaderboard rows are live projections of player documents, so
-      deletion removes the entry. No separate history/aggregate collections
-      currently exist, and no retention requirement is assumed.
+    - A consumed promotion code remains consumed, but its player reference is
+      removed. This prevents reward reuse without retaining public identity.
 
     Cleanup is idempotent and the MongoDB document is deleted last. If cleanup
     is interrupted, a retry can safely repeat the ephemeral removals. Once the
@@ -393,6 +437,11 @@ def delete_guest_player(player_id: str, auth_token_hash: str) -> None:
             )
         if pvp_match_collection is not None:
             pvp_matches().delete_many({"participant_public_ids": public_id})
+    if promotion_redemption_collection is not None:
+        redemption_ids = [row["redemption_id"] for row in promotion_redemptions().find({"player_device_id": player_id}, {"redemption_id": 1})]
+        promotion_redemptions().delete_many({"player_device_id": player_id})
+        if redemption_ids and promotion_code_collection is not None:
+            promotion_codes().update_many({"redemption_id": {"$in": redemption_ids}}, {"$unset": {"redeemed_by": ""}, "$set": {"account_deleted": True}})
     _players().delete_one(
         {
             "device_id": player_id,

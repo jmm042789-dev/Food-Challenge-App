@@ -137,6 +137,11 @@ SHOP_ITEMS = [
 
 ]
 
+# Gear is authored once in data.gear so Shop, Locker, match snapshots, and
+# replay cannot drift on price/effect metadata.
+from data.gear import GEAR
+SHOP_ITEMS = [item for item in SHOP_ITEMS if item.get("type") != "gear"] + GEAR
+
 # ======================================================
 # Helpers
 # ======================================================

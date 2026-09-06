@@ -676,6 +676,8 @@ class MatchLifecycleTests(unittest.TestCase):
         self.assertEqual(captured["coin_reward"], 10)
         self.assertEqual(captured_update["draws"]["$add"][1], 1)
         self.assertEqual(captured_update["losses"]["$add"][1], 0)
+        self.assertEqual(captured_update["elo"]["$add"][1], 0)
+        self.assertEqual(captured_update["longest_combo"]["$max"][1], result().maximum_combo)
 
     def test_database_settlement_is_conditioned_on_player_and_active_match(self):
         collection = Mock()

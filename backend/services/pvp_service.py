@@ -253,7 +253,7 @@ def transition_challenge(viewer: dict, challenge_id: str, action: str) -> dict:
 def _attempt_context(player: dict, match: dict, now: datetime) -> dict:
     contest = _contest(match["contest_id"])
     duration = int(contest["duration_sec"])
-    equipped, modifiers = authoritative_perk_config(player.get("equipped_gear"))
+    equipped, modifiers = authoritative_perk_config(player.get("equipped_gear_slots") or player.get("equipped_gear"))
     attempt_id = f"pva_{uuid.uuid4()}"
     return {
         "schema_version": MATCH_SCHEMA_VERSION, "validation_version": VALIDATION_VERSION,

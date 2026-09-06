@@ -52,6 +52,8 @@ class _Database:
             "social_relationships": _Collection(),
             "pvp_challenges": _Collection(),
             "pvp_matches": _Collection(),
+            "promotion_codes": _Collection(),
+            "promotion_redemptions": _Collection(),
         }
 
     def __getitem__(self, name):
@@ -152,6 +154,10 @@ class ConfigurationTests(unittest.TestCase):
             {options["name"] for _fields, options in relationships.indexes},
             {"social_pair_unique", "social_requester_status", "social_recipient_status"},
         )
+        codes = client.databases[config.db_name].collections["promotion_codes"]
+        self.assertEqual({options["name"] for _fields, options in codes.indexes}, {"promotion_code_hash_unique", "promotion_campaign_duck_unique"})
+        redemptions = client.databases[config.db_name].collections["promotion_redemptions"]
+        self.assertEqual({options["name"] for _fields, options in redemptions.indexes}, {"promotion_redemption_id_unique", "promotion_player_campaign_unique"})
         challenges = client.databases[config.db_name].collections["pvp_challenges"]
         self.assertEqual(
             {options["name"] for _fields, options in challenges.indexes},

@@ -249,6 +249,23 @@ class MatchSecurityAuditTests(unittest.TestCase):
         self.assertIn("anti_cheat", captured)
         self.assertNotIn(active["match_seed"], repr(captured))
 
+    def test_start_removes_stale_process_local_matchmaking_state(self):
+        player = {"device_id": "player-a", "coins": 1000, "antacid": 0, "xp": 0, "elo": 1000}
+        contest = active_match()["challenge_config"] | {"id": "nathans", "entry_fee": 0}
+        opponent = {"id": "opponent-a", "difficulty": "easy", "tap_speed": 1, "accuracy": 1, "combo_skill": 0}
+        match_service.queue[:] = [{"device_id": "player-a", "elo": 1000, "time": 1}]
+        match_service.active_matches["pair"] = {"players": ["player-a", "player-b"], "created": 1}
+        with (
+            patch.object(match_service, "find_internal_player", return_value=player),
+            patch.object(match_service, "expire_stale_match", return_value=False),
+            patch.object(match_service, "get_contest", return_value=contest),
+            patch.object(match_service, "_opponent_for", return_value=opponent),
+            patch.object(match_service, "start_player_match", return_value=player),
+        ):
+            match_service.start_match("player-a", "nathans")
+        self.assertFalse(any(entry.get("device_id") == "player-a" for entry in match_service.queue))
+        self.assertNotIn("pair", match_service.active_matches)
+
     def test_cross_player_identity_is_rejected_before_submission(self):
         result = MatchResult(**{
             **valid_result().__dict__,

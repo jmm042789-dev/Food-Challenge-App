@@ -1,6 +1,7 @@
 """Pure, conservative plausibility helpers for settled Fire Feast matches."""
 
 import math
+from data.gear import GEAR, GEAR_SETS
 
 
 MAX_PLAUSIBLE_TAPS_PER_SECOND = 20
@@ -78,6 +79,9 @@ GEAR_PERK_MODIFIERS = {
     },
 }
 
+GEAR_BY_ID = {item["id"]: item for item in GEAR}
+GEAR_BALANCE_CAPS = {"tap_power": 1.08, "combo_window_ms": 777, "score_multiplier": 1.08, "heat_generation_multiplier_min": .90, "heat_generation_multiplier_max": 1.08}
+
 FOOD_HEAT_BY_CONTEST = {
     "nathans-hotdogs": 5,
     "wing-bowl": 7,
@@ -101,11 +105,38 @@ def trusted_heat_per_tap(contest: dict) -> int:
     return math.floor(base * difficulty + 0.5)
 
 
-def authoritative_perk_config(equipped_gear) -> tuple[str | None, dict]:
-    """Resolve exactly one persisted gear identifier using trusted rules."""
-    if equipped_gear not in GEAR_PERK_MODIFIERS:
-        return None, dict(BASE_PERK_MODIFIERS)
-    return equipped_gear, dict(GEAR_PERK_MODIFIERS[equipped_gear])
+def authoritative_perk_config(equipped_gear) -> tuple[object | None, dict]:
+    """Resolve legacy single gear or a trusted three-slot loadout."""
+    if isinstance(equipped_gear, str):
+        if equipped_gear not in GEAR_PERK_MODIFIERS:
+            return None, dict(BASE_PERK_MODIFIERS)
+        return equipped_gear, dict(GEAR_PERK_MODIFIERS[equipped_gear])
+    loadout = equipped_gear if isinstance(equipped_gear, dict) else {}
+    valid = {}
+    modifiers = dict(BASE_PERK_MODIFIERS)
+    for slot in ("Hat", "Apron", "Outfit"):
+        item_id = loadout.get(slot.lower())
+        item = GEAR_BY_ID.get(item_id)
+        if not item or item["slot"] != slot: continue
+        valid[slot.lower()] = item_id
+        effect = item.get("effect") or {}
+        modifiers["tap_power"] *= float(effect.get("tap_power", 1))
+        modifiers["score_multiplier"] *= float(effect.get("score_multiplier", 1))
+        modifiers["heat_generation_multiplier"] *= float(effect.get("heat_generation_multiplier", 1))
+        modifiers["combo_window_ms"] += int(effect.get("combo_window_ms", 700)) - 700
+    active_set = next((value for value in GEAR_SETS.values() if set(value["pieces"]) == set(valid.values())), None)
+    if active_set:
+        bonus = active_set["bonus"]
+        modifiers["tap_power"] *= float(bonus.get("tap_power", 1))
+        modifiers["score_multiplier"] *= float(bonus.get("score_multiplier", 1))
+        modifiers["heat_generation_multiplier"] *= float(bonus.get("heat_generation_multiplier", 1))
+        modifiers["combo_window_ms"] += int(bonus.get("combo_window_ms", 0))
+    modifiers["tap_power"] = min(GEAR_BALANCE_CAPS["tap_power"], max(1, modifiers["tap_power"]))
+    modifiers["score_multiplier"] = min(GEAR_BALANCE_CAPS["score_multiplier"], max(1, modifiers["score_multiplier"]))
+    modifiers["combo_window_ms"] = min(GEAR_BALANCE_CAPS["combo_window_ms"], max(700, modifiers["combo_window_ms"]))
+    modifiers["heat_generation_multiplier"] = min(GEAR_BALANCE_CAPS["heat_generation_multiplier_max"], max(GEAR_BALANCE_CAPS["heat_generation_multiplier_min"], modifiers["heat_generation_multiplier"]))
+    modifiers["active_set_id"] = active_set["id"] if active_set else None
+    return valid or None, modifiers
 
 
 def build_opponent_config(opponent: dict, contest: dict, seed: int) -> dict:

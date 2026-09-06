@@ -3,6 +3,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from pydantic import ValidationError
@@ -19,6 +20,29 @@ import auth
 
 
 class ApiHardeningTests(unittest.TestCase):
+    def test_matchmaking_responses_do_not_expose_private_device_ids(self):
+        player_a = {"device_id": "private-a", "elo": 1000}
+        server.queue[:] = [{"device_id": "private-b", "elo": 1000, "time": 1}]
+        server.active_matches.clear()
+
+        with (
+            patch.object(server, "authenticated_player", return_value=player_a),
+            patch.object(server, "cleanup_stale_matchmaking_state"),
+            patch.object(server, "expire_stale_match"),
+            patch.object(server, "recover_match", return_value={"status": "none"}),
+        ):
+            joined = server.join_queue(PlayerCreate(device_id="private-a"), "Bearer token")
+            status = server.matchmaking_status("private-b", "Bearer token")
+
+        self.assertEqual(joined["status"], "matched")
+        self.assertEqual(status["status"], "matched")
+        self.assertNotIn("opponent", joined)
+        self.assertNotIn("players", status)
+        self.assertNotIn("private-a", str(joined))
+        self.assertNotIn("private-b", str(status))
+        server.queue.clear()
+        server.active_matches.clear()
+
     def test_rate_limit_rejects_only_after_configured_allowance(self):
         limiter = InMemoryRateLimiter()
         limit = RateLimit(requests=2, window_seconds=60)

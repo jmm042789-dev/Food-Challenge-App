@@ -46,6 +46,17 @@ class InputGeometryV2Tests(unittest.TestCase):
         with self.assertRaises(InputReplayError): replay_input_log(active, [{**valid, "duration_ms": 100}])
         with self.assertRaises(InputReplayError): replay_input_log(active, [{**valid, "source": "FOOD"}])
 
+
+    def test_rapid_control_geometry_accepts_full_normalized_action_target(self):
+        active = active_match(); active["contest_id"] = "in-n-out-burgers"
+        active["challenge_config"].update({"contest_id": "in-n-out-burgers", "bite_mechanic": "rapid", "heat_per_tap": 7, "duration_sec": 30})
+        for index, (x, y) in enumerate(((0.0, 0.0), (0.5, 0.5), (1.0, 1.0)), start=1):
+            replay = replay_input_log(active, [event(seq=1, t_ms=200 + index, source="CONTROL", x=x, y=y)])
+            self.assertEqual(replay["accepted_taps"], 1)
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(active, [event(source="CONTROL", x=None, y=None)])
+        self.assertEqual(raised.exception.reason, "invalid_input_geometry")
+
     def test_schema_rejects_nonfinite_and_string_geometry(self):
         for value in (math.nan, math.inf, "0.5"):
             with self.assertRaises(ValidationError):
