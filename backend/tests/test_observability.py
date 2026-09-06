@@ -167,5 +167,120 @@ class RequestObservabilityTests(unittest.TestCase):
             self.assertNotIn(sensitive, logs)
 
 
+    def _match_start_body(self, contest_id="nathans-hotdogs"):
+        return json.dumps({"device_id": "guest_observability", "contest_id": contest_id}).encode("utf-8")
+
+    def _match_result_body(self):
+        return json.dumps({
+            "device_id": "guest_observability",
+            "match_id": "match-observability",
+            "contest_id": "nathans-hotdogs",
+            "opponent_id": "inferno_ivan",
+            "score": 0,
+            "opponent_score": 0,
+            "duration_sec": 30,
+            "accepted_taps": 0,
+            "completed_progress": 0,
+            "maximum_combo": 0,
+            "tums_used": 0,
+            "completion_reason": "timer_completed",
+            "validation_version": 2,
+            "input_events": [],
+        }).encode("utf-8")
+
+    def test_match_start_success_log_contains_request_id_and_match_id_without_changing_response(self):
+        request_id = "d4" * 16
+        response = {"match_id": "match-observability", "contest": {"id": "nathans-hotdogs"}}
+        with (
+            patch.object(server, "authenticated_player", return_value=None),
+            patch.object(server, "start_match", return_value=response) as start,
+            self.assertLogs(server.logger, level=logging.INFO) as captured,
+        ):
+            status, headers, body = request(
+                "/api/match/start",
+                method="POST",
+                headers={REQUEST_ID_HEADER: request_id, "Content-Type": "application/json"},
+                body=self._match_start_body(),
+            )
+        logs = " ".join(captured.output)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["x-request-id"], request_id)
+        self.assertEqual(json.loads(body), response)
+        start.assert_called_once_with("guest_observability", "nathans-hotdogs", request_id=request_id)
+        self.assertIn("event=START_COMPLETED", logs)
+        self.assertIn(f"request_id={request_id}", logs)
+        self.assertIn("match=match-observability", logs)
+        self.assertNotIn("guest_observability", logs)
+
+    def test_match_start_active_rejection_log_distinguishes_reason_and_preserves_response(self):
+        request_id = "d5" * 16
+        with (
+            patch.object(server, "authenticated_player", return_value=None),
+            patch.object(server, "start_match", side_effect=server.MatchAlreadyActiveError),
+            self.assertLogs(server.logger, level=logging.INFO) as captured,
+        ):
+            status, headers, body = request(
+                "/api/match/start",
+                method="POST",
+                headers={REQUEST_ID_HEADER: request_id, "Content-Type": "application/json"},
+                body=self._match_start_body("in-n-out-burgers"),
+            )
+        logs = " ".join(captured.output)
+        self.assertEqual(status, 409)
+        self.assertEqual(headers["x-request-id"], request_id)
+        self.assertEqual(json.loads(body), {"detail": "another match is already active"})
+        self.assertIn("event=START_REJECTED_ACTIVE_MATCH", logs)
+        self.assertIn("reason=active_match", logs)
+        self.assertIn(f"request_id={request_id}", logs)
+        self.assertNotIn("guest_observability", logs)
+
+    def test_match_result_rejection_log_contains_request_id_and_exact_reason_without_changing_response(self):
+        request_id = "d6" * 16
+        with (
+            patch.object(server, "authenticated_player", return_value=None),
+            patch.object(server, "submit_result", side_effect=server.MatchValidationError("progress_replay_mismatch")),
+            self.assertLogs(server.logger, level=logging.INFO) as captured,
+        ):
+            status, headers, body = request(
+                "/api/match/result",
+                method="POST",
+                headers={REQUEST_ID_HEADER: request_id, "Content-Type": "application/json"},
+                body=self._match_result_body(),
+            )
+        logs = " ".join(captured.output)
+        self.assertEqual(status, 400)
+        self.assertEqual(headers["x-request-id"], request_id)
+        self.assertEqual(json.loads(body), {"detail": {"code": "MATCH_RESULT_REJECTED", "message": "match result could not be verified"}})
+        self.assertIn("event=RESULT_REJECTED", logs)
+        self.assertIn("reason=progress_replay_mismatch", logs)
+        self.assertIn("validation_version=2", logs)
+        self.assertIn(f"request_id={request_id}", logs)
+        self.assertNotIn("guest_observability", logs)
+
+    def test_match_result_success_log_contains_request_id_match_id_and_idempotency_without_changing_response(self):
+        request_id = "d7" * 16
+        response = {"verified": True, "match_id": "match-observability", "already_finalized": True, "coin_reward": 10}
+        with (
+            patch.object(server, "authenticated_player", return_value=None),
+            patch.object(server, "submit_result", return_value=response) as submit,
+            self.assertLogs(server.logger, level=logging.INFO) as captured,
+        ):
+            status, headers, body = request(
+                "/api/match/result",
+                method="POST",
+                headers={REQUEST_ID_HEADER: request_id, "Content-Type": "application/json"},
+                body=self._match_result_body(),
+            )
+        logs = " ".join(captured.output)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["x-request-id"], request_id)
+        self.assertEqual(json.loads(body), response)
+        self.assertEqual(submit.call_args.kwargs, {"request_id": request_id})
+        self.assertIn("event=RESULT_SETTLED", logs)
+        self.assertIn(f"request_id={request_id}", logs)
+        self.assertIn("match=match-observability", logs)
+        self.assertIn("idempotent=True", logs)
+        self.assertNotIn("guest_observability", logs)
+
 if __name__ == "__main__":
     unittest.main()

@@ -53,6 +53,45 @@ COIN_DEBUG_LOGGING = os.environ.get("FIRE_FEAST_ENV", "development").lower() == 
 MATCH_DIAGNOSTICS_ENABLED = os.environ.get("FIRE_FEAST_ENV", "development").lower() != "production"
 
 
+def _safe_player_id(value) -> str:
+    if not isinstance(value, str) or not value:
+        return "unknown"
+    digest = hashlib.sha256(f"fire-feast-log:{value}".encode("utf-8")).hexdigest()
+    return digest[:16]
+
+
+def _elapsed_ms(started: float) -> float:
+    return round((time.perf_counter() - started) * 1000, 3)
+
+
+def _log_match_start(
+    *,
+    outcome: str,
+    request_id: str | None,
+    device_id: str,
+    contest_id: str,
+    http_status: int,
+    started: float,
+    match_id: str | None = None,
+    active_match_id: str | None = None,
+    active_contest_id: str | None = None,
+    reason: str | None = None,
+) -> None:
+    logger.info(
+        "Match start observability event=%s request_id=%s player=%s contest=%s match=%s active_match=%s active_contest=%s reason=%s http_status=%s elapsed_ms=%.3f",
+        outcome,
+        request_id or "unavailable",
+        _safe_player_id(device_id),
+        contest_id,
+        match_id or "none",
+        active_match_id or "none",
+        active_contest_id or "none",
+        reason or "none",
+        http_status,
+        _elapsed_ms(started),
+    )
+
+
 BELT_RANKS = [
     {"key": "bronze", "name": "Bronze Belly", "min_xp": 0, "color": "#CD7F32", "icon": "🥉"},
     {"key": "silver", "name": "Silver Stomach", "min_xp": 200, "color": "#C0C0C0", "icon": "🥈"},
@@ -60,6 +99,7 @@ BELT_RANKS = [
     {"key": "platinum", "name": "Platinum Plate", "min_xp": 2000, "color": "#E5E4E2", "icon": "🏆"},
     {"key": "diamond", "name": "Diamond Devourer", "min_xp": 5000, "color": "#7AB8FF", "icon": "💎"},
 ]
+
 
 
 class PlayerNotFoundError(Exception):
@@ -240,24 +280,82 @@ def _opponent_for(contest: dict) -> dict:
     return dict(random.choice(candidates))
 
 
-def start_match(device_id: str, contest_id: str) -> dict:
+def start_match(device_id: str, contest_id: str, request_id: str | None = None) -> dict:
+    started = time.perf_counter()
+    _log_match_start(
+        outcome="START_REQUEST_RECEIVED",
+        request_id=request_id,
+        device_id=device_id,
+        contest_id=contest_id,
+        http_status=0,
+        started=started,
+    )
     player = find_internal_player(device_id)
     if not player:
+        _log_match_start(
+            outcome="START_REJECTED_PLAYER_NOT_FOUND",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            http_status=404,
+            started=started,
+            reason="player_not_found",
+        )
         raise PlayerNotFoundError
 
     contest = get_contest(contest_id)
     if not contest:
+        _log_match_start(
+            outcome="START_REJECTED_CONTEST_NOT_FOUND",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            http_status=404,
+            started=started,
+            reason="contest_not_found",
+        )
         raise ContestNotFoundError
 
     expire_stale_match(device_id)
     player = find_internal_player(device_id)
     if not player:
+        _log_match_start(
+            outcome="START_REJECTED_PLAYER_NOT_FOUND",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            http_status=404,
+            started=started,
+            reason="player_not_found_after_expiry_check",
+        )
         raise PlayerNotFoundError
     active = player.get("active_match")
     if active:
         if active.get("contest_id") == contest_id:
             _remove_player_matchmaking_state(device_id)
+            _log_match_start(
+                outcome="START_REUSED_EXISTING_MATCH",
+                request_id=request_id,
+                device_id=device_id,
+                contest_id=contest_id,
+                match_id=active.get("id"),
+                active_match_id=active.get("id"),
+                active_contest_id=active.get("contest_id"),
+                http_status=200,
+                started=started,
+            )
             return dict(active["start_response"])
+        _log_match_start(
+            outcome="START_REJECTED_ACTIVE_MATCH",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            active_match_id=active.get("id"),
+            active_contest_id=active.get("contest_id"),
+            http_status=409,
+            started=started,
+            reason="different_active_match",
+        )
         raise MatchAlreadyActiveError
 
     opponent = _opponent_for(contest)
@@ -335,17 +433,67 @@ def start_match(device_id: str, contest_id: str) -> dict:
                 entry_fee,
                 response["player_coins"],
             )
+        _log_match_start(
+            outcome="START_CREATED",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            match_id=match_id,
+            http_status=200,
+            started=started,
+        )
         return response
 
     latest = find_internal_player(device_id)
     if not latest:
+        _log_match_start(
+            outcome="START_REJECTED_PLAYER_NOT_FOUND",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            http_status=404,
+            started=started,
+            reason="player_not_found_after_create_attempt",
+        )
         raise PlayerNotFoundError
     latest_active = latest.get("active_match")
     if latest_active and latest_active.get("contest_id") == contest_id:
         _remove_player_matchmaking_state(device_id)
+        _log_match_start(
+            outcome="START_REUSED_EXISTING_MATCH",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            match_id=latest_active.get("id"),
+            active_match_id=latest_active.get("id"),
+            active_contest_id=latest_active.get("contest_id"),
+            http_status=200,
+            started=started,
+            reason="create_race_reused_same_contest",
+        )
         return dict(latest_active["start_response"])
     if int(latest.get("coins", 0)) < entry_fee:
+        _log_match_start(
+            outcome="START_REJECTED_INSUFFICIENT_COINS",
+            request_id=request_id,
+            device_id=device_id,
+            contest_id=contest_id,
+            http_status=400,
+            started=started,
+            reason="insufficient_coins",
+        )
         raise InsufficientCoinsError
+    _log_match_start(
+        outcome="START_REJECTED_ACTIVE_MATCH",
+        request_id=request_id,
+        device_id=device_id,
+        contest_id=contest_id,
+        active_match_id=latest_active.get("id") if isinstance(latest_active, dict) else None,
+        active_contest_id=latest_active.get("contest_id") if isinstance(latest_active, dict) else None,
+        http_status=409,
+        started=started,
+        reason="active_match_or_create_race",
+    )
     raise MatchAlreadyActiveError
 
 
@@ -390,7 +538,7 @@ def _validation_telemetry(result) -> dict:
     return telemetry
 
 
-def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict) -> None:
+def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict, request_id: str | None = None, started: float | None = None) -> None:
     now = _utc_now().isoformat()
     transition_player_match(
         device_id,
@@ -465,7 +613,7 @@ def _plausibility_bounds(active: dict, result, server_elapsed: float) -> dict:
     }
 
 
-def _validate_result(active: dict, result, now: datetime) -> tuple[dict, str]:
+def _validate_result(active: dict, result, now: datetime, request_id: str | None = None, started: float | None = None) -> tuple[dict, str]:
     telemetry = _validation_telemetry(result)
     if active.get("schema_version") != MATCH_SCHEMA_VERSION:
         _reject_match(result.device_id, active, "invalid_match_state", telemetry)
@@ -600,7 +748,7 @@ def _validate_result(active: dict, result, now: datetime) -> tuple[dict, str]:
     return bounds, outcome
 
 
-def submit_result(result) -> dict:
+def submit_result(result, request_id: str | None = None) -> dict:
     player = find_internal_player(result.device_id)
     if not player:
         raise PlayerNotFoundError
@@ -789,3 +937,5 @@ def submit_result(result) -> dict:
         _remove_player_matchmaking_state(result.device_id)
         return {**dict(previous["response"]), "already_finalized": True}
     raise MatchNotFoundError
+
+

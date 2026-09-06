@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from time import perf_counter
 
@@ -122,6 +123,7 @@ from services.pvp_service import (
 )
 from observability import (
     REQUEST_ID_HEADER,
+    generate_request_id,
     request_id_for,
     request_id_from,
     response_outcome,
@@ -157,6 +159,12 @@ app.add_middleware(
     expose_headers=[REQUEST_ID_HEADER],
 )
 logger = logging.getLogger(__name__)
+
+
+def _safe_log_player_id(value) -> str:
+    if not isinstance(value, str) or not value:
+        return "unknown"
+    return hashlib.sha256(f"fire-feast-log:{value}".encode("utf-8")).hexdigest()[:16]
 
 MAX_REQUEST_BYTES = 16 * 1024
 MAX_MATCH_RESULT_REQUEST_BYTES = 384 * 1024
@@ -269,7 +277,7 @@ async def observe_request(request: Request, call_next):
 
 @app.exception_handler(Exception)
 async def unexpected_error_handler(request: Request, error: Exception):
-    request_id = request_id_from(request)
+    request_id = request_id_from(request) if request is not None else generate_request_id()
     logger.error(
         "Request failure request_id=%s method=%s route=%s category=unexpected_error exception=%s",
         request_id,
@@ -873,17 +881,67 @@ def abandon_match_endpoint(
 def match_start_endpoint(
     data: MatchStart,
     authorization: str | None = Header(default=None),
+    request: Request = None,
 ):
-    authenticated_player(data.device_id, authorization)
+    request_id = request_id_from(request) if request is not None else generate_request_id()
+    started = perf_counter()
     try:
-        return start_match(data.device_id, data.contest_id)
+        authenticated_player(data.device_id, authorization)
+    except HTTPException:
+        logger.info(
+            "Match start endpoint event=START_REJECTED_AUTH request_id=%s player=%s contest=%s reason=auth_failed http_status=401 elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.contest_id,
+            (perf_counter() - started) * 1000,
+        )
+        raise
+    try:
+        response = start_match(data.device_id, data.contest_id, request_id=request_id)
+        logger.info(
+            "Match start endpoint event=START_COMPLETED request_id=%s player=%s contest=%s match=%s http_status=200 elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.contest_id,
+            response.get("match_id"),
+            (perf_counter() - started) * 1000,
+        )
+        return response
     except PlayerNotFoundError:
+        logger.info(
+            "Match start endpoint event=START_REJECTED_PLAYER_NOT_FOUND request_id=%s player=%s contest=%s reason=player_not_found http_status=404 elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.contest_id,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=404, detail="player not found")
     except ContestNotFoundError:
+        logger.info(
+            "Match start endpoint event=START_REJECTED_CONTEST_NOT_FOUND request_id=%s player=%s contest=%s reason=contest_not_found http_status=404 elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.contest_id,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=404, detail="contest not found")
     except MatchInsufficientCoinsError:
+        logger.info(
+            "Match start endpoint event=START_REJECTED_INSUFFICIENT_COINS request_id=%s player=%s contest=%s reason=insufficient_coins http_status=400 elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.contest_id,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=400, detail="not enough coins")
     except MatchAlreadyActiveError:
+        logger.info(
+            "Match start endpoint event=START_REJECTED_ACTIVE_MATCH request_id=%s player=%s contest=%s reason=active_match http_status=409 elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.contest_id,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=409, detail="another match is already active")
 
 
@@ -891,18 +949,82 @@ def match_start_endpoint(
 def match_result(
     data: MatchResult,
     authorization: str | None = Header(default=None),
+    request: Request = None,
 ):
-    authenticated_player(data.device_id, authorization)
+    request_id = request_id_from(request) if request is not None else generate_request_id()
+    started = perf_counter()
     try:
-        return submit_result(data)
+        authenticated_player(data.device_id, authorization)
+    except HTTPException:
+        logger.info(
+            "Match result endpoint event=RESULT_REJECTED_AUTH request_id=%s player=%s match=%s contest=%s reason=auth_failed http_status=401 validation_version=%s elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.match_id,
+            data.contest_id,
+            data.validation_version,
+            (perf_counter() - started) * 1000,
+        )
+        raise
+    try:
+        response = submit_result(data, request_id=request_id)
+        logger.info(
+            "Match result endpoint event=RESULT_SETTLED request_id=%s player=%s match=%s contest=%s http_status=200 validation_version=%s idempotent=%s elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.match_id,
+            data.contest_id,
+            data.validation_version,
+            bool(response.get("already_finalized")),
+            (perf_counter() - started) * 1000,
+        )
+        return response
     except PlayerNotFoundError:
+        logger.info(
+            "Match result endpoint event=RESULT_REJECTED_PLAYER_NOT_FOUND request_id=%s player=%s match=%s contest=%s reason=player_not_found http_status=404 validation_version=%s elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.match_id,
+            data.contest_id,
+            data.validation_version,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=404, detail={"code": "MATCH_PLAYER_NOT_FOUND", "message": "player not found"})
     except MatchNotFoundError:
+        logger.info(
+            "Match result endpoint event=RESULT_REJECTED_MATCH_NOT_ACTIVE request_id=%s player=%s match=%s contest=%s reason=match_not_active http_status=409 validation_version=%s elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.match_id,
+            data.contest_id,
+            data.validation_version,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=409, detail={"code": "MATCH_NOT_ACTIVE", "message": "no matching active match"})
     except MatchExpiredError:
+        logger.info(
+            "Match result endpoint event=RESULT_REJECTED_MATCH_EXPIRED request_id=%s player=%s match=%s contest=%s reason=match_expired http_status=409 validation_version=%s elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.match_id,
+            data.contest_id,
+            data.validation_version,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=409, detail={"code": "MATCH_EXPIRED", "message": "match has expired"})
-    except MatchValidationError:
+    except MatchValidationError as error:
+        logger.info(
+            "Match result endpoint event=RESULT_REJECTED request_id=%s player=%s match=%s contest=%s reason=%s http_status=400 validation_version=%s elapsed_ms=%.3f",
+            request_id,
+            _safe_log_player_id(data.device_id),
+            data.match_id,
+            data.contest_id,
+            error.reason,
+            data.validation_version,
+            (perf_counter() - started) * 1000,
+        )
         raise HTTPException(status_code=400, detail={"code": "MATCH_RESULT_REJECTED", "message": "match result could not be verified"})
+
 
 # =========================
 # SHOP / GEAR
