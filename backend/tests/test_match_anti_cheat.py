@@ -325,6 +325,71 @@ class MatchAntiCheatTests(unittest.TestCase):
                 match_service._validate_result(active, submitted, NOW)
 
         self.assertEqual(raised.exception.reason, "progress_replay_mismatch")
+    def test_progress_replay_rejection_logs_safe_delta_diagnostics(self):
+        active = active_match()
+        events = bite_events(count=30, spacing=300)
+        replay = replay_input_log(active, events)
+        submitted = valid_result(
+            active,
+            events,
+            completed_progress=round(replay["completed_progress"] + 0.01, 6),
+        )
+
+        with patch.object(match_service, "transition_player_match"), self.assertLogs(match_service.logger, level="WARNING") as captured:
+            with self.assertRaises(match_service.MatchValidationError) as raised:
+                match_service._validate_result(active, submitted, NOW, request_id="req-progress", started=0.0)
+
+        logs = " ".join(captured.output)
+        self.assertEqual(raised.exception.reason, "progress_replay_mismatch")
+        self.assertIn("request_id=req-progress", logs)
+        self.assertIn("submitted_progress", logs)
+        self.assertIn("replayed_progress", logs)
+        self.assertIn("progress_delta", logs)
+        self.assertIn("progress_epsilon", logs)
+        self.assertIn("submitted_score", logs)
+        self.assertIn("replayed_score", logs)
+        self.assertIn("score_delta", logs)
+        self.assertIn("score_tolerance", logs)
+
+    def test_action_during_burnout_logs_replay_event_diagnostics(self):
+        active = active_match()
+        events = [
+            SimpleNamespace(seq=index + 1, t_ms=(index + 1) * 100, type="BITE", source="CONTROL", x=0.5, y=0.5)
+            for index in range(20)
+        ]
+        events.append(SimpleNamespace(seq=21, t_ms=4000, type="BITE", source="CONTROL", x=0.5, y=0.5))
+        submitted = SimpleNamespace(
+            device_id="player-a",
+            match_id="match-a",
+            contest_id="nathans",
+            opponent_id="opponent-a",
+            score=20,
+            opponent_score=50,
+            duration_sec=60,
+            accepted_taps=21,
+            completed_progress=20,
+            maximum_combo=19,
+            tums_used=0,
+            completion_reason="timer_completed",
+            is_tournament=False,
+            validation_version=2,
+            input_events=events,
+        )
+
+        with patch.object(match_service, "transition_player_match"), self.assertLogs(match_service.logger, level="WARNING") as captured:
+            with self.assertRaises(match_service.MatchValidationError) as raised:
+                match_service._validate_result(active, submitted, NOW, request_id="req-burnout", started=0.0)
+
+        logs = " ".join(captured.output)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+        self.assertIn("request_id=req-burnout", logs)
+        self.assertIn("event_index", logs)
+        self.assertIn("action_type", logs)
+        self.assertIn("event_t_ms", logs)
+        self.assertIn("replayed_heat_before_action", logs)
+        self.assertIn("burnout_start_ms", logs)
+        self.assertIn("burnout_end_ms", logs)
+        self.assertIn("previous_event_delta_ms", logs)
 
 if __name__ == "__main__":
     unittest.main()

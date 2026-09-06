@@ -302,8 +302,9 @@ def minimum_progress_for_taps(accepted_taps: int, tap_power: float) -> float:
 
 
 class InputReplayError(ValueError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, details: dict | None = None):
         self.reason = reason
+        self.details = details or {}
         super().__init__(reason)
 
 
@@ -448,7 +449,18 @@ def replay_input_log(active: dict, events) -> dict:
         # Seeing one in an official log therefore proves payload manipulation;
         # ignoring it would allow a modified client to hide invalid actions.
         if penalty_until and timestamp < penalty_until:
-            raise InputReplayError("action_during_burnout")
+            raise InputReplayError("action_during_burnout", {
+                "event_index": index + 1,
+                "action_type": action,
+                "event_t_ms": timestamp,
+                "replayed_heat_before_action": round(heat, 3),
+                "burnout_state": "penalty_active",
+                "burnout_start_ms": penalty_until - OVERHEAT_PENALTY_MS,
+                "burnout_end_ms": penalty_until,
+                "burnout_remaining_ms": max(0, penalty_until - timestamp),
+                "previous_event_t_ms": last_timestamp if last_timestamp >= 0 else None,
+                "previous_event_delta_ms": timestamp - last_timestamp if last_timestamp >= 0 else None,
+            })
         if penalty_until and timestamp >= penalty_until:
             penalty_until = 0
 

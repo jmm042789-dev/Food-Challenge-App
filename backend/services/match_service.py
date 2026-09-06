@@ -552,10 +552,12 @@ def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict, re
     }
     safe_telemetry.setdefault("input_event_count", len(telemetry.get("input_events", [])))
     logger.warning(
-        "Match validation player=%s match=%s outcome=rejected reason=%s telemetry=%s",
+        "Match validation player=%s match=%s outcome=rejected reason=%s request_id=%s elapsed_ms=%s telemetry=%s",
         device_id,
         active.get("id"),
         reason,
+        request_id or "unavailable",
+        round((time.perf_counter() - started) * 1000, 3) if started is not None else "unavailable",
         safe_telemetry,
     )
     raise MatchValidationError(reason)
@@ -710,7 +712,8 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
     try:
         replay = replay_input_log(active, result.input_events)
     except InputReplayError as error:
-        _reject_match(result.device_id, active, error.reason, telemetry)
+        telemetry.update(error.details)
+        _reject_match(result.device_id, active, error.reason, telemetry, request_id=request_id, started=started)
     if replay["accepted_taps"] != result.accepted_taps:
         _reject_match(result.device_id, active, "input_count_mismatch", telemetry)
     if replay["antacids_used"] != result.tums_used:
@@ -723,12 +726,25 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
     # may therefore reconstruct slightly more cooling, progress, and score than
     # the client displayed. The server still rejects over-claimed telemetry and
     # settles from authoritative replay values below.
-    if result.completed_progress - replay["completed_progress"] > progress_epsilon(result.accepted_taps):
-        _reject_match(result.device_id, active, "progress_replay_mismatch", telemetry)
     score_delta = result.score - replay["replayed_score"]
+    replay_progress_epsilon = progress_epsilon(result.accepted_taps)
     score_tolerance = max(5, math.ceil(max(1, replay["replayed_score"]) * 0.02))
+    replay_diagnostics = {
+        "submitted_progress": result.completed_progress,
+        "replayed_progress": replay["completed_progress"],
+        "progress_delta": round(result.completed_progress - replay["completed_progress"], 6),
+        "progress_epsilon": replay_progress_epsilon,
+        "submitted_score": result.score,
+        "replayed_score": replay["replayed_score"],
+        "score_delta": score_delta,
+        "score_tolerance": score_tolerance,
+    }
+    if result.completed_progress - replay["completed_progress"] > replay_progress_epsilon:
+        telemetry.update(replay_diagnostics)
+        _reject_match(result.device_id, active, "progress_replay_mismatch", telemetry, request_id=request_id, started=started)
     if score_delta > score_tolerance:
-        _reject_match(result.device_id, active, "score_replay_mismatch", telemetry)
+        telemetry.update(replay_diagnostics)
+        _reject_match(result.device_id, active, "score_replay_mismatch", telemetry, request_id=request_id, started=started)
 
     outcome = (
         "suspicious_but_accepted"
@@ -811,7 +827,7 @@ def submit_result(result, request_id: str | None = None) -> dict:
     if not contest:
         _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
     validation_started = time.perf_counter()
-    validation, validation_outcome = _validate_result(active, result, _utc_now())
+    validation, validation_outcome = _validate_result(active, result, _utc_now(), request_id=request_id, started=validation_started)
     replay = validation["replay"]
     replay["validation_elapsed_ms"] = round((time.perf_counter() - validation_started) * 1000, 3)
     accepted_score = replay["replayed_score"]
