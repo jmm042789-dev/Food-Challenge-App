@@ -717,11 +717,17 @@ def _validate_result(active: dict, result, now: datetime, request_id: str | None
         _reject_match(result.device_id, active, "antacid_count_mismatch", telemetry)
     if replay["maximum_combo"] != result.maximum_combo:
         _reject_match(result.device_id, active, "combo_replay_mismatch", telemetry)
-    if abs(replay["completed_progress"] - result.completed_progress) > progress_epsilon(result.accepted_taps):
+    # Build 18 records official input evidence immediately after applying the
+    # scoring mutation. On a busy Android JS turn, the recorded t_ms can be a
+    # little later than the timestamp used for the client-side mutation. Replay
+    # may therefore reconstruct slightly more cooling, progress, and score than
+    # the client displayed. The server still rejects over-claimed telemetry and
+    # settles from authoritative replay values below.
+    if result.completed_progress - replay["completed_progress"] > progress_epsilon(result.accepted_taps):
         _reject_match(result.device_id, active, "progress_replay_mismatch", telemetry)
     score_delta = result.score - replay["replayed_score"]
     score_tolerance = max(5, math.ceil(max(1, replay["replayed_score"]) * 0.02))
-    if abs(score_delta) > score_tolerance:
+    if score_delta > score_tolerance:
         _reject_match(result.device_id, active, "score_replay_mismatch", telemetry)
 
     outcome = (

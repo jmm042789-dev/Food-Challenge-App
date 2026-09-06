@@ -401,7 +401,7 @@ def replay_input_log(active: dict, events) -> dict:
     last_overheat_at = -10_000
     critical_cycle = False
     perfect_eligible = False
-    recent_inputs = []
+    recent_scoring_inputs = []
     peak_rate = 0
 
     for index, event in enumerate(events):
@@ -424,11 +424,12 @@ def replay_input_log(active: dict, events) -> dict:
             raise InputReplayError("action_mode_mismatch")
         _validate_action_geometry(event, mechanic, contest_id)
 
-        recent_inputs = [value for value in recent_inputs if timestamp - value < 1000]
-        recent_inputs.append(timestamp)
-        peak_rate = max(peak_rate, len(recent_inputs))
-        if peak_rate > INVALID_INPUTS_PER_SECOND:
-            raise InputReplayError("impossible_input_rate")
+        if action != "ANTACID":
+            recent_scoring_inputs = [value for value in recent_scoring_inputs if timestamp - value < 1000]
+            recent_scoring_inputs.append(timestamp)
+            peak_rate = max(peak_rate, len(recent_scoring_inputs))
+            if peak_rate > INVALID_INPUTS_PER_SECOND:
+                raise InputReplayError("impossible_input_rate")
 
         if warning_until and timestamp >= warning_until:
             combo = 0

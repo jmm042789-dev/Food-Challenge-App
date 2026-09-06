@@ -274,6 +274,57 @@ class MatchAntiCheatTests(unittest.TestCase):
         self.assertTrue(duplicate["already_finalized"])
         self.assertEqual(len(settle_calls), 1)
 
+    def test_antacid_event_does_not_count_as_impossible_scoring_rate(self):
+        events = [
+            {"seq": index + 1, "t_ms": index, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}
+            for index in range(30)
+        ]
+        events.append({"seq": 31, "t_ms": 30, "type": "ANTACID"})
+
+        replay = replay_input_log(active_match(), events)
+
+        self.assertEqual(replay["accepted_taps"], 30)
+        self.assertEqual(replay["antacids_used"], 1)
+        self.assertEqual(replay["peak_input_rate"], 30)
+
+    def test_logged_timestamp_latency_can_underreport_progress_without_rejecting(self):
+        active = active_match()
+        active["allowed_duration_sec"] = 120
+        active["started_at"] = (NOW - timedelta(seconds=120)).isoformat()
+        active["challenge_config"]["duration_sec"] = 120
+        active["opponent_config"]["duration_sec"] = 120
+        events = [
+            SimpleNamespace(seq=index + 1, t_ms=(index + 1) * 1200, type="BITE", source="CONTROL", x=0.5, y=0.5)
+            for index in range(95)
+        ]
+        replay = replay_input_log(active, events)
+        submitted = valid_result(
+            active,
+            events,
+            duration_sec=120,
+            completed_progress=round(replay["completed_progress"] - 0.5, 6),
+        )
+
+        validation, outcome = match_service._validate_result(active, submitted, NOW)
+
+        self.assertIn(outcome, {"accepted", "suspicious_but_accepted"})
+        self.assertEqual(validation["replay"]["completed_progress"], replay["completed_progress"])
+
+    def test_progress_replay_still_rejects_overclaimed_progress(self):
+        active = active_match()
+        events = bite_events(count=30, spacing=300)
+        replay = replay_input_log(active, events)
+        submitted = valid_result(
+            active,
+            events,
+            completed_progress=round(replay["completed_progress"] + 0.01, 6),
+        )
+
+        with patch.object(match_service, "transition_player_match"):
+            with self.assertRaises(match_service.MatchValidationError) as raised:
+                match_service._validate_result(active, submitted, NOW)
+
+        self.assertEqual(raised.exception.reason, "progress_replay_mismatch")
 
 if __name__ == "__main__":
     unittest.main()
