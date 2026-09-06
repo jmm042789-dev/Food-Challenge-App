@@ -62,6 +62,23 @@ def bite_events(count=60, spacing=600):
         events.append(SimpleNamespace(seq=index + 1, t_ms=timestamp, type="BITE", source="CONTROL", x=0.5, y=0.5))
     return events
 
+def thirty_second_active_match():
+    active = active_match()
+    active["allowed_duration_sec"] = 30
+    active["challenge_config"] = dict(active["challenge_config"], duration_sec=30)
+    active["opponent_config"] = dict(active["opponent_config"], duration_sec=30)
+    return active
+
+
+def terminal_burnout_boundary_events(previous_timestamp=29_652, terminal_timestamp=30_000):
+    events = [
+        {"seq": index + 1, "t_ms": 25_790 + index * 100, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}
+        for index in range(20)
+    ]
+    events.append({"seq": 21, "t_ms": previous_timestamp, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+    events.append({"seq": 22, "t_ms": terminal_timestamp, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+    return events
+
 
 def valid_result(active=None, events=None, **overrides):
     active = active or active_match()
@@ -104,6 +121,46 @@ class MatchAntiCheatTests(unittest.TestCase):
         self.assertEqual(replay["maximum_combo"], 19)
         self.assertEqual(replay["peak_heat"], 100.0)
         self.assertEqual(replay["final_heat"], 0.0)
+    def test_terminal_clamped_burnout_boundary_event_is_accepted_once(self):
+        replay = replay_input_log(thirty_second_active_match(), terminal_burnout_boundary_events())
+        self.assertEqual(replay["accepted_taps"], 22)
+        self.assertEqual(replay["status"], "VALID")
+
+    def test_non_terminal_action_during_burnout_still_rejects(self):
+        events = terminal_burnout_boundary_events(terminal_timestamp=29_990)
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(thirty_second_active_match(), events)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+
+    def test_multiple_actions_during_terminal_burnout_still_reject(self):
+        events = terminal_burnout_boundary_events()
+        events.append({"seq": 23, "t_ms": 30_000, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(thirty_second_active_match(), events)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+
+    def test_terminal_burnout_compatibility_requires_recent_pre_boundary_event(self):
+        events = terminal_burnout_boundary_events(previous_timestamp=29_000)
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(thirty_second_active_match(), events)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+    def test_terminal_burnout_compatibility_rejects_large_terminal_skew(self):
+        events = [
+            {"seq": index + 1, "t_ms": 25_300 + index * 100, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5}
+            for index in range(20)
+        ]
+        events.append({"seq": 21, "t_ms": 29_180, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+        events.append({"seq": 22, "t_ms": 30_000, "type": "BITE", "source": "CONTROL", "x": 0.5, "y": 0.5})
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(thirty_second_active_match(), events)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
+
+    def test_terminal_burnout_compatibility_does_not_apply_to_antacid(self):
+        events = terminal_burnout_boundary_events()
+        events[-1] = {"seq": 22, "t_ms": 30_000, "type": "ANTACID"}
+        with self.assertRaises(InputReplayError) as raised:
+            replay_input_log(thirty_second_active_match(), events)
+        self.assertEqual(raised.exception.reason, "action_during_burnout")
 
     def test_antacid_can_save_warning_but_cannot_be_forged_during_burnout(self):
         threshold_events = [

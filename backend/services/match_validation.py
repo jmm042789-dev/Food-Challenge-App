@@ -39,6 +39,8 @@ MAX_INPUT_EVENTS = 2_000
 INVALID_INPUTS_PER_SECOND = 30
 SUSPICIOUS_INPUTS_PER_SECOND = 18
 INPUT_END_GRACE_MS = 750
+TERMINAL_BURNOUT_BOUNDARY_SKEW_MS = min(INPUT_END_GRACE_MS, 750)
+PREVIOUS_EVENT_BURNOUT_BOUNDARY_SKEW_MS = 100
 COOLING_DELAY_MS = 450
 OVERHEAT_WARNING_MS = 2_000
 OVERHEAT_RESET_HEAT = 68
@@ -308,6 +310,34 @@ class InputReplayError(ValueError):
         super().__init__(reason)
 
 
+def _is_terminal_burnout_boundary_skew(
+    *,
+    action: str,
+    timestamp: int,
+    duration_ms: int,
+    burnout_start: int,
+    penalty_until: int,
+    last_timestamp: int,
+    last_action: str | None,
+    already_tolerated: bool,
+) -> bool:
+    """Model a Build 18 terminal input-log timestamp clamp, not burnout play."""
+    if already_tolerated or action == "ANTACID":
+        return False
+    if action not in {"BITE", "SLICE"} or last_action not in {"BITE", "SLICE"}:
+        return False
+    if timestamp != duration_ms:
+        return False
+    if not (last_timestamp >= 0 and last_timestamp < burnout_start):
+        return False
+    boundary_gap_ms = burnout_start - last_timestamp
+    terminal_skew_ms = timestamp - burnout_start
+    return (
+        0 <= boundary_gap_ms <= PREVIOUS_EVENT_BURNOUT_BOUNDARY_SKEW_MS
+        and 0 < terminal_skew_ms <= TERMINAL_BURNOUT_BOUNDARY_SKEW_MS
+        and timestamp < penalty_until
+    )
+
 def _event_value(event, key: str):
     return event.get(key) if isinstance(event, dict) else getattr(event, key, None)
 
@@ -393,6 +423,7 @@ def replay_input_log(active: dict, events) -> dict:
     antacids_used = 0
     bite_count = 0
     last_timestamp = -1
+    last_action = None
     last_bite_at = None
     last_cooling_at = 0
     shield_until = 0
@@ -402,6 +433,7 @@ def replay_input_log(active: dict, events) -> dict:
     last_overheat_at = -10_000
     critical_cycle = False
     perfect_eligible = False
+    terminal_burnout_boundary_skew_used = False
     recent_scoring_inputs = []
     peak_rate = 0
 
@@ -446,21 +478,36 @@ def replay_input_log(active: dict, events) -> dict:
             perfect_eligible = False
 
         # The client does not accept or log any action while burnout is active.
-        # Seeing one in an official log therefore proves payload manipulation;
-        # ignoring it would allow a modified client to hide invalid actions.
+        # Build 18 can, however, clamp the final official log timestamp to the
+        # match duration after a scoring mutation that began just before the
+        # warning deadline. Accept exactly one terminal boundary-crossing log
+        # shape while preserving normal burnout rejection everywhere else.
         if penalty_until and timestamp < penalty_until:
-            raise InputReplayError("action_during_burnout", {
-                "event_index": index + 1,
-                "action_type": action,
-                "event_t_ms": timestamp,
-                "replayed_heat_before_action": round(heat, 3),
-                "burnout_state": "penalty_active",
-                "burnout_start_ms": penalty_until - OVERHEAT_PENALTY_MS,
-                "burnout_end_ms": penalty_until,
-                "burnout_remaining_ms": max(0, penalty_until - timestamp),
-                "previous_event_t_ms": last_timestamp if last_timestamp >= 0 else None,
-                "previous_event_delta_ms": timestamp - last_timestamp if last_timestamp >= 0 else None,
-            })
+            burnout_start = penalty_until - OVERHEAT_PENALTY_MS
+            if _is_terminal_burnout_boundary_skew(
+                action=action,
+                timestamp=timestamp,
+                duration_ms=duration_ms,
+                burnout_start=burnout_start,
+                penalty_until=penalty_until,
+                last_timestamp=last_timestamp,
+                last_action=last_action,
+                already_tolerated=terminal_burnout_boundary_skew_used,
+            ):
+                terminal_burnout_boundary_skew_used = True
+            else:
+                raise InputReplayError("action_during_burnout", {
+                    "event_index": index + 1,
+                    "action_type": action,
+                    "event_t_ms": timestamp,
+                    "replayed_heat_before_action": round(heat, 3),
+                    "burnout_state": "penalty_active",
+                    "burnout_start_ms": burnout_start,
+                    "burnout_end_ms": penalty_until,
+                    "burnout_remaining_ms": max(0, penalty_until - timestamp),
+                    "previous_event_t_ms": last_timestamp if last_timestamp >= 0 else None,
+                    "previous_event_delta_ms": timestamp - last_timestamp if last_timestamp >= 0 else None,
+                })
         if penalty_until and timestamp >= penalty_until:
             penalty_until = 0
 
@@ -488,6 +535,7 @@ def replay_input_log(active: dict, events) -> dict:
             critical_cycle = False
             perfect_eligible = False
             last_timestamp = timestamp
+            last_action = action
             continue
 
         if action != expected_action:
@@ -519,6 +567,7 @@ def replay_input_log(active: dict, events) -> dict:
         last_bite_at = timestamp
         last_cooling_at = timestamp
         last_timestamp = timestamp
+        last_action = action
 
     if last_bite_at is not None and not warning_until and heat > 0:
         cooling_from = max(last_cooling_at, last_bite_at + COOLING_DELAY_MS)
