@@ -38,9 +38,9 @@ test("rapid accepted presses have one scoring call and one conditional log appen
   const play = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
   const handler = play.slice(play.indexOf("const handleTap = useCallback"), play.indexOf("const handleUseAntacid"));
   assert.ok(handler.indexOf("tapLatest(actionNow)") < handler.indexOf("acceptedActionSequence === null"));
-  assert.ok(handler.indexOf("acceptedActionSequence === null") < handler.indexOf("inputLog.record(actionType, evidence, actionNow)"));
+  assert.ok(handler.indexOf("acceptedActionSequence === null") < handler.indexOf("inputLog.recordAtElapsed(actionType, evidence, eventTime)"));
   assert.equal((play.match(/const acceptedActionSequence = tapLatest\(actionNow\)/g) || []).length, 1);
-  assert.equal((play.match(/inputLog\.record\(actionType, evidence, actionNow\)/g) || []).length, 1);
+  assert.equal((play.match(/inputLog\.recordAtElapsed\(actionType, evidence, eventTime\)/g) || []).length, 1);
   assert.doesNotMatch(play, /onPressIn=\{handleTap\}/);
 });
 
@@ -59,7 +59,7 @@ test("burnout synchronization precedes antacid acceptance and official input log
   assert.ok(antacid.indexOf("synchronizeBurnoutBoundary(now)") < antacid.indexOf("canConsumeAntacid"));
   const play = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
   const handler = play.slice(play.indexOf("const handleTap = useCallback"), play.indexOf("const handleUseAntacid"));
-  assert.ok(handler.indexOf("acceptedActionSequence === null") < handler.indexOf("inputLog.record(actionType, evidence, actionNow)"));
+  assert.ok(handler.indexOf("acceptedActionSequence === null") < handler.indexOf("inputLog.recordAtElapsed(actionType, evidence, eventTime)"));
 });
 
 test("burnout disables the interaction surface and owns the critical message slot", () => {

@@ -142,6 +142,11 @@ export default function ContestsScreen() {
               <TournamentPanel
                 tournament={activeTournament}
                 progress={tournamentProgress}
+                entryUnavailableReason={hasError
+                  ? "Contest availability could not be checked. Retry loading contests."
+                  : contests.some((contest) => contest.id === activeTournament.entryContestId)
+                    ? null
+                    : "This tournament's contest is not currently available."}
                 onEnter={() => { void enterContest(activeTournament.entryContestId, { tournamentOccurrenceId: activeTournament.occurrenceId }); }}
                 onClaimReward={(rewardId) => { void claimTournamentReward(rewardId); }}
               />

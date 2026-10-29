@@ -1,42 +1,37 @@
 [CmdletBinding()]
 param()
-
 $ErrorActionPreference = "Stop"
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
-. (Join-Path $PSScriptRoot "validation-common.ps1")
-
-$requirements = @(
-    @{ Name = "FIRE_FEAST_RUN_INTEGRATION"; Value = $env:FIRE_FEAST_RUN_INTEGRATION },
-    @{ Name = "EXPO_PUBLIC_BACKEND_URL"; Value = $env:EXPO_PUBLIC_BACKEND_URL },
-    @{ Name = "FIRE_FEAST_INTEGRATION_AUTH_TOKEN"; Value = $env:FIRE_FEAST_INTEGRATION_AUTH_TOKEN }
-)
-$missing = $requirements | Where-Object { [string]::IsNullOrWhiteSpace($_.Value) }
-if ($env:FIRE_FEAST_RUN_INTEGRATION -ne "1" -or $missing.Count -gt 0) {
-    $names = ($missing | ForEach-Object { $_.Name }) -join ", "
-    if ($env:FIRE_FEAST_RUN_INTEGRATION -ne "1" -and $names -notmatch "FIRE_FEAST_RUN_INTEGRATION") {
-        $names = "FIRE_FEAST_RUN_INTEGRATION" + $(if ($names) { ", $names" } else { "" })
-    }
-    Write-Host "[Live backend integration tests] SKIPPED (set FIRE_FEAST_RUN_INTEGRATION=1 and configure: $names)"
+# Deliberately selects only the existing read-only authenticated-session smoke test.
+# Legacy integration suites mutate accounts and are never selected by this script.
+if ($env:FIRE_FEAST_RUN_INTEGRATION -ne "1") {
+    Write-Host "SKIPPED: set FIRE_FEAST_RUN_INTEGRATION=1 only for approved staging checks."
     exit 0
 }
-
+if (-not $env:EXPO_PUBLIC_BACKEND_URL -or -not $env:FIRE_FEAST_INTEGRATION_AUTH_TOKEN) {
+    Write-Host "SKIPPED: staging URL and authenticated test credentials are required."
+    exit 0
+}
+if ($env:FIRE_FEAST_INTEGRATION_TARGET -ne "staging" -or -not $env:FIRE_FEAST_STAGING_API_URL) {
+    throw "Explicit staging target and FIRE_FEAST_STAGING_API_URL are required."
+}
+$target = $null
+if (-not [Uri]::TryCreate($env:EXPO_PUBLIC_BACKEND_URL, [UriKind]::Absolute, [ref]$target) -or
+    $target.Scheme -ne "https" -or $target.UserInfo -or $target.Query -or $target.Fragment -or
+    $target.AbsolutePath -ne "/" -or
+    $env:EXPO_PUBLIC_BACKEND_URL.TrimEnd("/") -cne $env:FIRE_FEAST_STAGING_API_URL.TrimEnd("/")) {
+    throw "The integration URL must be the exact approved HTTPS staging origin."
+}
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
 $pythonCommand = Join-Path $repositoryRoot "backend\.venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $pythonCommand)) {
     $pythonCommand = (Get-Command python -ErrorAction Stop).Source
 }
-
+$env:PYTHONDONTWRITEBYTECODE = "1"
+$env:PYTHON_DOTENV_DISABLED = "1"
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1"
 Push-Location $repositoryRoot
 try {
-    $passed = Invoke-ValidationStage "Live backend integration tests" {
-        & $pythonCommand -m pytest backend\tests -m "integration" -q
-    }
-} finally {
-    Pop-Location
-}
-
-if (-not $passed) {
-    Write-Host "INTEGRATION VALIDATION FAIL"
-    exit 1
-}
-Write-Host "INTEGRATION VALIDATION PASS"
-exit 0
+    & $pythonCommand -B -m pytest backend/tests/test_authenticated_integration.py -q -p no:cacheprovider --tb=no --show-capture=no
+    $result = $LASTEXITCODE
+} finally { Pop-Location }
+exit $result

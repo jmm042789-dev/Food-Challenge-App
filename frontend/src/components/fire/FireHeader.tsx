@@ -1,20 +1,20 @@
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
+import type { resolveOfficialProgression } from "../../ranks";
+
 import FireHUDFrame from "./FireHUDFrame";
 import FireProgressBar from "./FireProgressBar";
 
 type Props = {
-  level: number;
-  xp: number;
-  nextLevelXp: number;
+  progression: ReturnType<typeof resolveOfficialProgression>;
   coins: number;
 };
 
 const LOGO = require("../../assets/logo/fire-feast-logo-primary.png");
 const COIN = require("../../assets/icons/coin.png");
 
-export default function FireHeader({ level, xp, nextLevelXp, coins }: Props) {
+export default function FireHeader({ progression, coins }: Props) {
   return (
     <View style={styles.container}>
       <Image source={LOGO} resizeMode="contain" style={styles.logo} />
@@ -30,11 +30,14 @@ export default function FireHeader({ level, xp, nextLevelXp, coins }: Props) {
 
         <FireHUDFrame
           compact
-          label={`LV ${level} · ARENA XP`}
-          value={`${xp.toLocaleString()} / ${nextLevelXp.toLocaleString()}`}
+          label={progression.level === null ? "LEVEL UNAVAILABLE" : `LEVEL ${progression.level}`}
+          value={progression.xp === null ? "XP UNAVAILABLE" : `${progression.xp.toLocaleString()} XP`}
           style={styles.xpFrame}
         >
-          <FireProgressBar value={xp} max={nextLevelXp} variant="xp" compact />
+          {progression.intervalXp !== null && progression.intervalSize !== null ? <>
+            <Text style={{ color: "#FFD54A" }}>{progression.nextBelt ? "NEXT BELT" : "MAX BELT"}</Text>
+            <FireProgressBar value={progression.intervalXp} max={progression.intervalSize} variant="xp" compact />
+          </> : null}
         </FireHUDFrame>
       </View>
     </View>

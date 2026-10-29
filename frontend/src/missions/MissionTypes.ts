@@ -51,7 +51,6 @@ export type MissionEvent = {
   completedFoodMechanic?: boolean;
 };
 
-export type MissionClaimResult = {
-  state: DailyMissionState;
-  reward: MissionReward | null;
-};
+export type MissionClaimResult =
+  | { ok: true; state: DailyMissionState; reward: MissionReward }
+  | { ok: false; state: DailyMissionState; error: "NOT_FOUND" | "NOT_COMPLETED" | "ALREADY_CLAIMED" | "CLAIM_IN_PROGRESS" | "PERSISTENCE_FAILED" };

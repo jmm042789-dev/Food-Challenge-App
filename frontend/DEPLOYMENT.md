@@ -7,7 +7,7 @@ This guide covers preparation for Google Play Internal Testing and Closed Beta. 
 - App name: `Fire Feast`
 - Android application ID: `com.firefeast.app`
 - Expo version: `1.0.0`
-- Android versionCode: `1`
+- Android versionCode: verify the current `expo.android.versionCode` in `app.json` before each release
 - EAS project ID: `3c106538-aa48-4dc2-8100-72fce495be7b`
 - Native project: managed Expo workflow; no committed `android/` directory
 - Production artifact: Android App Bundle (`.aab`)
@@ -170,3 +170,24 @@ Google Play does not permit reusing an older versionCode as a new upload. If a b
 ## Release-owner manual gates
 
 Before any Play submission, the release owner must confirm the production backend and public legal pages are operational, EAS and Play authentication is valid, Android signing credentials already exist and are controlled appropriately, all Play policy forms are accurate, and the tested AAB is the artifact being uploaded. Never create credentials, submit, publish, or promote solely by following this document.
+
+## Fail-closed Android staging configuration
+
+No staging backend is approved. The standalone EAS staging profile intentionally
+sets EXPO_PUBLIC_BACKEND_URL to an empty string and cannot be built as checked in.
+After endpoint approval, replace that empty value with the verified isolated HTTPS
+origin; do not rely on a cloud variable overriding the explicit profile value.
+The preview EAS environment is a variable scope, not proof of backend isolation.
+
+Staging blocks both the confirmed production host `firefeast-backend.onrender.com`
+and the legacy production hostname, including case/port/path variants.
+Staging rejects missing/non-HTTPS URLs, embedded credentials, query/fragment
+components and the production backend hostname (including case/port/path variants).
+Runtime staging markers also prevent production or Metro fallback. Configuration
+checks cannot prove database isolation or detect server redirects to production;
+verify endpoint ownership, redirects and database credentials before approval.
+
+Android staging uses com.firefeast.app.staging, the firefeast-staging link scheme,
+and the staging channel. OTA updates are disabled, so production updates cannot
+be consumed. Re-enabling updates requires a separate isolation review. Existing
+profiles, package identity and update behavior are unchanged.

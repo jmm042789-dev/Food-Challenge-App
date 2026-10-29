@@ -1,0 +1,352 @@
+{
+  "status": "PASS",
+  "created_utc": "2026-10-14T01:17:00.378958+00:00",
+  "source": "C:\\FireFeast-Recovery\\backend",
+  "snapshot": "C:\\FireFeast-Recovery\\Backend-Preservation\\Batch4C-4F-20261014T011700379000Z-6a8a95f4",
+  "source_files": 64,
+  "copied_files": 64,
+  "logical_bytes": 565564,
+  "frontend_companion_commit": "8436684b47e8f83d183b56636af7432f32a3403a",
+  "approved_differences": [
+    "MATCH-RECEIPTS.md",
+    "MATCH-RESUME.md",
+    "database.py",
+    "models.py",
+    "server.py",
+    "services/match_service.py",
+    "tests/test_match_lifecycle.py",
+    "tests/test_match_receipts.py",
+    "tests/test_match_resume.py"
+  ],
+  "excluded": [
+    ".pytest_cache/",
+    ".env.example"
+  ],
+  "security_review": "No live credentials identified by filename and source-pattern review. Synthetic credential strings in redaction tests retained as source fixtures. Pattern review is not a universal secret-detection guarantee. No environment files, caches, logs, dumps or virtual environments copied.",
+  "reference_verification": "61/61 source files match original SIBLING-RECOVERY-MANIFEST.txt; before/after inventories unchanged",
+  "canonical_verification": "Before/after full source inventories unchanged; 64/64 copied hashes match",
+  "git_metadata_found": [],
+  "inventory": [
+    {
+      "path": ".gitignore",
+      "bytes": 255,
+      "sha256": "DF66C6F445F00AABF5C3A77EEA8F07519C6406CA9620182DB123E845520E690B"
+    },
+    {
+      "path": ".python-version",
+      "bytes": 8,
+      "sha256": "BEC08D209E78D0D38C3A338904C20F9393DC1ECB20673C87FAD46BC6743FDCD3"
+    },
+    {
+      "path": "DEPLOYMENT.md",
+      "bytes": 4030,
+      "sha256": "68D60EEE4C3CFDD84E5DDFA0A8FB4222684AE2A9C36163F53D341481BCD7FE51"
+    },
+    {
+      "path": "MATCH-RECEIPTS.md",
+      "bytes": 6262,
+      "sha256": "CD5AD422E318C793A98BD694BF36C11DB4D739CAE91473F23010CAE7CB440CAE"
+    },
+    {
+      "path": "MATCH-RESUME.md",
+      "bytes": 6475,
+      "sha256": "DE073D0111971C21095C044067D81C3C221D4C3DF7E2465024011117D482DCE5"
+    },
+    {
+      "path": "auth.py",
+      "bytes": 3275,
+      "sha256": "75F5C00E434373299F37D6F100A43B834CBF0E16DEC648DA88BA576C5E7C29C6"
+    },
+    {
+      "path": "config.py",
+      "bytes": 4939,
+      "sha256": "89DD8789BCF0DAB6877454C1F0F505389D967757DD950E18D70CAE7F354F966A"
+    },
+    {
+      "path": "data/contests.py",
+      "bytes": 4770,
+      "sha256": "05288EA68F256D3FDA8DB4D5884C46626B0DBEFF18257C6B1FFE8E374185220D"
+    },
+    {
+      "path": "data/gear.py",
+      "bytes": 9714,
+      "sha256": "49458A94F3395F61E3518EC101A48E0AF8AC07096822AC1879B1FC63EC75930E"
+    },
+    {
+      "path": "data/opponents.py",
+      "bytes": 2897,
+      "sha256": "1CF31C21E3581FBEE623C964F0A155BE4D6E727662A024CED92477E8F1BC43E7"
+    },
+    {
+      "path": "data/promotions.py",
+      "bytes": 266,
+      "sha256": "63D43A74E83CBC109D51B6FDCB80C71033A6ED175A176C7F868F81208B3EB4A1"
+    },
+    {
+      "path": "data/rewards.py",
+      "bytes": 3555,
+      "sha256": "C65246DBADBE4BF1291B485E80059D1AEB2AEB4A954B55FB1979F4BC12491A93"
+    },
+    {
+      "path": "data/shop.py",
+      "bytes": 3722,
+      "sha256": "21A288A9134E4FCA564D18CEE787691272DC08AC70274DF8F713893E8CE7ADF6"
+    },
+    {
+      "path": "database.py",
+      "bytes": 24894,
+      "sha256": "D28F0CF3E3ADAA4AA6C0946EB1CC7622A4BDF5A836E2F82DB43BC624D978A6A5"
+    },
+    {
+      "path": "models.py",
+      "bytes": 8733,
+      "sha256": "F9B0A4647E7FB47D46BF21E8F8A2D93EC4B9CEAD7BFEC21B6B5552CDACD33912"
+    },
+    {
+      "path": "observability.py",
+      "bytes": 1288,
+      "sha256": "9B80A8D3B8FC5A388A733A0E6E383ACE564DA992FAF1726E907B9650DB5B35CD"
+    },
+    {
+      "path": "pytest.ini",
+      "bytes": 111,
+      "sha256": "1A0798118C410149B2219CEF9BDFFD37CDF6203F73C1EAA45D2189EF541C15D4"
+    },
+    {
+      "path": "rate_limit.py",
+      "bytes": 2057,
+      "sha256": "6BE9A702BD65B948D8B1B3420F73EAF5DB5C56523F5BEDF6257ADE70531BBB0F"
+    },
+    {
+      "path": "requirements-test.txt",
+      "bytes": 51,
+      "sha256": "9F54A129E581E6E720DBC6E1877384D4B297A6432BC3287FC692C52D92537704"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 92,
+      "sha256": "E88F9595ED51D206A14634013370911D90511618902CF00EDD2C3C25DF21DD21"
+    },
+    {
+      "path": "scripts/provision_cruise_ducks.py",
+      "bytes": 2038,
+      "sha256": "E2CA74626154F920606CB9BF995774F3387A8DAACEBA31A027BC92F92211AEE9"
+    },
+    {
+      "path": "scripts/public_identity_backfill.py",
+      "bytes": 1639,
+      "sha256": "AA54C4C8C091F97B81681C090F68C5698C533E19ABC6FBFD8F5EE2EA4517B48F"
+    },
+    {
+      "path": "server.py",
+      "bytes": 43060,
+      "sha256": "0D25D055D413020B31C536EF12CDB299647E2800EE47AB3998C1DCFF04FBF90E"
+    },
+    {
+      "path": "services/contest_service.py",
+      "bytes": 2303,
+      "sha256": "503128D6BC7FF23A1A9EEB62ADF2E4FC38DDA405538AD0CD6CEC844316F0C56C"
+    },
+    {
+      "path": "services/daily_reward_service.py",
+      "bytes": 5660,
+      "sha256": "707FFB9E8CAC4BF68560A0903C4A96C1BAD74545E3B8ADE30E2E2C7F7C034E9C"
+    },
+    {
+      "path": "services/leaderboard_service.py",
+      "bytes": 2755,
+      "sha256": "993ABDFFFE718DEEE1914709B87AAA2A46310F31112DBA652B48D5D73C1BC12B"
+    },
+    {
+      "path": "services/match_service.py",
+      "bytes": 44672,
+      "sha256": "5F47B08133F8946E6FB5B595C8451C0725AA6FFA9810D91A228262957E79B786"
+    },
+    {
+      "path": "services/match_validation.py",
+      "bytes": 31851,
+      "sha256": "56004B471B6D3695618EEEBF83939E8FC9321B741CFD6CAEA0C4984701FC9201"
+    },
+    {
+      "path": "services/player_service.py",
+      "bytes": 13564,
+      "sha256": "E0306F04FC14203890B58610D07495145CD5A3B5E31C7DF27E4A14CA6B31D89E"
+    },
+    {
+      "path": "services/promotion_service.py",
+      "bytes": 3539,
+      "sha256": "5365EF62721601BB673D3B80888A3C5A155086ED64D3FB65F147A25CC8EBDD37"
+    },
+    {
+      "path": "services/public_identity_backfill.py",
+      "bytes": 8029,
+      "sha256": "94ECDFF552CE223C89B1A2537ECBE972DFB9F17FF3CC6820D01F261CF9111C93"
+    },
+    {
+      "path": "services/pvp_service.py",
+      "bytes": 29556,
+      "sha256": "DC508C90E2C3606001FE16D5071C521800FF6D55A9EA8BFAC7685B58D2ED2B43"
+    },
+    {
+      "path": "services/reward_service.py",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "services/shop_service.py",
+      "bytes": 6730,
+      "sha256": "878AE37D9C58A937F0861D84A989A2D3096A0D239CBDDD32598811C014A7407A"
+    },
+    {
+      "path": "services/social_service.py",
+      "bytes": 13047,
+      "sha256": "EBB20173CA806D44A9C57CC3CD95410ABA4812098CDC049C268BE55D74B0A107"
+    },
+    {
+      "path": "tests/__init__.py",
+      "bytes": 17,
+      "sha256": "71F6A156EE15925A957B6D5AA7A0BDD82CBDDAFB8B2C4CC3E350107ED8947007"
+    },
+    {
+      "path": "tests/test_account_deletion.py",
+      "bytes": 7558,
+      "sha256": "527E2D502FE008B04B270F7A8CA96159ABC77F0B30EE4C25073987D64959A754"
+    },
+    {
+      "path": "tests/test_api_hardening.py",
+      "bytes": 6791,
+      "sha256": "A3CA006D4210A3A6AC641FB6E63E174BD73A51C87450CE19C8FAEF1E7B0444DF"
+    },
+    {
+      "path": "tests/test_authenticated_integration.py",
+      "bytes": 936,
+      "sha256": "1148CC5152E8B838216CF6DD2219F8D86000B9BF363181403EEFA498B86F6E52"
+    },
+    {
+      "path": "tests/test_authentication.py",
+      "bytes": 10529,
+      "sha256": "462EEC71C7798756AED3555E6909D60EC76A4F6ECDA1486DCBB17F46070FE4C5"
+    },
+    {
+      "path": "tests/test_avatar_schema_v3.py",
+      "bytes": 2172,
+      "sha256": "2A00104075B910A315379AFFF22A9E8600585F763396F9FEE150D2D74640B362"
+    },
+    {
+      "path": "tests/test_chomp_champs.py",
+      "bytes": 8741,
+      "sha256": "7D56C8D1E8B1E4B5FCA95CAE5E9DA893B0413C5BEDD88DADD77FB4F80852C74F"
+    },
+    {
+      "path": "tests/test_closed_beta_welcome_pack.py",
+      "bytes": 5059,
+      "sha256": "FEA2AEE714A23E39002D477A4BF525F5DC39460DC83E12EC257391F4FD7B6C09"
+    },
+    {
+      "path": "tests/test_configuration.py",
+      "bytes": 8187,
+      "sha256": "D5FE0F976F23534349CB0065754BB3AEB22A0785793092CE5E08F848CD1A85B1"
+    },
+    {
+      "path": "tests/test_contest_leaderboards.py",
+      "bytes": 4510,
+      "sha256": "87505732D9EBD933CE816D7669BA7A4C99B7ED335DE8AE1CF2F0C81D278A625D"
+    },
+    {
+      "path": "tests/test_cosmetic_equipment.py",
+      "bytes": 3653,
+      "sha256": "66DE5D0070DB21DE4A029F5401687D8697FE56032C4B7A505BEC07CC26BA45BB"
+    },
+    {
+      "path": "tests/test_cruise_duck_promotions.py",
+      "bytes": 5970,
+      "sha256": "1EC1F7D18DD966C203E3B832ED5EF9009102B4474D3A3D0BFBDCAA57D474943A"
+    },
+    {
+      "path": "tests/test_daily_rewards.py",
+      "bytes": 7055,
+      "sha256": "6BBFF8BE2C774CDF6F1DB30B775FCD39486CD174142955A61C508A60F2ED3ED4"
+    },
+    {
+      "path": "tests/test_gear_step5.py",
+      "bytes": 3869,
+      "sha256": "18E51403854657F0C371E7341D2A0C6234BE67BFF1EC2F31B9330588D2DB679F"
+    },
+    {
+      "path": "tests/test_guest_bootstrap_recovery.py",
+      "bytes": 9049,
+      "sha256": "18A079471962053D765A8F29A40C5D1320688A64F8544797A72C3C1E05D82009"
+    },
+    {
+      "path": "tests/test_health.py",
+      "bytes": 5100,
+      "sha256": "27E7D7703A4A39A9B2177131657F63731D3445DD57982FF57651BB90A5840AD7"
+    },
+    {
+      "path": "tests/test_input_geometry_v2.py",
+      "bytes": 4097,
+      "sha256": "106C68CD9C6D0EB40B1A537A29AD3BEAEED6CADB14EDA815BB48E41323A62116"
+    },
+    {
+      "path": "tests/test_match_anti_cheat.py",
+      "bytes": 36146,
+      "sha256": "3A71FDC96679FE5E5DBE5F803CA8693E25317B7A80BDECDA7BC90123853DF15B"
+    },
+    {
+      "path": "tests/test_match_lifecycle.py",
+      "bytes": 29812,
+      "sha256": "69B402815C2D26D82B4F761DC8756BF1F53BDC1B1A2126C1CD81CCC2F07B439B"
+    },
+    {
+      "path": "tests/test_match_receipts.py",
+      "bytes": 17465,
+      "sha256": "9838459EE033DEE04CA8F5F354C82A68E8EDAA074540ED14B4C68BF285BD9563"
+    },
+    {
+      "path": "tests/test_match_resume.py",
+      "bytes": 9826,
+      "sha256": "8632380E6B5AEBAC45E9B3A4F15F5B0D0B7E5EC83A9CD3E0A116F7F4F260C19B"
+    },
+    {
+      "path": "tests/test_match_security_audit.py",
+      "bytes": 15194,
+      "sha256": "3C0586C1937AF7AAB5838A5592EDC615D9E4AE7419712AAE47DC6128E2A483E5"
+    },
+    {
+      "path": "tests/test_new_features.py",
+      "bytes": 10187,
+      "sha256": "FE7F5BAE19A42607F36CB1B6062C53550AC01B8E967982AC77A745A4A561C0D6"
+    },
+    {
+      "path": "tests/test_observability.py",
+      "bytes": 12446,
+      "sha256": "D7780583D842FCB377EA01230206C6FF287CCBB1671193E3EED79D3ADEE5CA13"
+    },
+    {
+      "path": "tests/test_public_identity_backfill.py",
+      "bytes": 9020,
+      "sha256": "679DE0C0805ECA2E1212F253B2F06492646B9B1708B963BF58E1ED1B51EDD8BF"
+    },
+    {
+      "path": "tests/test_pvp_phase3.py",
+      "bytes": 16220,
+      "sha256": "55E3AB9C1B39D3CF9B29651536A6CA8F83042CE1CF06780787609FDCB1C5DC03"
+    },
+    {
+      "path": "tests/test_pvp_step4.py",
+      "bytes": 5870,
+      "sha256": "4FD78EF991171FE139E1C945638062AE5F85C878201F902B7B82A4AA458158B5"
+    },
+    {
+      "path": "tests/test_social_phase1.py",
+      "bytes": 10179,
+      "sha256": "3BECCC4EEA104D3F8FC4D2891261A3B9885A43BB88936398832DA397BA47BD8C"
+    },
+    {
+      "path": "tests/test_validation_gates.py",
+      "bytes": 4069,
+      "sha256": "BD137184C8E583875837480DDEE7D7906116B3124ABE1CAB0A47D6BFA3FABDED"
+    }
+  ],
+  "note": "Inventory report is snapshot metadata, not counted among copied backend source files. No tests or live integration performed. No deployment parity claimed."
+}

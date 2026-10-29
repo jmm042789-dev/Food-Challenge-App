@@ -39,13 +39,17 @@ test("production screen has coordinator and independent UI deadlines including m
   assert.equal(RESULT_VERIFICATION_UI_TOLERANCE_MS, 1500);
 });
 
-test("arena spotlight is removed and responsive feedback remains bounded", () => {
+test("arena spotlight is removed and transient feedback is compact and heat-prioritized", () => {
   const arena = fs.readFileSync(path.join(__dirname, "../src/game/arena/ArenaEffects.tsx"), "utf8");
   const effects = fs.readFileSync(path.join(__dirname, "../src/game/ui/EffectsLayer.tsx"), "utf8");
   const heat = fs.readFileSync(path.join(__dirname, "../src/game/ui/HeatPresentationOverlay.tsx"), "utf8");
+  const play = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
   assert.doesNotMatch(arena, /styles\.spotlight|height: "52%"/);
-  assert.match(effects, /Math\.min\(164/);
-  assert.match(effects, /Math\.min\(38/);
+  assert.match(effects, /if \(suppressed \|\| !showScore\) return null/);
+  assert.match(effects, /feedbackRow/);
+  assert.doesNotMatch(effects, /ImpactEffect/);
+  assert.match(play, /suppressed=\{overheatWarningActive \|\| heatTier === "CRITICAL" \|\| heatTier === "OVERHEATED"/);
+  assert.doesNotMatch(play, /<HeatTierBanner|<AntacidCoolingFeedback/);
   assert.match(heat, /maxWidth: "72%"/);
   assert.match(heat, /\? 780/);
 });

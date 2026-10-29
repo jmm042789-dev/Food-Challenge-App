@@ -5,6 +5,12 @@ import { trackAchievementEvent } from "../achievements/AchievementTracker";
 
 const STORAGE_KEY = "fire_feast_daily_missions_v1";
 const claimsInFlight = new Set<string>();
+let updateQueue: Promise<unknown> = Promise.resolve();
+const queueUpdate = <T>(operation: () => Promise<T>): Promise<T> => {
+  const result = updateQueue.then(operation, operation);
+  updateQueue = result.then(() => undefined, () => undefined);
+  return result;
+};
 
 const createDailyState = (
   dateKey: string,
@@ -15,26 +21,32 @@ const createDailyState = (
   claimedRewards,
 });
 
-const saveState = async (state: DailyMissionState): Promise<void> => {
-  await storage.setItem(STORAGE_KEY, JSON.stringify(state));
+const saveState = async (state: DailyMissionState): Promise<boolean> => {
+  try { return await storage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch { return false; }
 };
 
-export async function loadDailyMissions(date = new Date()): Promise<DailyMissionState> {
+// Internal read never queues or writes. Public mutations own the queue.
+async function readState(date: Date) {
   const dateKey = getLocalDateKey(date);
   const serialized = await storage.getItem(STORAGE_KEY, "");
-  let carriedRewards: DailyMissionState["claimedRewards"] = { coins: 0, xp: 0 };
+  let previous: DailyMissionState | null = null;
   if (serialized) {
-    try {
-      const stored = JSON.parse(serialized) as DailyMissionState;
-      if (stored.lastGeneratedDate === dateKey && stored.missions?.length === 3) return stored;
-      carriedRewards = stored.claimedRewards ?? carriedRewards;
-    } catch {
-      // Invalid or old mission data is safely replaced below.
-    }
+    try { previous = JSON.parse(serialized) as DailyMissionState; } catch { /* Existing fallback policy. */ }
   }
-  const state = createDailyState(dateKey, carriedRewards);
-  await saveState(state);
-  return state;
+  if (previous?.lastGeneratedDate === dateKey && previous.missions?.length === 3) return { state: previous, previous, rollover: false };
+  return { state: createDailyState(dateKey, previous?.claimedRewards), previous, rollover: true };
+}
+
+export function loadDailyMissions(date = new Date()): Promise<DailyMissionState> {
+  return queueUpdate(async () => {
+    const { state, previous, rollover } = await readState(date);
+    if (rollover && !await saveState(state)) {
+      if (previous) return previous;
+      throw new Error("Mission persistence failed");
+    }
+    return state;
+  });
 }
 
 function progressForEvent(mission: DailyMission, event: MissionEvent): number {
@@ -50,41 +62,44 @@ function progressForEvent(mission: DailyMission, event: MissionEvent): number {
   }
 }
 
-export async function trackMissionEvent(event: MissionEvent): Promise<DailyMissionState> {
-  const state = await loadDailyMissions();
+export function trackMissionEvent(event: MissionEvent): Promise<DailyMissionState> {
+  return queueUpdate(async () => {
+  const { state, previous } = await readState(new Date());
   const missions = state.missions.map((mission) => {
     if (mission.completed) return mission;
     const currentProgress = Math.min(mission.goal, mission.currentProgress + progressForEvent(mission, event));
     return { ...mission, currentProgress, completed: currentProgress >= mission.goal };
   });
   const nextState = { ...state, missions };
-  await saveState(nextState);
+  if (!await saveState(nextState)) {
+    if (previous) return previous;
+    throw new Error("Mission persistence failed");
+  }
   const completedNow = missions.filter((mission) => mission.completed && !state.missions.find((old) => old.id === mission.id)?.completed).length;
   if (completedNow > 0) await trackAchievementEvent({ type: "DAILY_MISSION_COMPLETED", amount: completedNow });
   return nextState;
+  });
 }
 
 export async function claimMission(missionId: string): Promise<MissionClaimResult> {
   if (claimsInFlight.has(missionId)) {
-    return { state: await loadDailyMissions(), reward: null };
+    return queueUpdate(async () => ({ ok: false, state: (await readState(new Date())).state, error: "CLAIM_IN_PROGRESS" }));
   }
   claimsInFlight.add(missionId);
   try {
-  const state = await loadDailyMissions();
-  const mission = state.missions.find((item) => item.id === missionId);
-  if (!mission || !mission.completed || mission.claimed) return { state, reward: null };
-  const missions = state.missions.map((item) => item.id === missionId ? { ...item, claimed: true } : item);
-  const nextState: DailyMissionState = {
-    ...state,
-    missions,
-    claimedRewards: {
-      coins: state.claimedRewards.coins + mission.reward.coins,
-      xp: state.claimedRewards.xp + mission.reward.xp,
-    },
-  };
-  await saveState(nextState);
-  return { state: nextState, reward: mission.reward };
-  } finally {
-    claimsInFlight.delete(missionId);
-  }
+    return await queueUpdate(async () => {
+      const { state, previous } = await readState(new Date());
+      const mission = state.missions.find((item) => item.id === missionId);
+      if (!mission) return { ok: false, state: previous ?? state, error: "NOT_FOUND" };
+      if (!mission.completed) return { ok: false, state, error: "NOT_COMPLETED" };
+      if (mission.claimed) return { ok: false, state, error: "ALREADY_CLAIMED" };
+      const nextState: DailyMissionState = {
+        ...state,
+        missions: state.missions.map((item) => item.id === missionId ? { ...item, claimed: true } : item),
+        claimedRewards: { coins: state.claimedRewards.coins + mission.reward.coins, xp: state.claimedRewards.xp + mission.reward.xp },
+      };
+      if (!await saveState(nextState)) return { ok: false, state: previous ?? state, error: "PERSISTENCE_FAILED" };
+      return { ok: true, state: nextState, reward: mission.reward };
+    });
+  } finally { claimsInFlight.delete(missionId); }
 }

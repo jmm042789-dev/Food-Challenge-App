@@ -59,29 +59,31 @@ export default function TutorialScreen() {
         <FireScreenEntrance duration="fast" distance={10}>
 
         <Text accessibilityRole="header" style={styles.title}>{replayMode ? "FIRE FEAST REFRESHER" : "WELCOME TO FIRE FEAST"}</Text>
-        <Text style={styles.intro}>{replayMode ? "Review the arena essentials anytime. Your progress and rewards will not be changed." : "Three quick steps, then your first featured contest is ready."}</Text>
+        <Text style={styles.intro}>{replayMode ? "Review the arena essentials anytime. Your progress and rewards will not be changed." : "Five quick essentials, then your first featured contest is ready."}</Text>
 
         </FireScreenEntrance>
         <FirePanel compact title="Choose a Contest" style={styles.card}>
-          <FireBadge label="STEP 1 OF 3" variant="gold" />
+          <FireBadge label="STEP 1 OF 5" variant="gold" />
           <FireText variant="body" style={styles.text}>
             Pick a featured feast, review its food and difficulty, then enter the arena.
           </FireText>
         </FirePanel>
 
         <FirePanel compact title="Follow the Action Prompt" style={styles.card}>
-          <FireBadge label="STEP 2 OF 3" variant="info" />
+          <FireBadge label="STEP 2 OF 5" variant="info" />
           <FireText variant="body" style={styles.text}>
-            Use the control shown beneath the food. Build combos, watch your heat, and use Antacid when needed.
+            Use the Bite or Slice control shown beneath the food. Accepted actions build score and combos; different contests use different prompts.
           </FireText>
         </FirePanel>
 
-        <FirePanel compact title="Grow Your Career" style={styles.card}>
-          <FireBadge label="STEP 3 OF 3" variant="gold" />
+        <FirePanel compact title="Manage the Heat" style={styles.card}>
+          <FireBadge label="STEP 3 OF 5" variant="gold" />
           <FireText variant="body" style={styles.text}>
-            Complete matches to build your career, achievements, missions, ranks, and collections.
+            High heat opens a two-second warning. Use Antacid to save the streak, or burnout briefly locks scoring while you cool down.
           </FireText>
         </FirePanel>
+        <FirePanel compact title="Grow Your Competitor" style={styles.card}><FireBadge label="STEP 4 OF 5" variant="info" /><FireText variant="body" style={styles.text}>Earn coins and XP, customize your character, and build a Hat, Apron, and Outfit loadout. Complete gear sets add modest bonuses.</FireText></FirePanel>
+        <FirePanel compact title="Feast with Friends" style={styles.card}><FireBadge label="STEP 5 OF 5" variant="gold" /><FireText variant="body" style={styles.text}>Search handles, add friends, and challenge them to authoritative one-attempt PvP. Quick Chat is preset-only with three in-game quips. Visit Daily Charcuterie for the daily reward.</FireText></FirePanel>
 
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
         <FireButton

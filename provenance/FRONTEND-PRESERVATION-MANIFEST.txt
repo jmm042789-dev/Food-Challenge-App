@@ -1,0 +1,20 @@
+Fire Feast preservation snapshot
+UTC: 2026-10-06T03:08:35.090Z
+Source: D:/FireFeast-Development/frontend
+Destination: C:/FireFeast-Recovery/Frontend-Preservation-20261005
+Exclusions: root node_modules and .expo only; .git included.
+Source file count: 596
+Destination snapshot file count: 596
+Source logical bytes: 181307909
+Destination snapshot logical bytes: 181307909
+Counts/totals above exclude this newly created PRESERVATION-MANIFEST.txt.
+Expected pre-Step2E HEAD (not inspected): 50be73594b09430d2d023dfe40d2d0b642717fc6
+Four Step 2E additions were untracked at snapshot time (as previously reported).
+Snapshot created after observed transient D: read instability and before repair.
+Snapshot has NOT yet been established as repository-wide byte-perfect.
+No repository-wide hashes or Git object validation performed. Source metadata checked before/after copy.
+Four Step 2E files match the separately trusted C: backup byte-for-byte:
+2403C7FDC6952E47020C1BEB87F5B1302BE601B89A7EB0B3A06CB84D6AB918FA  src/assets/avatar-v5/proofs/flattened-standard/fire-feast-avatar-v5-standard-master-1024.png
+AF19934E47623BB65368EE156C2F4919837815A9461E5379CE2B819E7642535D  src/assets/avatar-v5/proofs/flattened-standard/README.md
+4D660D67B4A7F1E6322D3BB3F1D64FEEA57913176B70A33ECD9A5B7044644048  src/avatar-v5/proof/FlattenedStandardProof.tsx
+1852CD29A8F28A0C791747DFC67A58963E4151BF8D243382BFD326E3C466041A  tests/avatar-v5-flattened-proof.test.js

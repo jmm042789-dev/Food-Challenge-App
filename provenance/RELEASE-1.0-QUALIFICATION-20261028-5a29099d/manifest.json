@@ -1,0 +1,3475 @@
+{
+  "base_commit": "7973669816bb8243850562edddde8ee0a8310ccd",
+  "canonical_inventory_format": "UTF-8/LF; ordinal relative-POSIX-path sorting; each line SHA256 SPACE decimal-byte-size SPACE relative-path LF.",
+  "evidence_controls": [
+    "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/manifest.json",
+    "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/SHA256SUMS.txt",
+    "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/verification.json"
+  ],
+  "excluded_observed": [
+    {
+      "path": ".git/",
+      "reason": "Git/dependency/cache/backup/generated directory"
+    },
+    {
+      "path": "frontend/node_modules/",
+      "reason": "Git/dependency/cache/backup/generated directory"
+    },
+    {
+      "path": "validation-results/",
+      "reason": "Git/dependency/cache/backup/generated directory"
+    }
+  ],
+  "file_count": 563,
+  "files": [
+    {
+      "bytes": 339,
+      "git_state": "??",
+      "path": ".gitignore",
+      "sha256": "8960415e97795796749fa9200946f8eb2a83057bb04a52ef7dae3b043b8bf711"
+    },
+    {
+      "bytes": 7596,
+      "git_state": "??",
+      "path": "README.md",
+      "sha256": "96437b7190c523fc28789ed7054d6837881ea8f41d899d92e88f6e45449353bd"
+    },
+    {
+      "bytes": 255,
+      "git_state": "tracked-unchanged",
+      "path": "backend/.gitignore",
+      "sha256": "df66c6f445f00aabf5c3a77eea8f07519c6406ca9620182db123e845520e690b"
+    },
+    {
+      "bytes": 8,
+      "git_state": "tracked-unchanged",
+      "path": "backend/.python-version",
+      "sha256": "bec08d209e78d0d38c3a338904c20f9393dc1ecb20673c87fad46bc6743fdcd3"
+    },
+    {
+      "bytes": 9752,
+      "git_state": " M",
+      "path": "backend/DEPLOYMENT.md",
+      "sha256": "f4a116db464f614e79281df67b112cad57643bdc05c529b634ed38a5e99b2506"
+    },
+    {
+      "bytes": 6262,
+      "git_state": "tracked-unchanged",
+      "path": "backend/MATCH-RECEIPTS.md",
+      "sha256": "cd5ad422e318c793a98bd694bf36c11db4d739cae91473f23010cae7cb440cae"
+    },
+    {
+      "bytes": 6475,
+      "git_state": "tracked-unchanged",
+      "path": "backend/MATCH-RESUME.md",
+      "sha256": "de073d0111971c21095c044067d81c3c221d4c3df7e2465024011117d482dce5"
+    },
+    {
+      "bytes": 3275,
+      "git_state": "tracked-unchanged",
+      "path": "backend/auth.py",
+      "sha256": "75f5c00e434373299f37d6f100a43b834cbf0e16dec648da88ba576c5e7c29c6"
+    },
+    {
+      "bytes": 6964,
+      "git_state": " M",
+      "path": "backend/config.py",
+      "sha256": "637399db9936f7aab3654780b641acb047610a4b9c6976b1c5e2a84e10a044b2"
+    },
+    {
+      "bytes": 4770,
+      "git_state": "tracked-unchanged",
+      "path": "backend/data/contests.py",
+      "sha256": "05288ea68f256d3fda8db4d5884c46626b0dbeff18257c6b1ffe8e374185220d"
+    },
+    {
+      "bytes": 9714,
+      "git_state": "tracked-unchanged",
+      "path": "backend/data/gear.py",
+      "sha256": "49458a94f3395f61e3518ec101a48e0af8ac07096822ac1879b1fc63ec75930e"
+    },
+    {
+      "bytes": 2897,
+      "git_state": "tracked-unchanged",
+      "path": "backend/data/opponents.py",
+      "sha256": "1cf31c21e3581fbee623c964f0a155be4d6e727662a024ced92477e8f1bc43e7"
+    },
+    {
+      "bytes": 266,
+      "git_state": "tracked-unchanged",
+      "path": "backend/data/promotions.py",
+      "sha256": "63d43a74e83cbc109d51b6fdcb80c71033a6ed175a176c7f868f81208b3eb4a1"
+    },
+    {
+      "bytes": 3555,
+      "git_state": "tracked-unchanged",
+      "path": "backend/data/rewards.py",
+      "sha256": "c65246dbadbe4bf1291b485e80059d1aeb2aeb4a954b55fb1979f4bc12491a93"
+    },
+    {
+      "bytes": 3722,
+      "git_state": "tracked-unchanged",
+      "path": "backend/data/shop.py",
+      "sha256": "21a288a9134e4fca564d18cee787691272dc08ac70274df8f713893e8ce7adf6"
+    },
+    {
+      "bytes": 24894,
+      "git_state": "tracked-unchanged",
+      "path": "backend/database.py",
+      "sha256": "d28f0cf3e3adaa4aa6c0946eb1cc7622a4bdf5a836e2f82db43bc624d978a6a5"
+    },
+    {
+      "bytes": 8733,
+      "git_state": "tracked-unchanged",
+      "path": "backend/models.py",
+      "sha256": "f9b0a4647e7fb47d46bf21e8f8a2d93ec4b9cead7bfec21b6b5552cdacd33912"
+    },
+    {
+      "bytes": 1288,
+      "git_state": "tracked-unchanged",
+      "path": "backend/observability.py",
+      "sha256": "9b80a8d3b8fc5a388a733a0e6e383ace564da992faf1726e907b9650db5b35cd"
+    },
+    {
+      "bytes": 111,
+      "git_state": "tracked-unchanged",
+      "path": "backend/pytest.ini",
+      "sha256": "1a0798118c410149b2219cef9bdffd37cdf6203f73c1eaa45d2189ef541c15d4"
+    },
+    {
+      "bytes": 2057,
+      "git_state": "tracked-unchanged",
+      "path": "backend/rate_limit.py",
+      "sha256": "6be9a702bd65b948d8b1b3420f73eaf5db5c56523f5bedf6257ade70531bbb0f"
+    },
+    {
+      "bytes": 51,
+      "git_state": "tracked-unchanged",
+      "path": "backend/requirements-test.txt",
+      "sha256": "9f54a129e581e6e720dbc6e1877384d4b297a6432bc3287fc692c52d92537704"
+    },
+    {
+      "bytes": 92,
+      "git_state": "tracked-unchanged",
+      "path": "backend/requirements.txt",
+      "sha256": "e88f9595ed51d206a14634013370911d90511618902cf00edd2c3c25df21dd21"
+    },
+    {
+      "bytes": 2038,
+      "git_state": "tracked-unchanged",
+      "path": "backend/scripts/provision_cruise_ducks.py",
+      "sha256": "e2ca74626154f920606cb9bf995774f3387a8daaceba31a027bc92f92211aee9"
+    },
+    {
+      "bytes": 1639,
+      "git_state": "tracked-unchanged",
+      "path": "backend/scripts/public_identity_backfill.py",
+      "sha256": "aa54c4c8c091f97b81681c090f68c5698c533e19abc6fbfd8f5ee2ea4517b48f"
+    },
+    {
+      "bytes": 43060,
+      "git_state": "tracked-unchanged",
+      "path": "backend/server.py",
+      "sha256": "0d25d055d413020b31c536ef12cdb299647e2800ee47ab3998c1dcff04fbf90e"
+    },
+    {
+      "bytes": 2303,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/contest_service.py",
+      "sha256": "503128d6bc7ff23a1a9eeb62adf2e4fc38dda405538ad0cd6cec844316f0c56c"
+    },
+    {
+      "bytes": 5660,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/daily_reward_service.py",
+      "sha256": "707ffb9e8cac4bf68560a0903c4a96c1bad74545e3b8ade30e2e2c7f7c034e9c"
+    },
+    {
+      "bytes": 2755,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/leaderboard_service.py",
+      "sha256": "993abdfffe718deee1914709b87aaa2a46310f31112dba652b48d5d73c1bc12b"
+    },
+    {
+      "bytes": 44672,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/match_service.py",
+      "sha256": "5f47b08133f8946e6fb5b595c8451c0725aa6ffa9810d91a228262957e79b786"
+    },
+    {
+      "bytes": 31851,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/match_validation.py",
+      "sha256": "56004b471b6d3695618eeebf83939e8fc9321b741cfd6caea0c4984701fc9201"
+    },
+    {
+      "bytes": 13564,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/player_service.py",
+      "sha256": "e0306f04fc14203890b58610d07495145cd5a3b5e31c7df27e4a14ca6b31d89e"
+    },
+    {
+      "bytes": 3539,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/promotion_service.py",
+      "sha256": "5365ef62721601bb673d3b80888a3c5a155086ed64d3fb65f147a25cc8ebdd37"
+    },
+    {
+      "bytes": 8029,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/public_identity_backfill.py",
+      "sha256": "94ecdff552ce223c89b1a2537ecbe972dfb9f17ff3cc6820d01f261cf9111c93"
+    },
+    {
+      "bytes": 29556,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/pvp_service.py",
+      "sha256": "dc508c90e2c3606001fe16d5071c521800ff6d55a9ea8bfac7685b58d2ed2b43"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/reward_service.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 6730,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/shop_service.py",
+      "sha256": "878ae37d9c58a937f0861d84a989a2d3096a0d239cbddd32598811c014a7407a"
+    },
+    {
+      "bytes": 13047,
+      "git_state": "tracked-unchanged",
+      "path": "backend/services/social_service.py",
+      "sha256": "ebb20173ca806d44a9c57cc3cd95410aba4812098cdc049c268be55d74b0a107"
+    },
+    {
+      "bytes": 17,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/__init__.py",
+      "sha256": "71f6a156ee15925a957b6d5aa7a0bdd82cbddafb8b2c4cc3e350107ed8947007"
+    },
+    {
+      "bytes": 7558,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_account_deletion.py",
+      "sha256": "527e2d502fe008b04b270f7a8ca96159abc77f0b30ee4c25073987d64959a754"
+    },
+    {
+      "bytes": 6791,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_api_hardening.py",
+      "sha256": "a3ca006d4210a3a6ac641fb6e63e174bd73a51c87450ce19c8faef1e7b0444df"
+    },
+    {
+      "bytes": 936,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_authenticated_integration.py",
+      "sha256": "1148cc5152e8b838216cf6dd2219f8d86000b9bf363181403eefa498b86f6e52"
+    },
+    {
+      "bytes": 10529,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_authentication.py",
+      "sha256": "462eec71c7798756aed3555e6909d60ec76a4f6ecda1486dcbb17f46070fe4c5"
+    },
+    {
+      "bytes": 2172,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_avatar_schema_v3.py",
+      "sha256": "2a00104075b910a315379afff22a9e8600585f763396f9fee150d2d74640b362"
+    },
+    {
+      "bytes": 8741,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_chomp_champs.py",
+      "sha256": "7d56c8d1e8b1e4b5fca95cae5e9da893b0413c5bedd88dadd77fb4f80852c74f"
+    },
+    {
+      "bytes": 5059,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_closed_beta_welcome_pack.py",
+      "sha256": "fea2aee714a23e39002d477a4bf525f5dc39460dc83e12ec257391f4fd7b6c09"
+    },
+    {
+      "bytes": 8187,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_configuration.py",
+      "sha256": "d5fe0f976f23534349cb0065754bb3aeb22a0785793092ce5e08f848cd1a85b1"
+    },
+    {
+      "bytes": 4510,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_contest_leaderboards.py",
+      "sha256": "87505732d9ebd933ce816d7669ba7a4c99b7ed335de8ae1cf2f0c81d278a625d"
+    },
+    {
+      "bytes": 3653,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_cosmetic_equipment.py",
+      "sha256": "66de5d0070db21de4a029f5401687d8697fe56032c4b7a505bec07cc26ba45bb"
+    },
+    {
+      "bytes": 5970,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_cruise_duck_promotions.py",
+      "sha256": "1ec1f7d18dd966c203e3b832ed5ef9009102b4474d3a3d0bfbdcaa57d474943a"
+    },
+    {
+      "bytes": 7055,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_daily_rewards.py",
+      "sha256": "6bbff8be2c774cdf6f1db30b775fcd39486cd174142955a61c508a60f2ed3ed4"
+    },
+    {
+      "bytes": 3869,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_gear_step5.py",
+      "sha256": "18e51403854657f0c371e7341d2a0c6234be67bff1ec2f31b9330588d2db679f"
+    },
+    {
+      "bytes": 9049,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_guest_bootstrap_recovery.py",
+      "sha256": "18a079471962053d765a8f29a40c5d1320688a64f8544797a72c3c1e05d82009"
+    },
+    {
+      "bytes": 5100,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_health.py",
+      "sha256": "27e7d7703a4a39a9b2177131657f63731d3445dd57982ff57651bb90a5840ad7"
+    },
+    {
+      "bytes": 4097,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_input_geometry_v2.py",
+      "sha256": "106c68cd9c6d0eb40b1a537a29ad3beaeed6cadb14eda815bb48e41323a62116"
+    },
+    {
+      "bytes": 36146,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_match_anti_cheat.py",
+      "sha256": "3a71fdc96679fe5e5dbe5f803ca8693e25317b7a80bdecda7bc90123853df15b"
+    },
+    {
+      "bytes": 29812,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_match_lifecycle.py",
+      "sha256": "69b402815c2d26d82b4f761dc8756bf1f53bdc1b1a2126c1cd81ccc2f07b439b"
+    },
+    {
+      "bytes": 17465,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_match_receipts.py",
+      "sha256": "9838459ee033dee04ca8f5f354c82a68e8edaa074540ed14b4c68bf285bd9563"
+    },
+    {
+      "bytes": 9826,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_match_resume.py",
+      "sha256": "8632380e6b5aebac45e9b3a4f15f5b0d0b7e5ec83a9cd3e0a116f7f4f260c19b"
+    },
+    {
+      "bytes": 15194,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_match_security_audit.py",
+      "sha256": "3c0586c1937af7aab5838a5592edc615d9e4ae7419712aae47dc6128e2a483e5"
+    },
+    {
+      "bytes": 10187,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_new_features.py",
+      "sha256": "fe7f5bae19a42607f36cb1b6062c53550ac01b8e967982ac77a745a4a561c0d6"
+    },
+    {
+      "bytes": 12446,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_observability.py",
+      "sha256": "d7780583d842fcb377ea01230206c6ff287ccbb1671193e3eed79d3adee5ca13"
+    },
+    {
+      "bytes": 9020,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_public_identity_backfill.py",
+      "sha256": "679de0c0805eca2e1212f253b2f06492646b9b1708b963bf58e1ed1b51edd8bf"
+    },
+    {
+      "bytes": 16220,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_pvp_phase3.py",
+      "sha256": "55e3ab9c1b39d3cf9b29651536a6ca8f83042ce1cf06780787609fdcb1c5dc03"
+    },
+    {
+      "bytes": 5870,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_pvp_step4.py",
+      "sha256": "4fd78ef991171fe139e1c945638062ae5f85c878201f902b7b82a4aa458158b5"
+    },
+    {
+      "bytes": 10179,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_social_phase1.py",
+      "sha256": "3beccc4eea104d3f8fc4d2891261a3b9885a43bb88936398832da397ba47bd8c"
+    },
+    {
+      "bytes": 3381,
+      "git_state": "??",
+      "path": "backend/tests/test_staging_configuration.py",
+      "sha256": "0522325eec6ab8f707e75e2628da0b8afb1aadbc60eae9fbc6723d4264bfe705"
+    },
+    {
+      "bytes": 4069,
+      "git_state": "tracked-unchanged",
+      "path": "backend/tests/test_validation_gates.py",
+      "sha256": "bd137184c8e583875837480ddee7d7906116b3124abe1cab0a47d6bfa3fabded"
+    },
+    {
+      "bytes": 3588,
+      "git_state": "tracked-unchanged",
+      "path": "docs/legal/gameplay-disclaimer.md",
+      "sha256": "a04169409c039401f7e61bf5b3722be143924f7d14324e18c6530b33161d6c58"
+    },
+    {
+      "bytes": 12110,
+      "git_state": "tracked-unchanged",
+      "path": "docs/legal/privacy-policy.md",
+      "sha256": "cf2183a571bf94d1f9fc54d6e2fe02216f24dc33cafa1d114c8f0d686cba9554"
+    },
+    {
+      "bytes": 7896,
+      "git_state": "tracked-unchanged",
+      "path": "docs/legal/terms-of-service.md",
+      "sha256": "4e48cf09eaf69841be0fa69bd4bcff8932d2d9f9d93150c01538a5b4044d95ef"
+    },
+    {
+      "bytes": 701,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/.easignore",
+      "sha256": "2c3f495f6447fdd356b12d46fc8d6ecc61d418934a5e9cd80dadbbfb1712d663"
+    },
+    {
+      "bytes": 689,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/.gitignore",
+      "sha256": "c084fdac896d60c56f7e11d66dfce65364c179d1b651309301810ced881fcc41"
+    },
+    {
+      "bytes": 4755,
+      "git_state": "??",
+      "path": "frontend/ANDROID-LIFECYCLE-ACCEPTANCE.md",
+      "sha256": "7d0aa584da39808289f26b479d49fffe388655ad840ffb68a897cf6444b92ba0"
+    },
+    {
+      "bytes": 15281,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/ASSET_OPTIMIZATION_AUDIT.md",
+      "sha256": "595d8e9e68462766443e7c0f28568483c91001eb85f39704e09839759ab20e7f"
+    },
+    {
+      "bytes": 4884,
+      "git_state": "??",
+      "path": "frontend/CURRENT-RELEASE-INTEGRITY.md",
+      "sha256": "b2466472fc4d06d69fbcef2f5ac1bc915b4b7a50499aa5f009346fb7aaa0bff9"
+    },
+    {
+      "bytes": 13517,
+      "git_state": " M",
+      "path": "frontend/DEPLOYMENT.md",
+      "sha256": "f263fa863c44df46616f05500b79b242407a398803662cd92997cced5314c188"
+    },
+    {
+      "bytes": 7316,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/MATCH-RECOVERY.md",
+      "sha256": "e780fe05d0aef10eb0744edcefc4f3770619d5e1fa7a6cd3328230d2320e41b6"
+    },
+    {
+      "bytes": 1898,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/README.md",
+      "sha256": "986a64ddc770a6e4f7ba812f26842d19e52ffbbf2d2cbe70e673caed540137df"
+    },
+    {
+      "bytes": 3882,
+      "git_state": " M",
+      "path": "frontend/RELEASE-VALIDATION.md",
+      "sha256": "5f24189c6b65165231110a4b3b4d7d12e23ffab3a187a268219707e266679d17"
+    },
+    {
+      "bytes": 2950,
+      "git_state": "??",
+      "path": "frontend/WARNING-BURNOUT-RECOVERY.md",
+      "sha256": "113384105204baa76192ea3416e6d3e00e245d82be2958d92c41c2e3ed9df401"
+    },
+    {
+      "bytes": 1959,
+      "git_state": " M",
+      "path": "frontend/app.config.js",
+      "sha256": "92b523e593373083dcc0898e9c1eac69653cebe0f55cec2ac84e75af2b08d664"
+    },
+    {
+      "bytes": 2058,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app.json",
+      "sha256": "4a4b66faa7ee86eeff774f9302c853ebd946706e8a7817c00232e926725b876e"
+    },
+    {
+      "bytes": 3048,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/(tabs)/_layout.tsx",
+      "sha256": "fd9347196de7a30e39520e714aba40de5b61a39f1799bf472163a1d454e0ad7f"
+    },
+    {
+      "bytes": 13201,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/(tabs)/contests.tsx",
+      "sha256": "e5beb369a2c94e13190b7eb740895c4d7730d909d2bfa8349109c6c1722df4dc"
+    },
+    {
+      "bytes": 20887,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/(tabs)/home.tsx",
+      "sha256": "e08e15e4895be5565c4e6d4f2f4ef30be956f2c08adb0393bfc119b118616a61"
+    },
+    {
+      "bytes": 9460,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/(tabs)/leaderboard.tsx",
+      "sha256": "f6dcfec966ea4a1c8f1d056588cb3592335913a6b1b69177c2304f2576f96791"
+    },
+    {
+      "bytes": 22089,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/(tabs)/profile.tsx",
+      "sha256": "a82bdf4e804cfbabdd804ecef977fa952fe7512679d983b1168e136322c38f26"
+    },
+    {
+      "bytes": 20374,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/(tabs)/shop.tsx",
+      "sha256": "ff25d908067a83f3a02fb9b7e0a4f82b2ce7261c1ccc045f8b8c803b3da01d23"
+    },
+    {
+      "bytes": 1392,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/+html.tsx",
+      "sha256": "5d7c888914b4fe9d302967bb867059b98f7f457a3891ce011e6e4a9849c9a792"
+    },
+    {
+      "bytes": 5993,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/_layout.tsx",
+      "sha256": "6df1828b5012ae11b1f6c93ebe9314e33ed72854dfeeb7668dfe44a83a06bbcd"
+    },
+    {
+      "bytes": 2127,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/achievements.tsx",
+      "sha256": "485f7d7376beb9b8f17d7b49aa6c8cd7a87f10e6357eeb78c15772fe8780997a"
+    },
+    {
+      "bytes": 12909,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/avatar-customization.tsx",
+      "sha256": "a79d9c2f6965137f3dca78a5a8f15d51a9f98602de53c2a1f0f76826cb6db1c7"
+    },
+    {
+      "bytes": 10887,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/career.tsx",
+      "sha256": "11432f81708173394b6ef517db211441214b3f91cb844d477b0386681e8df15c"
+    },
+    {
+      "bytes": 14056,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/daily-rewards.tsx",
+      "sha256": "0a018aef631b007851c43c9e5d2f3419fbbcf1963821c16684dd6cb7032626eb"
+    },
+    {
+      "bytes": 2438,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/debug/game-loop.tsx",
+      "sha256": "1aa77a9e4f10a3f5e9a4bdd304a0d83ba759c5cfd2caaa452567789f7eb5f8d1"
+    },
+    {
+      "bytes": 14150,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/friends.tsx",
+      "sha256": "746e140ee70b0a5e26fea53b289a17b91215d41cf152799f1088ec43df6719ef"
+    },
+    {
+      "bytes": 9813,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/index.tsx",
+      "sha256": "cebec3c8f3c53a7bd6234692d41d8305a0903d748dec897384180e9653563a89"
+    },
+    {
+      "bytes": 2552,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/legal/[document].tsx",
+      "sha256": "127f3ff8eb6228239093c32c1454388f392f4a467723cd41cbad625eec5b003a"
+    },
+    {
+      "bytes": 6623,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/locker.tsx",
+      "sha256": "83ed5954f782fdf674faeabc3c447f9aefbf5add13aa6c1eec808eadf132c85e"
+    },
+    {
+      "bytes": 4634,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/match-recovery.tsx",
+      "sha256": "35fdbd1b32440b54b9a7b385b8c074ac4e327c5a6d71567ffd0d05d1b004ccfe"
+    },
+    {
+      "bytes": 1504,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/matchmaking.tsx",
+      "sha256": "91c053f9e0ee5cc83e63f593069bf7e29f19f162cb1ca270aca45a6f14f789ea"
+    },
+    {
+      "bytes": 2510,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/missions.tsx",
+      "sha256": "6fc907600808460f536385063a20dc197e600201c34b9947014bbad4ebb21264"
+    },
+    {
+      "bytes": 72452,
+      "git_state": " M",
+      "path": "frontend/app/play/[contestId].tsx",
+      "sha256": "a8933ffd480dcc5452a3043661c4f314d151724e7636a5bdbc9c1dc01e2d9912"
+    },
+    {
+      "bytes": 4481,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/player/[publicId].tsx",
+      "sha256": "3343f0dfd589836c307a5efc86a1f9cbeca704a9c0946d899ddc2b1b8301a54b"
+    },
+    {
+      "bytes": 6487,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/promotions.tsx",
+      "sha256": "6164831a60efc710c509706b8eb3041170bac224dfa92dbce6e23d4df3b7dcdb"
+    },
+    {
+      "bytes": 3702,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/pvp/challenge/[publicId].tsx",
+      "sha256": "cda1a60cd4a7c442c4d5dc28f0a3ac2cfa4c19b05fc14f9db300a0cdd19c1cc4"
+    },
+    {
+      "bytes": 6930,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/pvp/match/[matchId].tsx",
+      "sha256": "9aca76965c72a75d28b0edbfe0760e2ba460f5664008e28c7eabbef8fb86081d"
+    },
+    {
+      "bytes": 2846,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/result.tsx",
+      "sha256": "413f761d062ac8af433c1ffbebf1392da9eb3cc5e4967f82c4be6cf7a8b5beeb"
+    },
+    {
+      "bytes": 11823,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/settings.tsx",
+      "sha256": "dd2a82ff5dd1be71d1e10c2042e7a2a910d7ca7535060e647bb542d7eef6d8ea"
+    },
+    {
+      "bytes": 5830,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/app/tutorial.tsx",
+      "sha256": "dda812783b4fcd27e8d058b4daf6b96118e49b20eafe22737ae0062a4a147389"
+    },
+    {
+      "bytes": 93252,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/fonts/SpaceMono-Regular.ttf",
+      "sha256": "4c322514d265062aa3f7fbd81f5b79391ccb74268e6a20600061e0ce33234f41"
+    },
+    {
+      "bytes": 255372,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/images/favicon.png",
+      "sha256": "38240320cf730bf9164ef0744cf2a428c827c0312c0c42a057ac3a4b7de0aafd"
+    },
+    {
+      "bytes": 2500231,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/arena.mp3",
+      "sha256": "d45cc1858ed3c2f2180f0ebb4c80966cc5759a2e98726f3ac7303426dfec5561"
+    },
+    {
+      "bytes": 18720,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/bite.mp3",
+      "sha256": "5565b8524b286f6e4dac7147934301027936570f896ca904992195be7f633a61"
+    },
+    {
+      "bytes": 19226,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/button.mp3",
+      "sha256": "06da233e553f7af08eb4a27cd62bb38d99415186519a4aa051d3e183666b3b54"
+    },
+    {
+      "bytes": 15882,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/coins.mp3",
+      "sha256": "c79564dcd789928eb50cb14782ddf22476e17d94c62af1631f4b712646d7f83b"
+    },
+    {
+      "bytes": 33408,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/combo.mp3",
+      "sha256": "5799751c228c2400d77024a089b150c8302e8a8a2cd1cdd478f81fcee8afb661"
+    },
+    {
+      "bytes": 81216,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/countdown.mp3",
+      "sha256": "bcb83d1e3d533443138fad59d39d9ca910681f14298d7993a5882763e50f4c61"
+    },
+    {
+      "bytes": 98638,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/defeat.mp3",
+      "sha256": "536179a285cecdf54a53b96515c89c9b1e7906c6ced91b37359ee362e5f90e6a"
+    },
+    {
+      "bytes": 44555,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/hurry.mp3",
+      "sha256": "bcc1055f67d70ac180b81c4238d0b146f6d4f16db7b6b03c93a7d647d15e1b05"
+    },
+    {
+      "bytes": 5069568,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/lobby.mp3",
+      "sha256": "c5d13cc4a370288460996c5434d0130b58a9f8e1b01097b1387d2ac203e25575"
+    },
+    {
+      "bytes": 86560,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/victory.mp3",
+      "sha256": "73d5aae6c222ec3f1af2606aae17525c9f69c5a259bbe086a8823af56baadd1b"
+    },
+    {
+      "bytes": 73394,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/assets/sounds/xp.mp3",
+      "sha256": "4318d60097e65372b46462896a6bc18245ad2007755ca041f49054c9ce82ac2c"
+    },
+    {
+      "bytes": 179,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/babel.config.js",
+      "sha256": "8089b0b8d2e7b8ddac08499b5e4731dec20c63aaaf8b76001e5346d8bf131b22"
+    },
+    {
+      "bytes": 1537,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/constants/testIds/auth.js",
+      "sha256": "3b2a266cb5f46b6f450fef308a9325d81b6e75b0eba9e3288063b31a1fd2412e"
+    },
+    {
+      "bytes": 672,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/constants/testIds/index.js",
+      "sha256": "9c79c18f589912f632ead3b00ac2a19f425b6300943e003d1ddde9244fe9fe8e"
+    },
+    {
+      "bytes": 12688,
+      "git_state": "??",
+      "path": "frontend/current-release-gameplay-reviewed.patch",
+      "sha256": "eed078e8ce78afdf2bef46443a1f4ad5bc8e1e2a336bfb58eeb010f9c2ed612f"
+    },
+    {
+      "bytes": 6993,
+      "git_state": "??",
+      "path": "frontend/current-release-lifecycle-reviewed.patch",
+      "sha256": "a774755b396672dfa6986c3bf775f31cb7a4f72f26ebe4c16d868ac61154b3d7"
+    },
+    {
+      "bytes": 6165,
+      "git_state": "??",
+      "path": "frontend/current-release-reviewed.patch",
+      "sha256": "de90f60cb7e8017f1e5f3756730f706997c12083e5bccdce63edabd62467b6cb"
+    },
+    {
+      "bytes": 1236,
+      "git_state": " M",
+      "path": "frontend/eas.json",
+      "sha256": "358eafe73d73fc3956f7bfeb6cf0ccc56bd0b333f2cc6ddbad71835449b7dfed"
+    },
+    {
+      "bytes": 434,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/eslint.config.js",
+      "sha256": "47e160e2c8af57431a22a0539d2aae8dcec2fa16e07f04109342e224db5f1b82"
+    },
+    {
+      "bytes": 130,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/metro.config.js",
+      "sha256": "47080ee41b1e4cc3e925ef6cd85939d5d9c47faa254a51fdbb2d3ca271719e73"
+    },
+    {
+      "bytes": 481733,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/package-lock.json",
+      "sha256": "3ee6a2528c1a56d96c9ae6861a186b60cb8d37e47708995aa52c0907fd15b002"
+    },
+    {
+      "bytes": 2464,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/package.json",
+      "sha256": "c0eff0502be14c3b3c503c1ff8e0750ae62d7c90ced2947bdca20d9a79e0a18a"
+    },
+    {
+      "bytes": 2520,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/plugins/withAndroidAuthBackupExclusions.js",
+      "sha256": "fcca0cc2b71622c1ce1acaa607175687c2ecc1d4ecf4267dcf05e9d00a6102cf"
+    },
+    {
+      "bytes": 11296,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/release-integrity-baseline.json",
+      "sha256": "f9ae2ca3e42ede0fd52e289f7642331ccd2650a7894badc449b4cd08d6bf0b76"
+    },
+    {
+      "bytes": 4575,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/audit-daily-reward-artwork.js",
+      "sha256": "da684ac3bdfcce30bde289b39c02e791714c764bee03658c3619c851f1a6beb6"
+    },
+    {
+      "bytes": 6614,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/check-avatar-v5-proof.js",
+      "sha256": "f840a9bc3a31ede5f0d0f58d3bd1051cdf2df7b435c43af8b373f6b41e94940c"
+    },
+    {
+      "bytes": 9828,
+      "git_state": "??",
+      "path": "frontend/scripts/check-current-release-integrity.js",
+      "sha256": "6d66f4446223bb67f2390f113e5ae1cddbb82dc28b989d127fab7943fd5cd661"
+    },
+    {
+      "bytes": 1826,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/check-pkg.js",
+      "sha256": "915099c81b0e2b8d2a8f2e5ff6f9352ad6890abdb567cad167b15e0f144c8021"
+    },
+    {
+      "bytes": 4311,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/check-png-integrity.js",
+      "sha256": "784a793cb29781b612fa2d6262c873ca4047d7bdc8fe6185465a6b01e7393bfb"
+    },
+    {
+      "bytes": 2309,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/check-release-integrity.js",
+      "sha256": "003644a2acca1ab96ccd81ebd9c0564e2dacac9976137e81a505cb42c06f573d"
+    },
+    {
+      "bytes": 1444,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/generate-release-integrity-baseline.js",
+      "sha256": "86e0dcd997cb0ba0e45a92613ac440d2fa38b1a237bff04d4a5073bf5a7b17a2"
+    },
+    {
+      "bytes": 713,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/install-guard.sh",
+      "sha256": "5fc6c7ab2dcfabc21c4e5076d15cddb6563c56a75bcbfcb70a5348f359bc2fb9"
+    },
+    {
+      "bytes": 3108,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/recenter-daily-reward-artwork.js",
+      "sha256": "307878c420ed127d253730a798a4b59ec82b5c77d9cd3f033215b5748acbccf2"
+    },
+    {
+      "bytes": 1411,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/release-integrity-files.js",
+      "sha256": "d2a8bd452e14709bc0f42f1cef5496d993b8f57365f4d9d7760a62da5b8a7af3"
+    },
+    {
+      "bytes": 3720,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/reset-project.js",
+      "sha256": "c8a8c378d68bf01c8597d43b0ec77fcaae9124c8d22c0fdba486bd6a628f3894"
+    },
+    {
+      "bytes": 1116,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/sync-legal-docs.js",
+      "sha256": "4db45b5b4d443e8277401b4056aa64a6820ef1497e9322f9171c7e430a2f1b98"
+    },
+    {
+      "bytes": 11676,
+      "git_state": " M",
+      "path": "frontend/scripts/validate-local-release.js",
+      "sha256": "4b432f527fdd1da80ed55179d6e17932980aab19b10917c2b517d2abe5ce6457"
+    },
+    {
+      "bytes": 13797,
+      "git_state": " M",
+      "path": "frontend/scripts/validation/api-contracts.js",
+      "sha256": "15aa54bf43354df48f13d7ff9435a41d53342fe695b3d370314ff26c1ad2d1ba"
+    },
+    {
+      "bytes": 4471,
+      "git_state": " M",
+      "path": "frontend/scripts/validation/backend-local.py",
+      "sha256": "2dc27b23894ee0beee0ab3b87f1a86a2f6eb265c758aaa9d05780f8e82bd2f25"
+    },
+    {
+      "bytes": 3375,
+      "git_state": "??",
+      "path": "frontend/scripts/validation/deployment.js",
+      "sha256": "ca5054977e91b9a4a81679594d8497d26985e8f5e0fbeea4d837a0653514d325"
+    },
+    {
+      "bytes": 1673,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/scripts/validation/scoped-typescript.js",
+      "sha256": "c9f4f2ca93ea8100d0a9d5d9aeb33027ff89b6081ecad05533aee2a2d52416f2"
+    },
+    {
+      "bytes": 5311,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/AchievementCatalog.ts",
+      "sha256": "1a6bea9a4cf19ab26e93403cf4f7e6fac17c53f7c497b888c78a42c9f843a346"
+    },
+    {
+      "bytes": 1549,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/AchievementStorage.ts",
+      "sha256": "8c39a3f6d914addb675dcdcac88c907b77229ba1d7ca11c00a8ff323f256dc7a"
+    },
+    {
+      "bytes": 7936,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/AchievementTracker.ts",
+      "sha256": "446ac36126ba3f48e61b7e08d2117a220f1238be405a03c0579ee10aa7cea31e"
+    },
+    {
+      "bytes": 2904,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/AchievementTypes.ts",
+      "sha256": "379cdc0b9db61d8dc28de61efff5009f9f647b4c8c250b54f074e69a4f44b27a"
+    },
+    {
+      "bytes": 2902,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/components/AchievementCard.tsx",
+      "sha256": "dad9be910c5b05f952e358367443c4cc0a604d73bb58e8c87197d343c4844404"
+    },
+    {
+      "bytes": 2640,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/components/AchievementPanel.tsx",
+      "sha256": "c88caf94a8c909bf9e2e1aa71c26abd049b0423291d1e7ddbe632d0c4ca49bac"
+    },
+    {
+      "bytes": 1762,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/achievements/useAchievements.ts",
+      "sha256": "1c970ddf66ebba4f654295834c5dc78a648a641f64cc4f9eb6cffb8f5ce8847b"
+    },
+    {
+      "bytes": 634,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/AnimationProvider.tsx",
+      "sha256": "ea1ccd8bb69a304ab8ab8f0dbe69c687d901cabb007218fc022a773700eda2f0"
+    },
+    {
+      "bytes": 298,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/index.ts",
+      "sha256": "0c463710be44e0b821181065e6b7323c5dbec4f4a3d93401076f7d2180ce5457"
+    },
+    {
+      "bytes": 1147,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useFadeIn.ts",
+      "sha256": "3da965446981281df0a376ba19a1de8e41a491bb503f1ceb2dbaae9860557709"
+    },
+    {
+      "bytes": 1336,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useFloating.ts",
+      "sha256": "9e8d9cfb761a7454ffc46ebcbc397a1284bdac8a2266a5d29a15e6ef3a8fd4ce"
+    },
+    {
+      "bytes": 1314,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/usePulse.ts",
+      "sha256": "f4e8b791248c072293d291492c98b6593cf0c890fa2ed5c9447fb9bf038f0fe6"
+    },
+    {
+      "bytes": 1169,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useScalePop.ts",
+      "sha256": "35924313464d4e9564cf2cce026b28681fab57bc7e6468b68c350af3f9373e3d"
+    },
+    {
+      "bytes": 1365,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useScreenFlash.ts",
+      "sha256": "d32db95cefde407251801f9539308b5ffa16d729ca25623c334ed1e4f2409e28"
+    },
+    {
+      "bytes": 1849,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useScreenShake.ts",
+      "sha256": "1f38a315da2c7e9aa143373c1381672c4a6bbb344b6974dc94b6d7d0359dcf35"
+    },
+    {
+      "bytes": 1164,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useSlideUp.ts",
+      "sha256": "4cb2e401df985bc9515e8b46b379c9f15a08bc44c78d486b37f6789845b6406c"
+    },
+    {
+      "bytes": 1313,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/animations/useSquashBounce.ts",
+      "sha256": "d9d2992c5f619b768ed9abe2b79b2efe847f8b0fc983fc186d0586eae2fd4486"
+    },
+    {
+      "bytes": 62050,
+      "git_state": " M",
+      "path": "frontend/src/api.ts",
+      "sha256": "a0f46c0b3c16895ad709a3a0c682fc04292705ad95f056564c9b6b4f8931fa77"
+    },
+    {
+      "bytes": 2934,
+      "git_state": " M",
+      "path": "frontend/src/apiBase.ts",
+      "sha256": "a78b8f9f584d50defd66945a3efdd7f0cf30d024c6a396035abd23d8e869a14a"
+    },
+    {
+      "bytes": 9432,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/README.md",
+      "sha256": "23e33f5fb6099afaf064e6ebd846b6c5a5dabc571fa29bb9ec1143c3df97eb5e"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/accessories/misc/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/accessories/neck/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/accessories/wrist/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/base/female/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/base/male/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/base/nonbinary/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/bottoms/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/effects/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/eyewear/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/faces/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/facial-hair/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/gear/feet/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/gear/hands/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/gear/head/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/gear/torso/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/hair/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/headwear/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1411,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/proofs/flattened-standard/README.md",
+      "sha256": "af19934e47623bb65368ee156c2f4919837815a9461e5379ce2b819e7642535d"
+    },
+    {
+      "bytes": 330307,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/proofs/flattened-standard/fire-feast-avatar-v5-standard-master-1024.png",
+      "sha256": "2403c7fdc6952e47020c1beb87f5b1302be601b89a7eb0b3a06cb84d6ab918fa"
+    },
+    {
+      "bytes": 4258,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/proofs/standard/README.md",
+      "sha256": "fce9bf4e6503ccf360059fffaef02c08baee79c07bf2b71d3d95e19839f73e29"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/references/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/shoes/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 1,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/avatar-v5/tops/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 3298622,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/backgrounds/arena.png",
+      "sha256": "73d6b9fbf675a50f47c05541526461dfceac2d1792b1715f07c034e5d7490314"
+    },
+    {
+      "bytes": 3285830,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/backgrounds/splash-screen.png",
+      "sha256": "c7019c34fa8d9733110287b4c742e4a0da199f9b32599ae08ca55388e3fa740c"
+    },
+    {
+      "bytes": 1195613,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/characters/blaze.png",
+      "sha256": "673fddee2d1e0a4c903ad9a15e2fe3404c873b39dbbc85c07673cb4e0320db5a"
+    },
+    {
+      "bytes": 1793,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/daily-rewards/artwork.ts",
+      "sha256": "f64172ab8c9feac656da25d926953d04965626e8bf201b557085fe4f204f1350"
+    },
+    {
+      "bytes": 2938572,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/daily-rewards/background/restaurant-table.png",
+      "sha256": "cf130bf750974ab6f633a3dfb4d3ecb7c70b08776ec6435b80222e30a8fc1d06"
+    },
+    {
+      "bytes": 215184,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/daily-rewards/effects/winner-glow.png",
+      "sha256": "965fe811c0dd353dc916ea76c5a24fa456d3645af3b32a46861d0f6edbf695a4"
+    },
+    {
+      "bytes": 330582,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/daily-rewards/hub/fire-feast-hub.png",
+      "sha256": "47878ba55ce420a3fdf1f23ef80c96a730246f6123df28444963d6c8ace63be8"
+    },
+    {
+      "bytes": 48959,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/daily-rewards/pointer/chef-knife-pointer.png",
+      "sha256": "f005017e57fa1c332db7a894dfe9b09f87f76bb30ed6c3ab89a8c5b55ca49ba1"
+    },
+    {
+      "bytes": 2550534,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/daily-rewards/wheel/charcuterie-wheel.png",
+      "sha256": "e2a38bc0c0b8930c15169a6e3b973e23bb646b20a41bcd4b36b42343fe677d44"
+    },
+    {
+      "bytes": 2449604,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/food/burger-deluxe.png",
+      "sha256": "78edb47aa5484652b4749f67ae33f51da96a587fc40d3522fb469ff42677ea01"
+    },
+    {
+      "bytes": 2055295,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/food/dessert.png",
+      "sha256": "eea0cdc198646d0018b84447a7f4d55609b96c716da82379a3c4281685177803"
+    },
+    {
+      "bytes": 1444782,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/food/hot-dog.png",
+      "sha256": "3ee4e05e2fae1e33d509bde32717ab9deb41bda6be64970f82c2f3b036729ee3"
+    },
+    {
+      "bytes": 2208169,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/food/pastrami-sandwich.png",
+      "sha256": "2941d6c63224ff20f539b69a707f3bbfe90fe72df513091933c350af0311b692"
+    },
+    {
+      "bytes": 2701173,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/food/pizza-pepperoni.png",
+      "sha256": "199f684781a435ea0f9373cc605fb3b0765adc3236e60c98cf3990dc742fbdbe"
+    },
+    {
+      "bytes": 2037017,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/food/wings.png",
+      "sha256": "7519b9a131d5c6bbc0f300cbd1df352308fcf68c8af3b5c9af21859b13ff5630"
+    },
+    {
+      "bytes": 994,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/foodArtwork.ts",
+      "sha256": "b0f73a00ef6515a9bb016ad060f829042c4ab668b13bfeb5762b9504c422e967"
+    },
+    {
+      "bytes": 564,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/foodArtworkKeys.ts",
+      "sha256": "4a39fd446a155fb24f235ec809bb887ab631fbe02b7b4d86b52d3d8a9b1f8aa4"
+    },
+    {
+      "bytes": 2466082,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/icons/antacid.png",
+      "sha256": "1d8ef41d03e3f91ddd278d8546b23f42bf77e70714613d8dc958a230a0a4e166"
+    },
+    {
+      "bytes": 2971451,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/icons/coin.png",
+      "sha256": "950d3badc2606a708d49dd5176e93ce087c978edfcb88c25681baa315ce965cf"
+    },
+    {
+      "bytes": 2950426,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/icons/rank-badge.png",
+      "sha256": "203b27c5a1ee7b9cf03de7389b670c161b41b7f97d42d1ff5ed9bb5438a59ae0"
+    },
+    {
+      "bytes": 2590770,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/icons/trophy.png",
+      "sha256": "b13baf3612cd3dbe9c93284601dfe67c47c6515de275d79088612e674c6bcf67"
+    },
+    {
+      "bytes": 1627080,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/icons/win-streak.png",
+      "sha256": "15a8ebc050946e4147184d219016272a0743dd13e438f2aa922e1772bae953b5"
+    },
+    {
+      "bytes": 2497283,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/icons/xp-crystal.png",
+      "sha256": "a89ffff3f93c6ac5ee14c4ae93a29bfbdd590ca7bcec130e128b4e922032b995"
+    },
+    {
+      "bytes": 2363433,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/logo/app-icon.png",
+      "sha256": "2d538af83fd1dabee2b0383f580d02da90d23d021c979826f9c6d5ae97afd758"
+    },
+    {
+      "bytes": 2329269,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/logo/fire-feast-logo-compact.png",
+      "sha256": "6c5c0b013afbb9da05d04c15581f2396b702fd0ed0137f120780b593d9ead260"
+    },
+    {
+      "bytes": 643931,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/logo/fire-feast-logo-horizontal.png",
+      "sha256": "51a207f5edf0c13785d94323f74e1fef1dac6e61c7278066e372ac50cf1d5747"
+    },
+    {
+      "bytes": 3137546,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/logo/fire-feast-logo-primary.png",
+      "sha256": "be4005ea0ef4f78269d1303ee9569d06dc6c000ace710b4d75060b86b89d7fa2"
+    },
+    {
+      "bytes": 2240348,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/animations/button-click-ring.png",
+      "sha256": "66ea37151a3716de67f3ef767a5d14b8a0bf0e963eb87d8f44003f9f18ef7ba5"
+    },
+    {
+      "bytes": 1008280,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/coin-bar-v2.png",
+      "sha256": "dbb40aa7ce3e3f8178d90080f999af2b6ebc55dddca5c4510388ba49e62858b5"
+    },
+    {
+      "bytes": 2831857,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/coin-burst.png",
+      "sha256": "bcca4ed586237103c8a72a1c1c03d7ed7181439b09e368553204b3e00870bc11"
+    },
+    {
+      "bytes": 3043137,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/combo-explosion.png",
+      "sha256": "75aa0ad61cdf426442bf363ab592ed524d8381f503335e3941dd92ed7fb95471"
+    },
+    {
+      "bytes": 1940632,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/confetti.png",
+      "sha256": "68fbf52b47495a907f14fb689085e896ea02761ff0778736ba23a9728767832e"
+    },
+    {
+      "bytes": 1561646,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/embers-particle.png",
+      "sha256": "c2143a7e07ea6a5a0f9e979cf558a20cde71be1c9d8f832577d3d47e1406dfb4"
+    },
+    {
+      "bytes": 2970990,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/fire-burst.png",
+      "sha256": "7c5839d389ac0b0e0c543bec32c2c24f0f3b438c67e5fb268ba38990a276da1d"
+    },
+    {
+      "bytes": 1731151,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/screen-flash.png",
+      "sha256": "0eda6b26bbfd1e0b8abfba2be145d44bf3fd648d8a833d4a48086f34a2cb22ba"
+    },
+    {
+      "bytes": 1574417,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/smoke-puff.png",
+      "sha256": "6b20979c6e66e8729155e683a0075ebedc0c0350c529aa443e2ecca0d77ed59d"
+    },
+    {
+      "bytes": 2112525,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/sparkle.png",
+      "sha256": "2ae989bcba3eded7393f18af7a508e014d46f977fdcb13ad866da62845950cd9"
+    },
+    {
+      "bytes": 2934243,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/speed-lines.png",
+      "sha256": "f228b53fe3587ef2dd744b08fa36be7e5e3f12bac09aba353a79e1d400ea8023"
+    },
+    {
+      "bytes": 2659213,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/effects/xp-burst.png",
+      "sha256": "25e4783f76229ed8893cbf2ccc7886510f20d0003362773f1666e0eb95e4100b"
+    },
+    {
+      "bytes": 1958969,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/hud/heartburn-meter.png",
+      "sha256": "931050d04d14befd1cb3993fc111da8fe6d1f2874dc40e2a4adcd4f0f62fb725"
+    },
+    {
+      "bytes": 1813252,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/assets/ui/xp-bar-v2.png",
+      "sha256": "c4a8a3a692b30ee1b49c968539a4cdcbd52492fe80f24caf17c3c4c4d9462364"
+    },
+    {
+      "bytes": 2362,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/audio.ts",
+      "sha256": "d997efc31e79ed22f5bebc9640628185819c7f4da7d69debb5735214eb4a2f7b"
+    },
+    {
+      "bytes": 12984,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/audio/AdaptiveAudioManager.ts",
+      "sha256": "4c8974f8e24d426a35398ae517d10cd6d46d02aaf17183b608c8fbf458eb4c1f"
+    },
+    {
+      "bytes": 4628,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/audio/AudioRegistry.ts",
+      "sha256": "98eaf952468a7896f7c7cd4cb53e88a3c829c406c2762092b896221a5e33b575"
+    },
+    {
+      "bytes": 1391,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/audio/AudioSettings.ts",
+      "sha256": "4236d3899f10e2604774678ee30c1937fec5017acc8a3b91f74618e495806000"
+    },
+    {
+      "bytes": 1408,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/audio/AudioTypes.ts",
+      "sha256": "f7056aca5a58cbc5bd1a7bec00f638d1e7fcda0184c86e957823a6a29c69ded4"
+    },
+    {
+      "bytes": 1617,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/audio/useAdaptiveAudio.ts",
+      "sha256": "de4d30bea5709e91cbc99b7d55c3f058a42c50318929f2cea36e324916ce9f85"
+    },
+    {
+      "bytes": 2682,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/AvatarV5Renderer.tsx",
+      "sha256": "7151311d0fb439867b2c7de1d10122d836a491fda31778be90ef34b867f227ab"
+    },
+    {
+      "bytes": 7677,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/STEP-2G.md",
+      "sha256": "9c33e62b257da8ad3ad73490da3aefe59307e509dea3dea220071452718046c0"
+    },
+    {
+      "bytes": 1270,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/alignment.ts",
+      "sha256": "f04baa6807220505886b194835989463a4fe7987935b040d9881daf48afd9779"
+    },
+    {
+      "bytes": 5392,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/appearanceDraft.ts",
+      "sha256": "ff66eef13fc00283de9826670b37d059b39454b04768349e167fb2d53941498b"
+    },
+    {
+      "bytes": 9901,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/appearanceValidation.ts",
+      "sha256": "6806ac1511d75fe1090bd03f3da422c4ee536fc2b0920e8c854457d9a346e014"
+    },
+    {
+      "bytes": 1956,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/equipment.ts",
+      "sha256": "f52320bf79c195cfc73831717cedb4afca86e2cde24c4d241873fa7d08241fd1"
+    },
+    {
+      "bytes": 170,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/index.ts",
+      "sha256": "8a21c8fbbd1320b51ef23e6a011970a1c7bd2eff1d682001e62707e511ecb09f"
+    },
+    {
+      "bytes": 1576,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/layers.ts",
+      "sha256": "be1545134d96197c6cf13c77eb49a28b946f481076ed91956b12af705c6f28f0"
+    },
+    {
+      "bytes": 2124,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/loadout.ts",
+      "sha256": "281a508596813d0ee2f3178e2f7d3013a27c3e048ed9ed255276d1a25317c420"
+    },
+    {
+      "bytes": 3669,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/paletteResolution.ts",
+      "sha256": "3b28aa6cce8b792d04e777c4e96b04e5418cfe0753df653087073c93bbcae910"
+    },
+    {
+      "bytes": 1068,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/proof/FlattenedStandardProof.tsx",
+      "sha256": "4d660d67b4a7f1e6322d3bb3f1d64feea57913176b70a33ecd9a5b7044644048"
+    },
+    {
+      "bytes": 4197,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/registry.ts",
+      "sha256": "269eb9672eef89ed0c87da70dbeed74937c30e78f41bb2fc9b72b5b8f94f1319"
+    },
+    {
+      "bytes": 8764,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/renderPlan.ts",
+      "sha256": "5f0b118c569d1b9260a26296c8e17c299025e335870bd38b1d97daa0f81d8fb1"
+    },
+    {
+      "bytes": 1026,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/renderState.ts",
+      "sha256": "0fd0598fb8b2ec5fecee3d1161a18a8af2a1869c4ef1d9d685e678627d2beecc"
+    },
+    {
+      "bytes": 2963,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/avatar-v5/types.ts",
+      "sha256": "c91c73bb7cd9d8e6ab7122fab559d1b61ddc89a13fc5ac8e9ca3afedc01b49ff"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/backgrounds",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 308,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/GameButton.tsx",
+      "sha256": "3deef794ecca77d0f1a2f8eae8552f4bcc33cba273ecedc74855653aad4f1eae"
+    },
+    {
+      "bytes": 1283,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/GameCard.tsx",
+      "sha256": "a5b48a783fe7d2e8b95a5ea4578b3acdef2ef781be57de9d50fd077ccf68373b"
+    },
+    {
+      "bytes": 835,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/AnimatedButton.tsx",
+      "sha256": "60fec98472b387dd56141dba6e0c1b0d69d89fc8d817bea8007b88f8fa1aeae4"
+    },
+    {
+      "bytes": 1335,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/ArenaGlow.tsx",
+      "sha256": "74bb9228f081127e39d927e6a491158516d8241a516b45a58df6948d96e0c513"
+    },
+    {
+      "bytes": 686,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/ArenaMeter.tsx",
+      "sha256": "d1d2590ed58c243b6d0ba1238f3e36a20157af0e8d00fe9f31d83aee0872d301"
+    },
+    {
+      "bytes": 993,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/CoinBurst.tsx",
+      "sha256": "63bccc97693aba864cebe693dc026f0e917f801552b2aeb67f4168463d8ab467"
+    },
+    {
+      "bytes": 860,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/FireBurst.tsx",
+      "sha256": "351cd4aa786bc654f8b2f4e9d03859c56eede8c58aa970041f33605afd6c145a"
+    },
+    {
+      "bytes": 845,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/FloatingCard.tsx",
+      "sha256": "600a1e65120845aee5dadf58741dffdb7c0e9e32f64e9841ed317b7452786189"
+    },
+    {
+      "bytes": 1884,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/FlyingBurst.tsx",
+      "sha256": "c4bc827c5c1caa613e7e72ffd1d7b60f16078dd2999832175646b183c503af48"
+    },
+    {
+      "bytes": 675,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/PulseGlow.tsx",
+      "sha256": "69e10f2c092a035623fd91885819c8c53b0969e0c535d1460d1d6b57a527c027"
+    },
+    {
+      "bytes": 691,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/ScreenFlash.tsx",
+      "sha256": "d21a5addaac590eb0f6f55983e0e80938bad4bff91bfbe2f5d9f2968d52d86fa"
+    },
+    {
+      "bytes": 686,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/ScreenShake.tsx",
+      "sha256": "0c172d26feebb2ec18734e68d304f68dded8b6c34ab922a62961b28f14fb2402"
+    },
+    {
+      "bytes": 992,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/XPBurst.tsx",
+      "sha256": "1ef049bfbbd806fe390a8669e3eab451858aaad5b19678474b6432f65cc312bb"
+    },
+    {
+      "bytes": 606,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/animations/index.ts",
+      "sha256": "444816331375ee0241cc39225180d99bc91533d7459ed725563bd83707fff163"
+    },
+    {
+      "bytes": 1022,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/CompactScreenHeader.tsx",
+      "sha256": "ae86876fb2d14679568c354ea3aa94972642a7ba759b9915620937cedef209fc"
+    },
+    {
+      "bytes": 2788,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/DailyMissionCard.tsx",
+      "sha256": "cca2b64d69a812d8499858e7ed05c61e30ab256393c34317c66b7594f286c098"
+    },
+    {
+      "bytes": 1942,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FeaturedChallengeCard.tsx",
+      "sha256": "9e8766fd0b07d09fb8ab8db790102ff1a740b967b85543334b8113a2d21e2a22"
+    },
+    {
+      "bytes": 1764,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireBadge.tsx",
+      "sha256": "d98c37b73d2102eae0ecb00ba60dada97f4eed2df9150e651f2f3611d3ff8804"
+    },
+    {
+      "bytes": 7443,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireButton.tsx",
+      "sha256": "908b1d04bc844b7b95f8fa474b2bbf6ae7d6fef3109bbc7a9d49795b1799cf16"
+    },
+    {
+      "bytes": 1666,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireCard.tsx",
+      "sha256": "8fefff7b714e331355a1e8e3573a6b936d9ef35b59b168f174ad323a6baf991a"
+    },
+    {
+      "bytes": 929,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireCurrencyBar.tsx",
+      "sha256": "bbdfe71790636962475013d14662a5d203695397950b09d6feddd89858eb783a"
+    },
+    {
+      "bytes": 1878,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireEmptyState.tsx",
+      "sha256": "caad609c8b463bd81356d5af42fc7c820334455a46a9778472640cd9d336aebf"
+    },
+    {
+      "bytes": 588,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireHUD/FireCoinBar.tsx",
+      "sha256": "b8ea1c96a95236fa8ecd6fe682a5f86a0d28c60085736a9fca16a037f41d9f58"
+    },
+    {
+      "bytes": 1125,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireHUD/FireHUD.tsx",
+      "sha256": "b35ad8252dda1f05d9333d1549ee5e0f691eb19ed465da43c75041f88f08c0e9"
+    },
+    {
+      "bytes": 733,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireHUD/FireXPBar.tsx",
+      "sha256": "4a0a23cb5ef1c4bff588ecf7d37d988ba1e100116ec52156278627730c084dda"
+    },
+    {
+      "bytes": 157,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireHUD/index.ts",
+      "sha256": "2b1972f75ae554ae8e0ea6e28b63144715f64291750c0f21ac301276705b15b2"
+    },
+    {
+      "bytes": 2969,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireHUDFrame.tsx",
+      "sha256": "bb6821540af1d7e46cc4871ea84ea083aa9c6d3f7cf49888c83433ae769477df"
+    },
+    {
+      "bytes": 2085,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireHeader.tsx",
+      "sha256": "8fc6364a18b3322c9c2abe7370038feb46dade266d30d2242c90e15006f385bf"
+    },
+    {
+      "bytes": 3451,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireLoading.tsx",
+      "sha256": "0238d5e70fa8f01c4a851b035283eef489249f5b29a207bf1c9adf0edac17261"
+    },
+    {
+      "bytes": 3809,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FirePanel.tsx",
+      "sha256": "00be3bc29c25f10009e5d9f58e75dca1ad5d7c094b9e27b8737aa475c7cae1d8"
+    },
+    {
+      "bytes": 4250,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireProgressBar.tsx",
+      "sha256": "1ee4046f64784f2cd8b29465cdcde6fd2e7bb829898ef639074cca2151404f31"
+    },
+    {
+      "bytes": 2436,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireScreenEntrance.tsx",
+      "sha256": "ce7c177af7bf9b0277f7a0e146b03e6c7a3a5a33ed9b174cf6be5814e676298a"
+    },
+    {
+      "bytes": 1941,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireSection.tsx",
+      "sha256": "ab6999afb07524233fbbbb057e6c79992275c0801fe044fa57debfc0512e9e93"
+    },
+    {
+      "bytes": 1476,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireText.tsx",
+      "sha256": "19c96c6fd4c605337c77abf4fc34e3466aaae05fde5fdcdfbf848a016a001a43"
+    },
+    {
+      "bytes": 797,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/FireXPBar.tsx",
+      "sha256": "7dc734a9622e296b4d62cd5824c07023a4c63a4f06ee7d5a67f7abe42c454a2a"
+    },
+    {
+      "bytes": 3789,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/HeroChallengeCard.tsx",
+      "sha256": "84994cc0a16061452a54fda58daff8ecbf1ccee8be87a4908acf8948e94d7136"
+    },
+    {
+      "bytes": 2147,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/HeroFood.tsx",
+      "sha256": "8d2f197b84f30ecd1f7339c67e389b1e73a02a263bd67a1de5153f64d31043f5"
+    },
+    {
+      "bytes": 1722,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/components/fire/RetentionNotification.tsx",
+      "sha256": "27b282aa917243a35fddffe0bb8192ec70af893afc5a653c7f0ebfc21c120169"
+    },
+    {
+      "bytes": 736,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/equipmentState.ts",
+      "sha256": "165f10cfe4d70e778ce6f07d669fef42f0881a617b25f051effe827d3c797b71"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFAvatar.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFBadge.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFButton.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFCard.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFCurrency.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFHeader.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFPanel.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/firefeast/FFProgressBar.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 130,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/AnimatedBackground.tsx",
+      "sha256": "5ab7ec7927afea3cb7b7cf0da337e2aa845103c7d98e34f11905d8c4c2085f62"
+    },
+    {
+      "bytes": 1194,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ArcadeCard.tsx",
+      "sha256": "fc1a60acae94f02d7a202bd926efe3f136c2f2a43974b2deafd9dbf1f7f72b7d"
+    },
+    {
+      "bytes": 5129,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ArcadeHeader.tsx",
+      "sha256": "d87730e6c0d3e68adb60f24c86256099c0e3442df7b9aa52fb16de0fe8f52833"
+    },
+    {
+      "bytes": 6730,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/CameraController.tsx",
+      "sha256": "df75dfd30d46448ff867b95130f69c8415133304764598f716a4026cfe178131"
+    },
+    {
+      "bytes": 3582,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/FeaturedChallengeCard.tsx",
+      "sha256": "50de91cdbef56e7a2ec1c225db359544eaeac2937322ab7c02714694c391cece"
+    },
+    {
+      "bytes": 17099,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/FireArenaBackground.tsx",
+      "sha256": "169e09f61b4a815f2d1d853bf6942fb9aa840b8cd7aec10da8d1e61cd2e4ed93"
+    },
+    {
+      "bytes": 1203,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/GameEngine.ts",
+      "sha256": "69c8b2731af98bac9b2e8973916f607051ea872ee0c73e34467631d3bbf081fd"
+    },
+    {
+      "bytes": 1199,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/GameEvents.ts",
+      "sha256": "fc2821d5af918b2a0bee3853a642bdd52d878b1c68e7e558cd7d7abe8888fcf5"
+    },
+    {
+      "bytes": 456,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/HeroPlayButton.tsx",
+      "sha256": "192f0cd391fefc18db18ad2a2de4f5da9cefec7510bf74051a578ddd872e2e87"
+    },
+    {
+      "bytes": 1822,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/MatchIntro.ts",
+      "sha256": "9e56f11c72b7bb62a7842eb31e42a7273d3ee207c3091d97560c6b8ac43fda45"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/VisualEngine.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1298,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/activeMatchInputLog.d.ts",
+      "sha256": "e2a11db23bfcda166a5398c269bf84021ed20adf92613fa5117f86ce82599fb7"
+    },
+    {
+      "bytes": 4379,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/activeMatchInputLog.js",
+      "sha256": "5a40446e66459fe8058b935bfe8614fbcbbe122b43837c62d9e177de228853df"
+    },
+    {
+      "bytes": 5623,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ai/OpponentAI.ts",
+      "sha256": "cd583873bfd3ece65ae548a6d68da08e9d10a31b02daac98e03052b89aa2070a"
+    },
+    {
+      "bytes": 3406,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ai/OpponentDatabase.ts",
+      "sha256": "5c4d7dd42474c39b4c398ceeda4734c45bfbd3630f7ac9f367a773399e3e514c"
+    },
+    {
+      "bytes": 1325,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ai/OpponentMood.ts",
+      "sha256": "0843f69073dc83fdc215ef1a26b3ffdc50e30f4a1e6567e24372fd559e465b54"
+    },
+    {
+      "bytes": 715,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ai/types.ts",
+      "sha256": "8d68d7829f96534b03931b5169772d3b4f35f2d2551e780ddd072720be36a1a6"
+    },
+    {
+      "bytes": 331,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/arcadeFoods.ts",
+      "sha256": "d9355561e360c37d305630e12490e84d8885353abac0149ced796edadaabd5b1"
+    },
+    {
+      "bytes": 4278,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/arena/ArenaAtmosphere.ts",
+      "sha256": "2a1fd0afd78dbd616f27b4ece56c4d6d0730a683971dd93a145d362706be224c"
+    },
+    {
+      "bytes": 5016,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/arena/ArenaEffects.tsx",
+      "sha256": "43632ad88a11f524a12be54d7fa106842a08d0984f328eac5a901d4e583ea911"
+    },
+    {
+      "bytes": 850,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/arena/ArenaReactionTypes.ts",
+      "sha256": "366de0b78435a30fba19d36bf65d946f322163928dd9fc72a7ee2d4b51379e3e"
+    },
+    {
+      "bytes": 3244,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/authoritativeOpponent.ts",
+      "sha256": "d51f4efee151792d545e8207e1b9fc4cc5a5bbf348a811bfa3de4517b9577f0e"
+    },
+    {
+      "bytes": 970,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/balance.ts",
+      "sha256": "dab1296ce05954937a8fca660bbe0535d11cdeb8a1b0b7b9ad90b8713fe80d69"
+    },
+    {
+      "bytes": 257,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/burnoutPolicy.d.ts",
+      "sha256": "5a2b95012e815a744ce2201cc9f03ba1abd728c54c21f43b0b210ce817734205"
+    },
+    {
+      "bytes": 772,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/burnoutPolicy.js",
+      "sha256": "18d10aae43c9c42f944737feb524c3b7d17057f76b6443b30587685245499d8d"
+    },
+    {
+      "bytes": 2254,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/burnoutReplay.ts",
+      "sha256": "dd5aeff694e349a4e1ad3034e69f022fef462650da0873b69d067a98270ec21c"
+    },
+    {
+      "bytes": 1715,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/commentary/CommentaryCatalog.ts",
+      "sha256": "20aec452f0decff076663043bbc81defd707707e6e942a59159b2d2594dbfb01"
+    },
+    {
+      "bytes": 3205,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/commentary/CommentaryEngine.ts",
+      "sha256": "c3f835336ecc24e55be25e970b00348bd28f61dcea6c68ca8eb5dd252e5680c6"
+    },
+    {
+      "bytes": 2556,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/commentary/CommentaryOverlay.tsx",
+      "sha256": "2bcecc9b6d363ddefc1e1f5f5ce05b4ba754eedaf21d31e20e4f8155336c0482"
+    },
+    {
+      "bytes": 876,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/commentary/CommentaryTypes.ts",
+      "sha256": "f7dbd7d1cf220d275a6c9c6e15d4c983d6926b509dafd03acc4a47c890742f71"
+    },
+    {
+      "bytes": 1582,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/contestDuration.ts",
+      "sha256": "0f34a2d37813925e0648c11e2e9cf69578dbf58e4f1e038938f9c28b502a04f6"
+    },
+    {
+      "bytes": 514,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/difficulty.ts",
+      "sha256": "d1c617f20f05daf951ca32d566f2d8ac835823956114569403a60b2e260b1307"
+    },
+    {
+      "bytes": 6919,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/food/FoodProfiles.ts",
+      "sha256": "9680344d4d542984298f942071fd90d485d535ca0a25a949820fc9db1211a376"
+    },
+    {
+      "bytes": 2166,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/foodHeat.ts",
+      "sha256": "912f1910b5e1abac11f7c47428f7272d4986ad375945242b716f20770615849b"
+    },
+    {
+      "bytes": 1737,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/fx/arcadeFX.ts",
+      "sha256": "3f6b5bff0cc4b50f76dea846a96867324bdd506cc5f2eae4ab098aada5863cdd"
+    },
+    {
+      "bytes": 1725,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/fx/gameFX.ts",
+      "sha256": "3ea338891b93bde3cba88e7891145e84d8956046b95a707e7ff7b93999b1cf6f"
+    },
+    {
+      "bytes": 2860,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/heartburn.ts",
+      "sha256": "f6bddc6cde57f69dbdec0a9a3d9fadc6627cd7b34cd7bfecf22bb8dc15f1bcbe"
+    },
+    {
+      "bytes": 754,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/inputContract.ts",
+      "sha256": "149d1b471cba7d1f9ebe7b658fa1062288339fe145fd5d499d9880116015c844"
+    },
+    {
+      "bytes": 1777,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/inputLog.d.ts",
+      "sha256": "d121176b6eeb9c1b9702f1886f5daf065320b25f6040c8547d7637190af8fdd1"
+    },
+    {
+      "bytes": 7170,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/inputLog.js",
+      "sha256": "929569fff51f5ddebc2f0a5356af5c5c6cdcd3ac3f310bae8eea698fd2e597d3"
+    },
+    {
+      "bytes": 4492,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/matchModifiers.ts",
+      "sha256": "8580a8cd058a2f39653ecd774378311e8e9cf4aaedfed6549f91662d8720742f"
+    },
+    {
+      "bytes": 1391,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/opponents.ts",
+      "sha256": "f9e92a49c5dbcb5ba02ef73905838d86218342c06fa8c35108cd44e46f43b025"
+    },
+    {
+      "bytes": 1866,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/pendingResult.d.ts",
+      "sha256": "aef1985067ef01d524678d23b4572d6258791c98f81a87340361db3eb2d300eb"
+    },
+    {
+      "bytes": 10968,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/pendingResult.js",
+      "sha256": "46146029ecd755f455ca70e0f9cf48e6163640e309384ded11c6a40f01dcfb1a"
+    },
+    {
+      "bytes": 2571,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/resultFlow.ts",
+      "sha256": "d0e9dcc5627285142b36e831a16c3441338eaee25f2d8ec06ffd53328d8964cb"
+    },
+    {
+      "bytes": 834,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/resultSubmission.d.ts",
+      "sha256": "d1d46a44913e3685f1baaacc019208066e2df65623431137c04cdbfc535444fb"
+    },
+    {
+      "bytes": 1337,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/resultSubmission.js",
+      "sha256": "a3418b9f29f5958abad95104a54affd9c1a7118ac040e90f60e3476622741f47"
+    },
+    {
+      "bytes": 5024,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/resultVerification.ts",
+      "sha256": "f71bc40d8244ebf675f010336e2c7287091d48b5aca3b3fe70eefd82f640d512"
+    },
+    {
+      "bytes": 4199,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/safeMatchEntry.ts",
+      "sha256": "3aa96085471bb9840b00800302a0067575757be4acb0065d6f7870ca5991f496"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/types.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 4382,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/AntacidCoolingFeedback.tsx",
+      "sha256": "37fe2ce6a6685b5a6ad989adde5e2b297222f9f88e6e67c5cb0d0969e846f3bd"
+    },
+    {
+      "bytes": 50,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/ArcadeBackground.tsx",
+      "sha256": "1f14df0d30df8fce4251fa2a6af30a1f7c3f667459fea167b2fc4104511185f5"
+    },
+    {
+      "bytes": 5894,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/BurgerHeavyBiteOverlay.tsx",
+      "sha256": "55c6fda96de4d6e66b7427dfe93531e6e9f59eabef3f86bf563dfc034c74f527"
+    },
+    {
+      "bytes": 10625,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/CharacterPortrait.tsx",
+      "sha256": "a027567e95e77f45b29c94b69284806225cad1888772acdd98dcb01fe07ad4e8"
+    },
+    {
+      "bytes": 3350,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/CheesePullOverlay.tsx",
+      "sha256": "9c144ea17fa0b9fd62c898fe5c3756c8392a712943da66cf8613319ca3220961"
+    },
+    {
+      "bytes": 1328,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/CinematicCount.tsx",
+      "sha256": "4984c8082138a18368d379c1166a7cb39e8154c72e9f496b0d0670ca4dd32b8c"
+    },
+    {
+      "bytes": 1583,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/ComboBanner.tsx",
+      "sha256": "c4c660539d553e037d3989915f43e15802883972e2c6533729d0288ad4485790"
+    },
+    {
+      "bytes": 13926,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/CountdownOverlay.tsx",
+      "sha256": "983c429fa99ebe4d01b25962b177c24bfaaa4364865c2c0277cfbca46c7e3dd5"
+    },
+    {
+      "bytes": 1331,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/EffectsLayer.tsx",
+      "sha256": "0cb98b44315a69e448ddcd25bedf5a2de48d7f7d622b72f489abfaf4581c7afe"
+    },
+    {
+      "bytes": 1920,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/FloatingScore.tsx",
+      "sha256": "15af20676e5f389fe8fb8875f412ecb8d1ae9fae6a2dd1cd61a940a3387ff905"
+    },
+    {
+      "bytes": 51469,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/FoodArena.tsx",
+      "sha256": "659294f43ac89f4466926df2715238062a4f15bd9ff2fd6a6bb5eea7fe857c35"
+    },
+    {
+      "bytes": 2274,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/GameplayActionZone.tsx",
+      "sha256": "51bd630ab2aa266b9a84bd300f0ba5412e6483ec8f9f24389cf0bbd98a9cf143"
+    },
+    {
+      "bytes": 1937,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/GameplayHUD.tsx",
+      "sha256": "2546fbcd8415e5e13d00603aba6b1bf3c7ccbfff4f6d24c41bbdda74d8cf32ca"
+    },
+    {
+      "bytes": 9687,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HeartburnMeter.tsx",
+      "sha256": "8324867e2ce90597c395ce12900517ea0c90d5e7e01409e9250dfa471f3bf4fd"
+    },
+    {
+      "bytes": 10989,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HeatPresentationOverlay.tsx",
+      "sha256": "9dae4ab04e8da0e87095b677173d16602daf3c0d5fce83d53800d65e4d116627"
+    },
+    {
+      "bytes": 9078,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HeatRushOverlay.tsx",
+      "sha256": "d68072a22dbe8d912279abbec18c559f4ac32e0c51a3f2c77ea1747693b8809f"
+    },
+    {
+      "bytes": 4122,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HeatScreenOverlay.tsx",
+      "sha256": "c680126b96f69eb11ba317df84bb11fbb9e5790350e0af1ddb83c260650668c5"
+    },
+    {
+      "bytes": 2975,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HeatTierBanner.tsx",
+      "sha256": "30d420f0f106aba2a71e4b3e849dcb7d5daa7dca0265ffc28b7b933ec9f9063f"
+    },
+    {
+      "bytes": 10123,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HoldReleaseActionControl.tsx",
+      "sha256": "ab342076ef4adadcdd0bb32bf068432c0da171bb27aead96aed8ec942d940259"
+    },
+    {
+      "bytes": 6932,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/HotDogSpeedSprintOverlay.tsx",
+      "sha256": "9f7cb9570f7dad81010cd3a03228cb09123c4863fbacba54c4acddea54edfc8a"
+    },
+    {
+      "bytes": 4123,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/ImpactEffect.tsx",
+      "sha256": "5f70698c80633b7fe4c81b3dca81b835a25459ddb740b881dc7018cc2fef92a4"
+    },
+    {
+      "bytes": 12859,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/MatchHUD.tsx",
+      "sha256": "4fae92eab911656feb3f8fe941c3cc1fcf58aab4a3f12c0d30ff5740d4f9e62a"
+    },
+    {
+      "bytes": 9069,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/MatchIntroOverlay.tsx",
+      "sha256": "46249dada64e0930ed03bebb7a64cd82fa3c2dcff3e76480ef99619bdedb774c"
+    },
+    {
+      "bytes": 1833,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/MatchTimer.tsx",
+      "sha256": "515bf6ada5639428f6a788eae7271982fd7dc473b5edb6f78ac99271f7afe48a"
+    },
+    {
+      "bytes": 3891,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/NoodleSlurpOverlay.tsx",
+      "sha256": "d0ca5136b96af128d726bf80b7343d0fe899d2103832080c4935bc9e5821c054"
+    },
+    {
+      "bytes": 1413,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/OpponentCard.tsx",
+      "sha256": "a6b72f5565639d9eee22813daf8aaf40d7f6b86d3636705c05b634998f18ab70"
+    },
+    {
+      "bytes": 2005,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/PlayerCard.tsx",
+      "sha256": "17f57e4312358c6df7651ea87bad6c4d3e30e9ba3006b64695a6b8ba8c7a6027"
+    },
+    {
+      "bytes": 3019,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/RapidActionControl.tsx",
+      "sha256": "1d4a5f07198d43d27d3a5295ecb24426fa6f2d7899fb306f028083ef6a963de1"
+    },
+    {
+      "bytes": 4548,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/RestaurantIdentity.tsx",
+      "sha256": "8a9238ff152ee9d4bae2b530d7fc21499149a291498d85ab388f0ace4a9ff10c"
+    },
+    {
+      "bytes": 4756,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/ResultBanner.tsx",
+      "sha256": "a985056a6f97b154250f7a9eb5e7daa06e5518996066253c4a5451950e4909f9"
+    },
+    {
+      "bytes": 6743,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/RewardSummaryCard.tsx",
+      "sha256": "0f3a1a397ec245884cb10efa26a9c71069efa6c343b11617c062dc6db1a2e86c"
+    },
+    {
+      "bytes": 5009,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/SceneMotion.tsx",
+      "sha256": "3759f3ba6bb8b79cba11bdea0542a338710d5c3f8a2f1e4b246468d0d9257902"
+    },
+    {
+      "bytes": 658,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/ScoreBar.tsx",
+      "sha256": "2656d93901d91f53785258c398d3d648f98feb9e2aca6f3b302135f0babd55d1"
+    },
+    {
+      "bytes": 1443,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/SponsorStrip.tsx",
+      "sha256": "adbf9efb2927b06b3b127e5bd4f97f0e0600cd6cc57f167cf77fd4fa6a575e0e"
+    },
+    {
+      "bytes": 12033,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/SwipeActionControl.tsx",
+      "sha256": "75e88be5a97994710fe5356513311a93f1a64b6ed37950266ce6d1b00963d72e"
+    },
+    {
+      "bytes": 7485,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/TacoStabilityOverlay.tsx",
+      "sha256": "1a0cc322258f0c51143788e33716d1e5592c96f09ec1dfcabcef85faf8fe463e"
+    },
+    {
+      "bytes": 5784,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/TapActionControl.tsx",
+      "sha256": "121808b37e8fe9e9035e8378634116429b0860643d643d1fb824a5fe87933300"
+    },
+    {
+      "bytes": 4633,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/TournamentBanner.tsx",
+      "sha256": "c4a8c68d6021f8baa376a7e78dbecb5b26ab5fbd7f4908fed981644b35dbe877"
+    },
+    {
+      "bytes": 1447,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/VictoryBurst.tsx",
+      "sha256": "4b483a15343577e1f10870a99307324d877c283ba6962930ed0b7e06f46569e0"
+    },
+    {
+      "bytes": 20074,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/VictoryOverlay.tsx",
+      "sha256": "bb84d33be1ded18d53e330ed6762e0a888776ac3f3dafb86361480a9dc72e09a"
+    },
+    {
+      "bytes": 339,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/actionControlSelection.ts",
+      "sha256": "1083e65a646621ace15e3bd67165145f47540d84f2dd7532b38a482f2f58bf52"
+    },
+    {
+      "bytes": 661,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/foodConsumptionPresentation.ts",
+      "sha256": "9bf5ef2f77f8ab224ecb1b86ef6dbbe0d58c5a73366aebad263d64503fb5a728"
+    },
+    {
+      "bytes": 297,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/gameplayLayout.ts",
+      "sha256": "0dd1bf448a851f461175853c84f99bc75755db39d08967f816b71d9ccd53cb6d"
+    },
+    {
+      "bytes": 506,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/heavyBiteValidation.ts",
+      "sha256": "016915adc354596f0be83b9ca03d19845794c5a4d57aa78254051f0cb1f2e5af"
+    },
+    {
+      "bytes": 379,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/index.ts",
+      "sha256": "25ec2c73663eceb04819d06afc230dc8693e7c2feeee18dd80f49ba422f66a95"
+    },
+    {
+      "bytes": 2257,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/swipeValidation.ts",
+      "sha256": "41333b14722759141528a18a4cbb61dc05d6993950580bf413d302ad0aa06a55"
+    },
+    {
+      "bytes": 1408,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/ui/useSwipeCompletion.ts",
+      "sha256": "e53e8e232547bfda8967225b86eab41e5239a16715c453f2e53544884ce5e337"
+    },
+    {
+      "bytes": 3722,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/useContestEntry.ts",
+      "sha256": "de8f1b1127f7835c10178523d19314187830447a1fab4b0a6f8c8df65910a6de"
+    },
+    {
+      "bytes": 43000,
+      "git_state": " M",
+      "path": "frontend/src/game/useGameLoop.ts",
+      "sha256": "580e92beaf6fd3372830f579ab96a54ad670e8d5446d140243aa40821c616c1b"
+    },
+    {
+      "bytes": 1070,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/game/useGameTransition.ts",
+      "sha256": "03f34d362feb1a6d64c570606d852241f5deeed120acabf26c6f2e91611effa0"
+    },
+    {
+      "bytes": 5519,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/guestAuthDiagnostics.ts",
+      "sha256": "6eccac8c34c3ac0bc252d468404460a2f90244d7ec9f9b065239c94b41d92393"
+    },
+    {
+      "bytes": 1192,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/guestAuthReset.ts",
+      "sha256": "a1084ff8dbdc3329e0103d8e43f5d6bc8419e19644200955137ececa697d196f"
+    },
+    {
+      "bytes": 555,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/guestAuthStartupPolicy.ts",
+      "sha256": "03079ea94e63c286f4a43b4915d03f07a4b1f333e4143f07a6476a614d6c16ec"
+    },
+    {
+      "bytes": 2094,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/hooks/use-icon-fonts.ts",
+      "sha256": "f9981d09b5f703973669d4e825de19b741970b3c9bef3746227dd9e4f9fd6050"
+    },
+    {
+      "bytes": 3765,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/legal/MarkdownDocument.tsx",
+      "sha256": "e88fbb9e1c89c684d9925cf4dab1e5e955bb3028932bf57077e60624939f15fb"
+    },
+    {
+      "bytes": 24327,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/legal/generatedLegalDocuments.ts",
+      "sha256": "68a13b581982e344c31f3ff63e9aa7abba02ea888f92616708a16aec796b01b7"
+    },
+    {
+      "bytes": 2925,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/missions/MissionGenerator.ts",
+      "sha256": "c65ef45b9d75209544de7734e5ca5c50c0f558c5d555a0cd57d1e9c42e248857"
+    },
+    {
+      "bytes": 480,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/missions/MissionRewards.ts",
+      "sha256": "d0d33d8d76b1240a75ce9ff64bb65ab12c0c9ce69b45acd6f156301ed3c74b62"
+    },
+    {
+      "bytes": 4982,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/missions/MissionTracker.ts",
+      "sha256": "80e338fecafd6d49e0729b28e1b1fef81eb634bd1781d7f2826c3f697e939d95"
+    },
+    {
+      "bytes": 1210,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/missions/MissionTypes.ts",
+      "sha256": "ee56bd7361e48d20b4bcdad98eab0dd9204fd62957b170c64471dfd0f1df19a2"
+    },
+    {
+      "bytes": 1612,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/missions/useDailyMissions.ts",
+      "sha256": "6025fdac8acc042a512e5f7a0b9fa52fd5683e40c946a1733dcd138d0fd41f2c"
+    },
+    {
+      "bytes": 1217,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/onboarding/FirstUseTip.tsx",
+      "sha256": "f1fd23c157bae946c5b456eb477d5397fa8b3f78be37f118b50d40dcb89f58f2"
+    },
+    {
+      "bytes": 1528,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/playerBalance.ts",
+      "sha256": "16e3887a1fe0587358b035a115df1344a43d3e19b9bde99f2845aea8b0fc8fe2"
+    },
+    {
+      "bytes": 1806,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/playerFacingErrors.ts",
+      "sha256": "340040006d16944923879067ebf70019fde0ab4dc9ab8faa4c1a33ba6d47dc5e"
+    },
+    {
+      "bytes": 2427,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/preferences/AppPreferences.tsx",
+      "sha256": "b9df4848645783a57b399e30deba5e520eab390732e169143f17411e4df3dc3e"
+    },
+    {
+      "bytes": 20550,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/profile/AvatarRenderer.tsx",
+      "sha256": "826d076d876993c0eef8e54fe8de19911bd92fcb83fbc901f5e1980d8ce17a19"
+    },
+    {
+      "bytes": 2492,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/profile/CareerSection.tsx",
+      "sha256": "dae79792af0fd9327a95e0955ef0fb38fb442900dd3c1244427e94300190afa5"
+    },
+    {
+      "bytes": 10785,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/profile/PlayerIdentity.ts",
+      "sha256": "e575c237f4a6e32f194480e3da20a5027e4d954dc188dfe44729c6b2cf08e98b"
+    },
+    {
+      "bytes": 2013,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/profile/PlayerIdentityContext.tsx",
+      "sha256": "bcbfe8e2cbf52f6b00f28ca2a185e65e6b631cc22f4a08f04a0f08d8ed9020f6"
+    },
+    {
+      "bytes": 3621,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/profile/PlayerProfileCard.tsx",
+      "sha256": "f91bfa2aedfe26f613c2be7305d4835b1f19edd56cc50d2fd6cf50cba16403cb"
+    },
+    {
+      "bytes": 1609,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/profile/avatarGeometry.ts",
+      "sha256": "7b04f3c5fd4f9b3326691064cf0de8fc2ab6a84b9f485f0099a6e7e65944b07c"
+    },
+    {
+      "bytes": 2389,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/ranks.ts",
+      "sha256": "654e02ce88e5115dafbce898c820cfe1837af63fce065f41c7ae1a22305ab148"
+    },
+    {
+      "bytes": 1071,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/requestDiagnostics.ts",
+      "sha256": "129f17af8b22ac643ffae6ac90b07c72de3a079ba74eb64f8f7680eb19e5de89"
+    },
+    {
+      "bytes": 6464,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/restaurants/RestaurantCatalog.ts",
+      "sha256": "f290295dbf15b85fed3faa09588d076c0275b9761b99b415a792c5a2b4ec7891"
+    },
+    {
+      "bytes": 3521,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/restaurants/RestaurantProgress.ts",
+      "sha256": "c7703e1a59a8829af58f3ae0512c4777c77ad64249fa42fe7ac9b3ea207330a0"
+    },
+    {
+      "bytes": 2148,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/restaurants/RestaurantTypes.ts",
+      "sha256": "16e305201f2e5604d1b731beca176834cfb03695237ccf4f0d472fceff23930f"
+    },
+    {
+      "bytes": 4748,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/restaurants/components/RestaurantCollectionPanel.tsx",
+      "sha256": "f39f0a40529ef4b63cdb9d4bf4fe232d1b7f0572be0d0f17e798dfdcef4abc1c"
+    },
+    {
+      "bytes": 1467,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/restaurants/components/RestaurantUnlockBanner.tsx",
+      "sha256": "40e0a34420a49949b8340d31440034e463178f79af101780521ecc30e268d0e1"
+    },
+    {
+      "bytes": 1421,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/restaurants/useRestaurantProgress.ts",
+      "sha256": "a2c1d583d771431f6f44512c12604a16299c9482157d0c820fcfb87adbb88d36"
+    },
+    {
+      "bytes": 3979,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/retention/DailyRewards.ts",
+      "sha256": "8d0d678fa00010d7b0c41d9aae1e1c60208276fe3f38c4903a81d50c26761e3b"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/screens/HomeScreen.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/screens/LeaderboardScreen.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/screens/ProfileScreen.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/screens/ShopScreen.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 5395,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/social/PvpQuickChat.tsx",
+      "sha256": "5436714657cc8c8b29755e0a389410cff01a01d1f0ed30312c4e688ca36e8a65"
+    },
+    {
+      "bytes": 2393,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/social/SocialPlayerCard.tsx",
+      "sha256": "1b638115119e4e9d3ac07b0754fc46b6512b644a48729b75973e65a5b278b7ed"
+    },
+    {
+      "bytes": 1604,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/social/publicIdentitySync.ts",
+      "sha256": "23e59dbe9afa92aebe81f4144066b5272c29ac8b9da71f102e6e9344daac9e5a"
+    },
+    {
+      "bytes": 673,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/social/searchCoordinator.ts",
+      "sha256": "86b3b49d29186253a634fbb293d36842938256af1a3aed3f5cb7d4c1b42c3de5"
+    },
+    {
+      "bytes": 2688,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/social/types.ts",
+      "sha256": "3d72eac66b024b24713c329bcb783447a44f09474a118c82429a9a3adffeb8f3"
+    },
+    {
+      "bytes": 7674,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/startupReliability.ts",
+      "sha256": "89487e4bb185f602d3c5fe04e5df25f59bee7b7bd76e98277ba0e55c20876a39"
+    },
+    {
+      "bytes": 1199,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/systemUi/useAndroidImmersiveMode.ts",
+      "sha256": "1834eae19495b2699bc1cc1d77794f5d8ed458cd75aea67a993798665bc2d464"
+    },
+    {
+      "bytes": 1538,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme.ts",
+      "sha256": "f6920ba1149a7228a303e97066c8b694d7af643466ee0f8300057790e8fcecc8"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme/animations.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme/colors.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme/index.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme/shadows.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme/spacing.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/theme/typography.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 7322,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/titles/TitleCatalog.ts",
+      "sha256": "770bd73a892af15b489fdfcf98f1037326f42053db923a865947554a7cc1b942"
+    },
+    {
+      "bytes": 4610,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/titles/TitleProgress.ts",
+      "sha256": "8ef7441c719337008c60c01147125da6a6723c1008e3c8bcf19da96d9c7913ae"
+    },
+    {
+      "bytes": 1887,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/titles/TitleTypes.ts",
+      "sha256": "0072af488add2b7bf1be793cb5b232ad543125ab11b3042f558f0a302d7fce3d"
+    },
+    {
+      "bytes": 5077,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/titles/components/TitleBrowserPanel.tsx",
+      "sha256": "af2b0023e9e0ef8d754aa87c1686ce53ab6ca3a17a27bcc6735ef7885d6017e0"
+    },
+    {
+      "bytes": 1472,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/titles/components/TitleUnlockBanner.tsx",
+      "sha256": "91cb9c448785fd2db5f7f8273ec24120121b3533fe0ab6e207ee66c9c50489ed"
+    },
+    {
+      "bytes": 1583,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/titles/useTitleProgress.ts",
+      "sha256": "0983f228f6a34680f9ada525cab890150c1d153ea3b815f6fc3a0b2f26f85499"
+    },
+    {
+      "bytes": 3044,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/tournaments/TournamentCatalog.ts",
+      "sha256": "f93c9cc748da5bf6d80299f6dcaf7baa22a1a60586be0e79b6bae3c128b10f77"
+    },
+    {
+      "bytes": 4241,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/tournaments/TournamentProgress.ts",
+      "sha256": "0b7b2da91a3333d057990f6b5ba24831d5939a5d7c94bbf4ac0ce11e3e52c561"
+    },
+    {
+      "bytes": 1469,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/tournaments/TournamentRotation.ts",
+      "sha256": "3b8f49531b6907fb808c2f0446868098ac89c22a8171f2ea619cc27ac53b8f85"
+    },
+    {
+      "bytes": 1650,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/tournaments/TournamentTypes.ts",
+      "sha256": "6cec42cd28b21caed78a019dbadfd9296e59a4e168d4bf8a38b24318502c4780"
+    },
+    {
+      "bytes": 6342,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/tournaments/components/TournamentPanel.tsx",
+      "sha256": "47abe94b197765307e9d4810ace6e44cd8436389545bad2ba684e29734457fb1"
+    },
+    {
+      "bytes": 1813,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/tournaments/useTournamentProgress.ts",
+      "sha256": "4ad8a3cce5b9237c867d12b703ee09776bec689c661b04585c58e624b037ab4c"
+    },
+    {
+      "bytes": 810,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/useTheme.ts",
+      "sha256": "d4cca26badc9a55e96a285a0247c538a2cdc0bdd9e226ad6752990acd466b3e0"
+    },
+    {
+      "bytes": 811,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/utils/externalUrls.ts",
+      "sha256": "59aace6ff8e35ffedae1e02083b23bfc7af7a8c6cea30285ae1ddcaaf95e9bd5"
+    },
+    {
+      "bytes": 3023,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/utils/storage/index.ts",
+      "sha256": "ae9c395392bc3f235684c590848417854fb3029eb69fdc3ff90bb3f2dd45fe6d"
+    },
+    {
+      "bytes": 2669,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/utils/storage/index.web.ts",
+      "sha256": "7522682013d6b0ecbb049a025717e2931f3464296e779b174759c3d6f2e591c2"
+    },
+    {
+      "bytes": 2033,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/src/utils/storage/storage-base.ts",
+      "sha256": "1edf576837aca890b066b92d530edfc01229aecf12ee0c333390c8735925a190"
+    },
+    {
+      "bytes": 18173,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/all-mechanic-parity.test.js",
+      "sha256": "bb123c035a14bcf98c51eaa6c98aa69579ef8b6e45f92b55ac5ae7740d3b870b"
+    },
+    {
+      "bytes": 2113,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/android-immersive.test.js",
+      "sha256": "de1504b76caf10f338fa11d1bd773bec62facac25be7c24ca38edd06cd523693"
+    },
+    {
+      "bytes": 14785,
+      "git_state": "??",
+      "path": "frontend/tests/android-lifecycle-recovery.test.js",
+      "sha256": "f77b8504fc527b1d4a5bf90d10bc90abde0c0ddf1345df71c76d7bf826e6d3b7"
+    },
+    {
+      "bytes": 4479,
+      "git_state": " M",
+      "path": "frontend/tests/api-base.test.js",
+      "sha256": "3aab556bfade0b38dff1010bd9f712ecd7d66e99569d2a56a1ac07dca17107d7"
+    },
+    {
+      "bytes": 10418,
+      "git_state": "??",
+      "path": "frontend/tests/api-contracts-forwarding.test.js",
+      "sha256": "b4941312bd99b7f3800176b7813bcd2a7c52df64f777f4e1fc89d8b10c7f22b5"
+    },
+    {
+      "bytes": 20868,
+      "git_state": "??",
+      "path": "frontend/tests/authentication-recovery-retry.test.js",
+      "sha256": "47bf92474dd922e0cc6e827c170c6a350ef6a3a6a7d180a078af96e4a48adc2a"
+    },
+    {
+      "bytes": 1761,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/authoritative-opponent.test.js",
+      "sha256": "11de76d3c8c888b6ead03d33a33cc60525b20f2757b820050f865372856eb094"
+    },
+    {
+      "bytes": 2535,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-customization.test.js",
+      "sha256": "eaf99c13b36aa7afa81cea2e14ce729d17c65742459ac8afcb56fa060463e962"
+    },
+    {
+      "bytes": 3069,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-overhaul-v4.test.js",
+      "sha256": "b9e4da3a5471451021627a9025fc3b8cf69f1a27589a1c193812a155aa40538b"
+    },
+    {
+      "bytes": 2777,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-appearance-contract.ts",
+      "sha256": "641688dfc6f0f267b3f3f8d531cb9923eb435262c74a9c5203c2c7c1303e042e"
+    },
+    {
+      "bytes": 9622,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-appearance-draft.test.js",
+      "sha256": "7c7330454bc62bc6954904eab6fde539398f846706ed8b8b6b255f162b923e3b"
+    },
+    {
+      "bytes": 9674,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-appearance-validation.test.js",
+      "sha256": "de58ecbe9224cdfe962df599cf90b446080d4b1985db7d3f84c81fa320ebc098"
+    },
+    {
+      "bytes": 1203,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-contract.ts",
+      "sha256": "17889e0e6242a322801d373e3ab589376066515f3a7b5aaf426f8502aecba452"
+    },
+    {
+      "bytes": 7007,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-flattened-proof.test.js",
+      "sha256": "1852cd29a8f28a0c791747dfc67a58963e4151bf8d243382bfd326e3c466041a"
+    },
+    {
+      "bytes": 13201,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-infrastructure.test.js",
+      "sha256": "360b5509611ffdc115304a3c2182a62bdc57b8a59a5dfbbf88ea4e5bc28b0f33"
+    },
+    {
+      "bytes": 6164,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-palette-resolution.test.js",
+      "sha256": "70fe2765e07f3906ec01ae6c92beacd3636369821d591d03590f4a8331804d0f"
+    },
+    {
+      "bytes": 7503,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-preview.test.js",
+      "sha256": "dc344786a7892a533e82e3a27469b3f86e5f68a569dde16dba28bf74d6a66107"
+    },
+    {
+      "bytes": 5882,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-proof-tools.test.js",
+      "sha256": "57a3fe0edd43365b830b18fcb3e4abf5d53d9daf33bb5e62cc76233bfd6da614"
+    },
+    {
+      "bytes": 1163,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-render-contract.ts",
+      "sha256": "7922cbff410db1325afcd2e526d85e6b9f5b7b4ded6de4c6ba2e35d5d8f9f068"
+    },
+    {
+      "bytes": 11667,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-render-plan.test.js",
+      "sha256": "8e10c822998cfa453de465187b198cdb079aa25e6237a832ba7eb06e55b9cf2c"
+    },
+    {
+      "bytes": 7742,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/avatar-v5-renderer.test.js",
+      "sha256": "0072e40d629e97fee396cddb9fdf09ced71df22cbd7727423e21cc82ba4fdfd8"
+    },
+    {
+      "bytes": 27850,
+      "git_state": " M",
+      "path": "frontend/tests/burnout-timeline-diagnostics.test.js",
+      "sha256": "5a9e9376a1255ffe4fa1f34d0f00eb5e4475944a08f2154727a8d1b1bb86ca30"
+    },
+    {
+      "bytes": 1987,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/contest-leaderboards.test.js",
+      "sha256": "59be6501d0d410f0f61c8af29d4693e66360ff6ef34b672b3e35f07c2e7413ec"
+    },
+    {
+      "bytes": 10896,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/contest-navigation-safety.test.js",
+      "sha256": "df4f8d24ebd20f7e93d7aa38e5277d7dbef0e85dbce49d8e60a2e680ffcb51b5"
+    },
+    {
+      "bytes": 1599,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/cruise-duck-promotion.test.js",
+      "sha256": "ee615d1cc3de98ece72cba828df6700812d4396fb8acab4563b466b7c2d60072"
+    },
+    {
+      "bytes": 3063,
+      "git_state": "??",
+      "path": "frontend/tests/current-release-integrity.test.js",
+      "sha256": "4e9bd858ce61f8e2b5617739089ee1ad56c552404f7df5dfd5f68fe0208936a6"
+    },
+    {
+      "bytes": 20173,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/daily-charcuterie.test.js",
+      "sha256": "7b39c1e51ba4d62026ad694e4bd57de7b10dd383bbfecae57b2936827fbce934"
+    },
+    {
+      "bytes": 1342,
+      "git_state": "??",
+      "path": "frontend/tests/deployment-config.test.js",
+      "sha256": "6d39ef3220552f82a82257c92bf9ddc6621fceb752abfdb9efc55bedeaed1f4f"
+    },
+    {
+      "bytes": 3089,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/food-artwork-keys.test.js",
+      "sha256": "072d086e4941d6e13c482bd170ab8d734267c9bce97c5d24adf5a2ac5f731158"
+    },
+    {
+      "bytes": 6502,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/food-mechanics.test.js",
+      "sha256": "6319aa15557920651f2df7b22ca470cc00af2fdc912e983b32208068a78c08cb"
+    },
+    {
+      "bytes": 18877,
+      "git_state": "??",
+      "path": "frontend/tests/gameplay-recovery-replay.test.js",
+      "sha256": "f6b63a91bff2a1ce259db38f8ac61b5d3c6a801a2beacd4b67ec4467332b48db"
+    },
+    {
+      "bytes": 2294,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/gear-step5.test.js",
+      "sha256": "b8e59e6f715d4389471f899d549ef8cffba82827a49ca11d85bccf3ee9741278"
+    },
+    {
+      "bytes": 19107,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/guest-auth-cold-start.test.js",
+      "sha256": "b182fd55d700943db7f638baecab42b44962ae2abf9aa3b70ac43f7e21101054"
+    },
+    {
+      "bytes": 14021,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/guest-auth-production-recovery.test.js",
+      "sha256": "ba136e10640f9d9c08d9bb9a2f21a70136f16b768fc6d96822ba1d1da6a88f7f"
+    },
+    {
+      "bytes": 1255,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/guest-auth-startup-policy.test.js",
+      "sha256": "b52970a5b128f06550ad324a81446479785a1f6d6f25fd1a5cc5215cfa6e4200"
+    },
+    {
+      "bytes": 3422,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/guest-bootstrap-recovery.test.js",
+      "sha256": "2143c69254e539d1980356bfbffd43ea652e8fcb1514e89fa16487be5771584e"
+    },
+    {
+      "bytes": 1434,
+      "git_state": " M",
+      "path": "frontend/tests/helpers/backend-replay.js",
+      "sha256": "4e34dec2f2dc4805e894ca0a55c17a3c766d3a58368708554ae3d1f8403db71e"
+    },
+    {
+      "bytes": 6847,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/helpers/gameplay-harness.js",
+      "sha256": "823a5f5375227ce0640e78ff40a29337d64f39e6551c4899bd7dbcfc655603bb"
+    },
+    {
+      "bytes": 5061,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/helpers/mechanic-driver.js",
+      "sha256": "31507ee5fe7a29b22ebc738e182f98474a0eff5284613aad280f6b6d35fc386e"
+    },
+    {
+      "bytes": 4706,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/input-hitbox-contract.test.js",
+      "sha256": "8ce707ee5bc37d47c8578e512d3f8251249b266e991ef5b536359f61ffff4587"
+    },
+    {
+      "bytes": 4034,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/legal-documents.test.js",
+      "sha256": "f1bf09660181ad1db894e4ce489ba4d06ab3d7124b2a8df06dfecfc17ee20fd2"
+    },
+    {
+      "bytes": 8291,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/local-milestone-claims.test.js",
+      "sha256": "eaa38a1ede89d9e7599e1038529ba11825896ee2b188a26fbea7b831a72b0563"
+    },
+    {
+      "bytes": 12902,
+      "git_state": " M",
+      "path": "frontend/tests/local-release-validation.test.js",
+      "sha256": "c912d7b30ee7c29d51d8bef35f9689e1b265471c19a0da28cad4948234aea375"
+    },
+    {
+      "bytes": 6363,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/match-completion-pipeline.test.js",
+      "sha256": "83608ff4150d9fc19a7ee02beadafa2fda4194ae91ca33f58cc3d0dc13e90572"
+    },
+    {
+      "bytes": 15178,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/match-input-log.test.js",
+      "sha256": "f64e404e933743c2e2741f0cc6ab27ca68d63c9be61d0a6f700ddf52611f8f6d"
+    },
+    {
+      "bytes": 4770,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/match-modifiers.test.js",
+      "sha256": "0062dab6caf03026b2edb993243908df1d54f2f4d22b582eb994469a50e64bd6"
+    },
+    {
+      "bytes": 12265,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/match-receipt-recovery.test.js",
+      "sha256": "f186025d036faf97317502e95526aa45324e9dae1058d86da690f10e9d0b9d63"
+    },
+    {
+      "bytes": 20794,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/match-recovery.test.js",
+      "sha256": "ed285d6b55e24e5895052cafd9a00ba2004cea533715f6215396584dd2f657e6"
+    },
+    {
+      "bytes": 4038,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/maximum-update-depth-regression.test.js",
+      "sha256": "3b89763c31862023de0a3970a7078fc61dd4858129d92dd984c1752e3727d3f1"
+    },
+    {
+      "bytes": 2477,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/player-identity-propagation.test.js",
+      "sha256": "c09d415477a2234905de15d94d11f09493f6a71a4822a65dd9dd1d5f04dc74b6"
+    },
+    {
+      "bytes": 3839,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/player-progress-presentation.test.js",
+      "sha256": "bc85da9f108558961b5909da6e270cf95673aaa7a1a2bdd1cef5595d51d39e50"
+    },
+    {
+      "bytes": 1822,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/png-integrity.test.js",
+      "sha256": "a7012c20f2ac60ee0f4421b2fe7a65a07da9a16c5f19bca1fd946042cfc658a7"
+    },
+    {
+      "bytes": 1467,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/profile-action-layout.test.js",
+      "sha256": "3346e58d7db1e20f3d5e3158252c918990f7ae1cb49e2a3f6a29f359708acdcd"
+    },
+    {
+      "bytes": 3749,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/pvp-phase3.test.js",
+      "sha256": "8d21474a490d77743fd76b30ab96281c14a9144908806a6990247c295261be88"
+    },
+    {
+      "bytes": 3257,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/pvp-step4.test.js",
+      "sha256": "bd131423329db32392e01cbe92e590f812a594a5984a89dea72a2a0bb886b2b5"
+    },
+    {
+      "bytes": 6892,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/rapid-tap-burnout.test.js",
+      "sha256": "30648166fa3e454b5da5b0199f2c84fe5670e676a7707b04a0f260445a723b1b"
+    },
+    {
+      "bytes": 2495,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/request-observability.test.js",
+      "sha256": "3772d8e9ea7011d5b80a5b1b66dcbaba038d6022a74c5f2729b6ef7c64eed078"
+    },
+    {
+      "bytes": 5535,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/social-phase1.test.js",
+      "sha256": "97aa17a45658baf6a1019619d662560f51bbcd310983d878e8fdfaaae1ace939"
+    },
+    {
+      "bytes": 5374,
+      "git_state": "??",
+      "path": "frontend/tests/staging-config.test.js",
+      "sha256": "900ce99cb024554158db047bd56c514e11f28b1a344a3dc1abb0a4ff5b14a167"
+    },
+    {
+      "bytes": 5442,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/startup-reliability.test.js",
+      "sha256": "c5912af5fd860e264432fba1db630c5a0d06a1170aee1093005f7d2460dada91"
+    },
+    {
+      "bytes": 3021,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/step6-polish.test.js",
+      "sha256": "6e9b89d608e980ea526715abc61a47651d768b753ed1c862f6e6dacab2deedf9"
+    },
+    {
+      "bytes": 2505,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/swipe-validation.test.js",
+      "sha256": "753b14873e246c2c979be641b48c605ed473e03b7109058d9712e27fee079bbb"
+    },
+    {
+      "bytes": 3551,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/v10-stabilization.test.js",
+      "sha256": "aacadba66da8a909a158b24e9a96d3f67f5bcbe2bee17ccf7808f4139cd763d1"
+    },
+    {
+      "bytes": 3858,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/v6-stabilization.test.js",
+      "sha256": "5f6ae74c00c305313ac1a0d04b07338e4ff9fa7bc2bdc80a44bff0451a6d15a8"
+    },
+    {
+      "bytes": 5744,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/v8-stabilization.test.js",
+      "sha256": "9717a515c268233911e8af5fd1226c8b34124b74351bfebe4d750d73d6c31757"
+    },
+    {
+      "bytes": 1008,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/validation-gates.test.js",
+      "sha256": "58a1c7ebdb136d7fbef667dfc4190620a0318f70cfa02a772dc2ae0af39d2007"
+    },
+    {
+      "bytes": 2513,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tests/visual-polish-v9.test.js",
+      "sha256": "f095a92584da2b73973bf6d1e8c56df12ff70f3080fa1927b510a681ae44b4ec"
+    },
+    {
+      "bytes": 11618,
+      "git_state": "??",
+      "path": "frontend/tests/warning-burnout-recovery.test.js",
+      "sha256": "a3ded2aab11f0984269e6afc6d31a860da19065efd07a14342319c1245779609"
+    },
+    {
+      "bytes": 2610,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tools/avatar-v5-preview/Preview.tsx",
+      "sha256": "e445c4305ddeef857e193e97ff4924f0084c03d3d5ac12368a7cf8f999fd7b20"
+    },
+    {
+      "bytes": 3215,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tools/avatar-v5-preview/README.md",
+      "sha256": "a0ea2928e8a941799ef7613be6038a7ab16098417aa56e01333b5960d2d509e6"
+    },
+    {
+      "bytes": 315,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tools/avatar-v5-preview/app.json",
+      "sha256": "199df002782e8e4930741dc89a9b95ab56a7e17dc9dd460ed3e6acc289b7d3ba"
+    },
+    {
+      "bytes": 112,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tools/avatar-v5-preview/index.js",
+      "sha256": "b4fe6bcf519b4d5613ae99219508ef013a4734cc3430ddceef8639eb14188ea0"
+    },
+    {
+      "bytes": 384,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tools/avatar-v5-preview/metro.config.js",
+      "sha256": "10155290a1d4e5784324d00d8111e0cdfd1ea28c1b084a7f8db961ab1ddc5023"
+    },
+    {
+      "bytes": 108,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tools/avatar-v5-preview/package.json",
+      "sha256": "5d1349266118c2e570b54c466dde865dc922613d65cfd6f9bd6d0b332b81d0ae"
+    },
+    {
+      "bytes": 259,
+      "git_state": "tracked-unchanged",
+      "path": "frontend/tsconfig.json",
+      "sha256": "4a83022f6957937d671b1d16f95c8174d7522a356c1402c09ac9350eebdf82b2"
+    },
+    {
+      "bytes": 3592,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/ASSEMBLY-REPORT.json",
+      "sha256": "378f5ccaa6ba918cb92d26a27c6fff5e5f14fc0c9318f5ef50b7c3ee76914162"
+    },
+    {
+      "bytes": 11639,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/BACKEND-SNAPSHOT-INVENTORY.json",
+      "sha256": "3ff1807f795134316b6ff0ccd80570b294fcf1636d9c4d7ade628e69efe23f5a"
+    },
+    {
+      "bytes": 20292,
+      "git_state": "??",
+      "path": "provenance/BACKEND-STAGING-CANDIDATE-20261026T214939Z-8dd48aff.manifest.json",
+      "sha256": "7d9df4e9f31a5c33a8d77b09f7bd9e7ef5d103db62d528989ab3001f1197a1d1"
+    },
+    {
+      "bytes": 8011,
+      "git_state": "??",
+      "path": "provenance/BACKEND-STAGING-CANDIDATE-20261026T214939Z-8dd48aff.report.md",
+      "sha256": "abfbc5826974474a3c20cee50b9fa0d886fa754fd6b08249dc3910d72cf34fab"
+    },
+    {
+      "bytes": 3256,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/FRONTEND-COMMIT-MAP.json",
+      "sha256": "169fee2072d168816831e5f6cb2bbd72f947ee3d590cb1d83a414b38e39572ce"
+    },
+    {
+      "bytes": 1459,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/FRONTEND-PRESERVATION-MANIFEST.txt",
+      "sha256": "c204a48505bd3acc9325c75aa0dcf2115a0c3ac82b9d711954af8657a432e584"
+    },
+    {
+      "bytes": 134280,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/LINE-ENDING-REPAIR.json",
+      "sha256": "d80ba2d7dd9353e42ddcd80451d62d4194c2d5ecbd6c947812d0a00cee5383fd"
+    },
+    {
+      "bytes": 21340,
+      "git_state": "new-qualification-evidence",
+      "path": "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/change-ledger.json",
+      "sha256": "d17b49d89cb161a3b968ecd225aa9fee7092880986763c579776e1085469d7f9"
+    },
+    {
+      "bytes": 288165,
+      "git_state": "new-qualification-evidence",
+      "path": "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/reviewed-overlay.patch",
+      "sha256": "3434cbaa0036da37c78ac5120af1164f27b4b74d36d7a2a8c7e5d3f15f02fe7f"
+    },
+    {
+      "bytes": 56615,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/SHA256SUMS.txt",
+      "sha256": "13afb7f49bc4cc2cbd839b69a963b558ecc9b73e9d5b0d8fe30e366cbdbecc4d"
+    },
+    {
+      "bytes": 36020,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/SIBLING-RECOVERY-MANIFEST.txt",
+      "sha256": "c6c5e59a74f046975ed3c1074f6a4687a8c208d229f6f7c3911fe52f92ae4463"
+    },
+    {
+      "bytes": 163984,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/SOURCE-FILES-SHA256.json",
+      "sha256": "a3083cfae344fca79e18a90c16921c6052cfb4a65ed4f71ce0e707f435822945"
+    },
+    {
+      "bytes": 23628,
+      "git_state": "tracked-unchanged",
+      "path": "provenance/frontend-import.marks",
+      "sha256": "3973237e26595eeaadf76179d3efcb8c55ddccf91a8f01feac8b720de821b647"
+    },
+    {
+      "bytes": 929,
+      "git_state": "??",
+      "path": "render.yaml",
+      "sha256": "dfb1df4928651b809bda5511f3abd6e952a6202aa2c195a7af34bda0754373b8"
+    },
+    {
+      "bytes": 1769,
+      "git_state": "??",
+      "path": "scripts/validate-integration.ps1",
+      "sha256": "9e317ec7be8449b3e49ab645e3a0f82425c27a7a18f331ee0234b5f229b92980"
+    },
+    {
+      "bytes": 3453,
+      "git_state": " M",
+      "path": "scripts/validate.ps1",
+      "sha256": "730f066fa942e40b0fcc735daa4919aed21cb9f4b8f42bafd1ece76f342e69c1"
+    },
+    {
+      "bytes": 771,
+      "git_state": "??",
+      "path": "scripts/validation-common.ps1",
+      "sha256": "646299d9916c9709b1e0bd05167968412d72290105181f9bd53effedb2fad227"
+    }
+  ],
+  "policy": {
+    "credential_scan": "High-confidence private-key/token/credential-URI patterns; documented synthetic fixture exception; not a universal secret guarantee.",
+    "evidence_self_reference": "Ledger and overlay included. Manifest/checksums/verification separately controlled to avoid circular hashes.",
+    "exclude_directory_names": [
+      ".eas",
+      ".expo",
+      ".git",
+      ".metro-cache",
+      ".pytest_cache",
+      ".venv",
+      "__pycache__",
+      "asset-backups",
+      "coverage",
+      "dist",
+      "node_modules",
+      "validation-results",
+      "venv",
+      "web-build"
+    ],
+    "exclude_environment_names": ".env and all .env.* including templates",
+    "exclude_file_extensions": [
+      ".7z",
+      ".aab",
+      ".apk",
+      ".bak",
+      ".gz",
+      ".jks",
+      ".key",
+      ".keystore",
+      ".log",
+      ".mobileprovision",
+      ".p12",
+      ".p8",
+      ".pem",
+      ".pfx",
+      ".pyc",
+      ".pyo",
+      ".tar",
+      ".tsbuildinfo",
+      ".zip"
+    ],
+    "exclude_names": [
+      "GoogleService-Info.plist",
+      "credentials.json",
+      "google-services.json",
+      "id_ed25519",
+      "id_rsa"
+    ],
+    "exclude_other_names": "*.orig.*",
+    "include_root_files": [
+      ".gitignore",
+      "README.md",
+      "render.yaml"
+    ],
+    "include_roots": [
+      "backend",
+      "docs",
+      "frontend",
+      "provenance",
+      "scripts"
+    ],
+    "links": "Reject symlinks/junctions; do not follow.",
+    "max_source_file_bytes": 16777216,
+    "untracked_files": "Explicitly listed, reviewed and hashed; no staging/commit performed."
+  },
+  "qualification": "Exact local source snapshot only, not gameplay/device/build/deployment acceptance; no signature or external trust anchor.",
+  "qualification_id": "RELEASE-1.0-QUALIFICATION-20261028-5a29099d",
+  "schema_version": 1,
+  "source_inventory_sha256": "2a3369b793343025c02f1b0f01dccaeab8cee0edd4a137b937a956cbd118017d",
+  "source_root": "C:/FireFeast-ReleaseCandidate",
+  "total_bytes": 93195930
+}

@@ -24,6 +24,12 @@
         "buildType": "apk"
       }
     },
+    "production-diagnostic": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_BURNOUT_TIMELINE_DIAGNOSTICS": "1"
+      }
+    },
     "production": {
       "environment": "production",
       "env": {
@@ -31,6 +37,19 @@
       },
       "android": {
         "buildType": "app-bundle"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "environment": "preview",
+      "channel": "staging",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_BACKEND_URL": "https://fire-feast-api-staging.onrender.com"
+      },
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
       }
     }
   }

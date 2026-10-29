@@ -9,8 +9,6 @@ const files = [
   "wheel/charcuterie-wheel.png",
   "pointer/chef-knife-pointer.png",
   "hub/fire-feast-hub.png",
-  "decorations/grapes-top-left.png",
-  "decorations/cheese-bottom-right.png",
   "effects/winner-glow.png",
 ];
 

@@ -5,7 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 
 import { api } from "../../src/api";
-import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
+import { resolveOfficialProgression } from "../../src/ranks";
 import FireBadge from "../../src/components/fire/FireBadge";
 import FireButton from "../../src/components/fire/FireButton";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
@@ -21,14 +21,16 @@ import { useTitleProgress } from "../../src/titles/useTitleProgress";
 import { usePlayerBalance } from "../../src/playerBalance";
 import PlayerProfileCard from "../../src/profile/PlayerProfileCard";
 import CompactScreenHeader from "../../src/components/fire/CompactScreenHeader";
-import { DEFAULT_IDENTITY, loadPlayerIdentity, type PlayerIdentity } from "../../src/profile/PlayerIdentity";
+import { DEFAULT_IDENTITY } from "../../src/profile/PlayerIdentity";
+import { usePlayerIdentity } from "../../src/profile/PlayerIdentityContext";
 
 
 type Player = {
   username?: string;
   avatar_emoji?: string;
   country?: string;
-  xp: number;
+  xp?: number;
+  level?: number;
   coins: number;
   antacid: number;
   wins: number;
@@ -41,6 +43,7 @@ type Player = {
   longest_streak?: number;
   owned_gear: string[];
   equipped_gear: string | null;
+  equipped_gear_slots?: Partial<Record<"hat" | "apron" | "outfit", string>>;
 };
 
 type Gear = {
@@ -51,13 +54,14 @@ type Gear = {
   slot?: string;
   description?: string;
   perk?: string;
+  effect_description?: string;
+  set_id?: string;
 };
 
 const FALLBACK_PLAYER: Player = {
   username: "Hungry Hero",
   avatar_emoji: "🍔",
   country: "🌎",
-  xp: 0,
   coins: 0,
   antacid: 0,
   wins: 0,
@@ -88,7 +92,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [identity, setIdentity] = useState<PlayerIdentity>(DEFAULT_IDENTITY);
+  const { identity: storedIdentity } = usePlayerIdentity();
+  const identity = storedIdentity ?? DEFAULT_IDENTITY;
   const { state: achievementState, migrate: migrateAchievements, claim: claimAchievement } = useAchievements();
   const { state: restaurantState, notification: restaurantNotification, dismissNotification: dismissRestaurantNotification, sync: syncRestaurants } = useRestaurantProgress();
   const { state: titleState, notification: titleNotification, dismissNotification: dismissTitleNotification, sync: syncTitles, equip: equipTitle } = useTitleProgress();
@@ -99,17 +104,16 @@ export default function ProfileScreen() {
     const [playerResult, gearResult] = await Promise.allSettled([api.getPlayer(), api.gear()]);
     if (playerResult.status === "fulfilled" && playerResult.value) {
       const resolvedPlayer = { ...FALLBACK_PLAYER, ...(playerResult.value as Partial<Player>) };
-      setPlayer(resolvedPlayer);
-      const resolvedXp = Number(resolvedPlayer.xp || 0);
-      const resolvedBelt = beltForXp(resolvedXp);
-      await migrateAchievements({
+      setPlayer((previous) => resolveOfficialProgression(resolvedPlayer).available || !resolveOfficialProgression(previous).available ? resolvedPlayer : previous);
+      const resolved = resolveOfficialProgression(resolvedPlayer);
+      if (resolved.xp !== null && resolved.beltTierIndex !== null) await migrateAchievements({
         matches: resolvedPlayer.matches,
         wins: resolvedPlayer.wins,
         bestScore: resolvedPlayer.best_score,
         highestCombo: resolvedPlayer.longest_combo,
-        xp: resolvedXp,
+        xp: resolved.xp,
         itemsOwned: resolvedPlayer.owned_gear.length,
-        beltRank: Math.max(1, BELTS.findIndex((item) => item.key === resolvedBelt.key) + 1),
+        beltRank: resolved.beltTierIndex,
       });
     } else setLoadError(true);
     if (gearResult.status === "fulfilled") {
@@ -122,27 +126,29 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => {
     load();
-    void loadPlayerIdentity().then(setIdentity);
   }, [load]));
 
-  const xp = Number(player.xp || 0) + (achievementState?.claimedRewards.xp ?? 0);
+  const official = resolveOfficialProgression(player);
+  const { xp, belt, level, intervalXp: progressValue, intervalSize: progressMax } = official;
   const coins = usePlayerBalance(player.coins);
-  const belt = beltForXp(xp);
-  const next = nextBelt(xp);
-  const progressValue = next ? xp - belt.min_xp : 1;
-  const progressMax = next ? next.min_xp - belt.min_xp : 1;
-  const equipped = gear.find((item) => item.id === player.equipped_gear);
-  const starterLoadout = !equipped;
-  const beltRank = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);
+  const equippedItems = (["Hat", "Apron", "Outfit"] as const).map((slot) => ({
+    slot,
+    item: gear.find((candidate) => candidate.id === player.equipped_gear_slots?.[slot.toLowerCase() as "hat" | "apron" | "outfit"]),
+  }));
+  const legacyEquipped = gear.find((item) => item.id === player.equipped_gear);
+  const activeSetId = equippedItems.every(({ item }) => item?.set_id && item.set_id === equippedItems[0].item?.set_id)
+    ? equippedItems[0].item?.set_id
+    : undefined;
+  const beltRank = official.beltTierIndex;
   const completedAchievementIds = useMemo(() => achievementState?.progress.filter((item) => item.completed).map((item) => item.achievementId) ?? [], [achievementState]);
   const unlockedRestaurantIds = useMemo(() => restaurantState?.restaurants.filter((item) => item.status === "unlocked").map((item) => item.restaurantId) ?? [], [restaurantState]);
 
   useEffect(() => {
-    void syncRestaurants(xp);
+    if (xp !== null) void syncRestaurants(xp);
   }, [syncRestaurants, xp]);
 
   useEffect(() => {
-    if (!achievementState || !restaurantState) return;
+    if (!achievementState || !restaurantState || beltRank === null) return;
     void syncTitles({
       matchesPlayed: player.matches,
       wins: player.wins,
@@ -203,16 +209,19 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <CompactScreenHeader title="PROFILE" context="PLAYER HQ" right={<FireButton accessibilityLabel="Open settings" onPress={() => router.push("/settings")} size="compact" title="SETTINGS" variant="secondary" />} />
         <View style={styles.retentionNav}>
-          <FireButton title="DAILY REWARDS" size="compact" variant="gold" style={styles.retentionButton} onPress={() => router.push("/daily-rewards")} />
-          <FireButton title="ACHIEVEMENTS" size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/achievements")} />
-          <FireButton title="MISSIONS" size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/missions")} />
+          <FireButton title="DAILY REWARDS" singleLineTitle size="compact" variant="gold" style={styles.retentionButton} onPress={() => router.push("/daily-rewards")} />
+          <FireButton title="ACHIEVEMENTS" singleLineTitle size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/achievements")} />
+          <FireButton title="MISSIONS" singleLineTitle size="compact" variant="secondary" style={styles.retentionButton} onPress={() => router.push("/missions")} />
         </View>
         <FireScreenEntrance duration="fast" distance={9}>
+          {xp !== null && level !== null && belt && progressValue !== null && progressMax !== null ? <>
+          <Text style={{ color: "#FFD54A" }}>{official.nextBelt ? "NEXT BELT" : "MAX BELT"}</Text>
           <PlayerProfileCard
             identity={identity}
+            equippedGearSlots={player.equipped_gear_slots}
             rank={belt.name}
             rankColor={belt.color}
-            level={beltRank}
+            level={level}
             xp={xp}
             progress={progressValue}
             progressMax={progressMax}
@@ -223,8 +232,9 @@ export default function ProfileScreen() {
             achievementCompleted={completedAchievementIds.length}
             achievementTotal={achievementState?.progress.length ?? 0}
           />
+          </> : <Text style={{ color: "#FFD54A" }}>Official progression unavailable</Text>}
         </FireScreenEntrance>
-        <View style={styles.profileActions}><FireButton accessibilityLabel="Edit gamer name and avatar" title="CUSTOMIZE" size="compact" style={styles.profileAction} variant="gold" onPress={() => router.push("/avatar-customization")} /><FireButton accessibilityLabel="View complete career statistics and history" title="CAREER" size="compact" style={styles.profileAction} variant="secondary" onPress={() => router.push("/career")} /></View>
+        <View style={styles.profileActions}><FireButton accessibilityLabel="Edit gamer name and avatar" title="CUSTOMIZE" size="compact" style={styles.profileAction} variant="gold" onPress={() => router.push("/avatar-customization")} /><FireButton accessibilityLabel="Open friends and player search" title="FRIENDS" size="compact" style={styles.profileAction} variant="secondary" onPress={() => router.push("/friends" as never)} /><FireButton accessibilityLabel="View complete career statistics and history" title="CAREER" size="compact" style={styles.profileAction} variant="secondary" onPress={() => router.push("/career")} /></View>
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>CAREER STATS</Text>
@@ -246,13 +256,20 @@ export default function ProfileScreen() {
           <Text style={styles.ownedCount}>{player.owned_gear.length} OWNED</Text>
         </View>
         <View style={styles.loadoutPanel}>
-          <View style={styles.gearIconFrame}><Text style={styles.gearIcon}>{equipped?.icon || "👕"}</Text></View>
           <View style={styles.gearInfo}>
-            <Text numberOfLines={2} style={styles.gearName}>{equipped?.name || "Starter Outfit"}</Text>
-            <Text numberOfLines={2} style={styles.gearMeta}>{equipped ? `${equipped.rarity || "GEAR"} · ${equipped.slot || "LOADOUT"}` : "DEFAULT LOADOUT"}</Text>
-            <Text numberOfLines={3} style={styles.gearDescription}>{equipped?.description || equipped?.perk || "No special perk equipped."}</Text>
+            {equippedItems.map(({ slot, item }) => (
+              <View key={slot} style={styles.loadoutRow}>
+                <Text style={styles.loadoutSlot}>{slot.toUpperCase()}</Text>
+                <View style={styles.loadoutCopy}>
+                  <Text numberOfLines={1} style={styles.gearName}>{item?.name || `Starter ${slot}`}</Text>
+                  <Text numberOfLines={2} style={styles.gearDescription}>{item?.effect_description || item?.description || item?.perk || "No gameplay effect."}</Text>
+                </View>
+                <FireBadge label={item ? "EQUIPPED" : "STARTER"} variant={item ? "gold" : "muted"} />
+              </View>
+            ))}
+            {legacyEquipped ? <Text style={styles.legacyLoadout}>LEGACY LOADOUT · {legacyEquipped.name}</Text> : null}
+            <Text style={styles.activeSet}>{activeSetId ? `COMPLETE SET ACTIVE · ${activeSetId.replace(/_/g, " ").toUpperCase()}` : "SET BONUS · EQUIP 3 MATCHING PIECES"}</Text>
           </View>
-          <FireBadge label={starterLoadout ? "STARTER" : "EQUIPPED"} variant={starterLoadout ? "muted" : "gold"} />
         </View>
         <FireButton
           accessibilityLabel="Open Locker and manage owned gear and cosmetics"
@@ -308,7 +325,7 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: "#070405", flex: 1 },
   content: { alignSelf: "center", maxWidth: 760, paddingBottom: 18, paddingHorizontal: 12, paddingTop: 7, width: "100%" },
   retentionNav: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  retentionButton: { flex: 1, flexBasis: 100, marginTop: 0, minWidth: 96 },
+  retentionButton: { flexGrow: 1, flexShrink: 1, flexBasis: 118, marginTop: 0, minWidth: 118 },
   profileActions: { flexDirection: "row", gap: 6 },
   profileAction: { flex: 1 },
   identityPanel: { backgroundColor: "rgba(13,9,10,0.95)", borderRadius: 15, borderWidth: 1.5, elevation: 7, overflow: "hidden", padding: 11, shadowColor: "#000", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.38, shadowRadius: 10 },
@@ -355,6 +372,11 @@ const styles = StyleSheet.create({
   gearName: { color: "#FFF0D8", fontSize: 14, fontWeight: "900" },
   gearMeta: { color: "#D0954C", fontSize: 7, fontWeight: "900", letterSpacing: 0.6, marginTop: 2 },
   gearDescription: { color: "#A99482", fontSize: 8, lineHeight: 11, marginTop: 4 },
+  loadoutRow: { alignItems: "center", borderBottomColor: "rgba(216,128,38,0.18)", borderBottomWidth: 1, flexDirection: "row", gap: 8, minHeight: 58, paddingVertical: 6 },
+  loadoutSlot: { color: "#D0954C", fontSize: 8, fontWeight: "900", letterSpacing: 0.6, width: 44 },
+  loadoutCopy: { flex: 1, minWidth: 0 },
+  activeSet: { color: "#F6C76A", fontSize: 9, fontWeight: "900", letterSpacing: 0.5, paddingTop: 8, textAlign: "center" },
+  legacyLoadout: { color: "#D0954C", fontSize: 8, fontWeight: "900", paddingTop: 7, textAlign: "center" },
   loading: { color: "#E8AD55", fontSize: 8, fontWeight: "900", letterSpacing: 1, marginTop: 10, textAlign: "center" },
   loadError: { alignItems: "center", gap: 8, marginTop: 8 },
   achievementSection: { marginTop: 8 },

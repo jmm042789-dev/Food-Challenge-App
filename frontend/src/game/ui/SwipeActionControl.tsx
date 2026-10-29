@@ -2,6 +2,7 @@ import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, PanResponder, StyleSheet, Text, View } from "react-native";
 
 import type { HeatTier } from "../heartburn";
+import { normalizedCoordinate, type GameplayInputEvidence } from "../inputContract";
 import {
   SWIPE_CONFIG,
   claimSwipeSubmission,
@@ -18,7 +19,7 @@ type Props = {
   overheatWarningActive: boolean;
   reducedMotion: boolean;
   resetKey: string;
-  onAction: () => number | null;
+  onAction: (evidence: GameplayInputEvidence) => number | null;
   gesture?: SwipeGestureConfig & {
     gestureKind: "slice" | "flick";
     requireAlternatingDirection: boolean;
@@ -48,8 +49,7 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
   const cancelledRef = useRef(false);
   const submissionStateRef = useRef<SwipeSubmissionState>({ submitted: false });
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const accessibilityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const accessibilitySubmittingRef = useRef(false);
+  const controlSize = useRef({ width: 1, height: 1 });
   const activeRef = useRef(active);
   const reducedMotionRef = useRef(reducedMotion);
   const onActionRef = useRef(onAction);
@@ -63,11 +63,6 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
   const clearFeedbackTimer = () => {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
     feedbackTimer.current = null;
-  };
-
-  const clearAccessibilityTimer = () => {
-    if (accessibilityTimer.current) clearTimeout(accessibilityTimer.current);
-    accessibilityTimer.current = null;
   };
 
   const centerIndicator = () => {
@@ -113,10 +108,20 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
         : null,
     }, gesture);
     directionRef.current = result.direction;
-    const acceptedSequence = result.valid ? onActionRef.current() : null;
-    const successful = result.valid && acceptedSequence !== null;
+    const evidence: GameplayInputEvidence = {
+      source: "CONTROL",
+      start_x: normalizedCoordinate(startPosition.current.x, controlSize.current.width),
+      start_y: normalizedCoordinate(startPosition.current.y, controlSize.current.height),
+      end_x: normalizedCoordinate(endPosition.current.x, controlSize.current.width),
+      end_y: normalizedCoordinate(endPosition.current.y, controlSize.current.height),
+      duration_ms: Math.round(duration),
+    };
+    const normalizedDistance = Math.abs((evidence.end_x ?? 0) - (evidence.start_x ?? 0));
+    const geometryValid = result.valid && normalizedDistance >= (gesture?.gestureKind === "flick" ? 0.18 : 0.3);
+    const acceptedSequence = geometryValid ? onActionRef.current(evidence) : null;
+    const successful = geometryValid && acceptedSequence !== null;
     if (successful) lastAcceptedDirectionRef.current = result.direction;
-    showFeedback(successful ? "GOOD SWIPE!" : feedbackForReason(result.valid ? "INACTIVE" : result.reason), successful);
+    showFeedback(successful ? "GOOD SWIPE!" : feedbackForReason(result.valid && !geometryValid ? "TOO_SHORT" : result.valid ? "INACTIVE" : result.reason), successful);
     centerIndicator();
   };
 
@@ -136,18 +141,6 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
     feedbackFlash.setValue(0);
   };
 
-  const performAccessibilityAction = () => {
-    if (!activeRef.current || accessibilitySubmittingRef.current) return;
-    accessibilitySubmittingRef.current = true;
-    const acceptedSequence = onActionRef.current();
-    if (acceptedSequence !== null) showFeedback("GOOD SWIPE!", true);
-    clearAccessibilityTimer();
-    accessibilityTimer.current = setTimeout(() => {
-      accessibilitySubmittingRef.current = false;
-      accessibilityTimer.current = null;
-    }, SWIPE_CONFIG.feedbackDurationMs);
-  };
-
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => activeRef.current,
     onMoveShouldSetPanResponder: () => activeRef.current,
@@ -159,17 +152,18 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
       cancelledRef.current = false;
       directionRef.current = null;
       startedAt.current = Date.now();
-      startPosition.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+      startPosition.current = { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY };
       endPosition.current = startPosition.current;
       indicatorX.stopAnimation();
       indicatorX.setValue(0);
     },
     onPanResponderMove: (event, gestureState) => {
-      endPosition.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+      endPosition.current = { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY };
       const maxTravel = reducedMotionRef.current ? 32 : SWIPE_CONFIG.maxIndicatorTravelPx;
       indicatorX.setValue(Math.max(-maxTravel, Math.min(maxTravel, gestureState.dx)));
     },
-    onPanResponderRelease: (_event, gestureState) => {
+    onPanResponderRelease: (event, gestureState) => {
+      endPosition.current = { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY };
       finishGestureRef.current(gestureState.dx, gestureState.dy, false);
     },
     onPanResponderTerminate: (_event, gestureState) => {
@@ -181,9 +175,7 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
 
   useEffect(() => {
     clearFeedbackTimer();
-    clearAccessibilityTimer();
     submissionStateRef.current.submitted = false;
-    accessibilitySubmittingRef.current = false;
     cancelledRef.current = false;
     startedAt.current = 0;
     directionRef.current = null;
@@ -198,7 +190,6 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
     feedbackFlash.setValue(0);
     return () => {
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-      if (accessibilityTimer.current) clearTimeout(accessibilityTimer.current);
       indicatorX.stopAnimation();
       feedbackFlash.stopAnimation();
     };
@@ -215,16 +206,12 @@ function SwipeActionControl({ active, combo, heatTier, overheatWarningActive, re
 
   return (
     <View
-      accessibilityActions={[{ name: "activate", label: "Take a bite" }]}
-      accessibilityHint="Swipe left or right across the control to take a bite."
+      accessibilityHint="Swipe left or right across this control. A tap alone does not score."
       accessibilityLabel={active ? "Swipe bite control" : "Swipe bite control, unavailable until gameplay starts"}
       accessibilityRole="button"
       accessibilityState={{ disabled: !active }}
       accessible
-      onAccessibilityAction={(event) => {
-        if (event.nativeEvent.actionName === "activate") performAccessibilityAction();
-      }}
-      onAccessibilityTap={performAccessibilityAction}
+      onLayout={(event) => { controlSize.current = event.nativeEvent.layout; }}
       style={styles.touchTarget}
       {...panResponder.panHandlers}
     >

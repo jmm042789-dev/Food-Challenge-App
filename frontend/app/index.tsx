@@ -1,19 +1,15 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import Constants from "expo-constants";
 
-import { api, cacheBootstrapPlayer, describeAuthenticationFailure, peekBootstrapPlayer, publicAuthRuntimeDiagnostics } from "../src/api";
+import { api, cacheBootstrapPlayer, describeAuthenticationFailure, publicAuthRuntimeDiagnostics } from "../src/api";
 import type { AuthDiagnosticCode } from "../src/guestAuthDiagnostics";
 import FireButton from "../src/components/fire/FireButton";
 import FireEmptyState from "../src/components/fire/FireEmptyState";
 import FireLoading from "../src/components/fire/FireLoading";
 import ArcadeBackground from "../src/game/ui/ArcadeBackground";
-
-type BootstrapPlayer = {
-  tutorial_done?: unknown;
-  welcome_reward_claimed?: unknown;
-};
+import { classifyStartupFailure, startupDiagnosticCode, validateBootstrapPlayer, withTransientStartupRetry, type StartupDiagnosticCode, type StartupFailureKind, type StartupOperation } from "../src/startupReliability";
 
 type StartupFailure = {
   code: AuthDiagnosticCode;
@@ -24,6 +20,9 @@ type StartupFailure = {
   httpStatus: number | null;
   backendCode: string | null;
   routeClass: string;
+  kind: StartupFailureKind;
+  title: string;
+  startupCode: StartupDiagnosticCode;
 };
 
 type BuildExtra = {
@@ -31,6 +30,12 @@ type BuildExtra = {
   easBuildId?: string;
   gitCommit?: string;
 };
+
+function startupFailureFor(error: unknown, operation: StartupOperation): StartupFailure {
+  const diagnostic = describeAuthenticationFailure(error);
+  const classification = classifyStartupFailure(error);
+  return { ...diagnostic, startupCode: startupDiagnosticCode(error, operation, diagnostic.stage), kind: classification.kind, title: classification.kind === "OFFLINE" ? "No Connection" : classification.kind === "TIMEOUT" || classification.kind === "SERVER" ? "Arena Temporarily Unavailable" : "Player Data Could Not Be Loaded", message: classification.message };
+}
 
 const runtimeAuth = publicAuthRuntimeDiagnostics();
 const buildExtra = (Constants.expoConfig?.extra?.build ?? {}) as BuildExtra;
@@ -47,26 +52,81 @@ export default function Index() {
   const [failure, setFailure] = useState<StartupFailure | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [resetting, setResetting] = useState(false);
+  const generation = useRef(0);
+  const bootstrapInFlight = useRef(false);
+  const [slowAuthentication, setSlowAuthentication] = useState(false);
+  const loadingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopLoadingTimer = useCallback(() => {
+    if (loadingTimer.current !== null) clearTimeout(loadingTimer.current);
+    loadingTimer.current = null;
+  }, []);
+  const startLoadingTimer = useCallback(() => {
+    stopLoadingTimer();
+    setSlowAuthentication(false);
+    loadingTimer.current = setTimeout(() => {
+      loadingTimer.current = null;
+      setSlowAuthentication(true);
+    }, 15000);
+  }, [stopLoadingTimer]);
+  useEffect(() => stopLoadingTimer, [stopLoadingTimer]);
 
   useEffect(() => {
     let active = true;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const currentGeneration = ++generation.current;
+    const isCurrent = () => active && generation.current === currentGeneration;
 
     async function bootstrap() {
       setFailure(null);
+      bootstrapInFlight.current = true;
+      let operation: StartupOperation = "PLAYER_FETCH";
 
       try {
-        const player = await api.getPlayer() as BootstrapPlayer;
-        if (!active) return;
+        const playerResponse = await withTransientStartupRetry(
+          async () => {
+            startLoadingTimer();
+            try { return await api.getPlayer(); }
+            finally {
+              stopLoadingTimer();
+              if (isCurrent()) setSlowAuthentication(false);
+            }
+          },
+          { operationName: "player-bootstrap", isCurrent, manual: attempt > 0 },
+        );
+        const player = validateBootstrapPlayer(playerResponse);
+        if (!isCurrent()) return;
 
-        const matchRecovery = await api.activeMatch();
-        if (!active) return;
+        try {
+          if (await api.pendingResult()) {
+            if (isCurrent()) router.replace("/match-recovery" as never);
+            return;
+          }
+        } catch {
+          if (isCurrent()) router.replace("/match-recovery" as never);
+          return;
+        }
+        operation = "ACTIVE_MATCH";
+        const matchRecovery = await withTransientStartupRetry(
+          () => api.startupActiveMatch(),
+          { operationName: "active-match-recovery", isCurrent, manual: attempt > 0 },
+        );
+        if (!isCurrent()) return;
         if (
           matchRecovery.status === "resumable"
           && typeof matchRecovery.contest_id === "string"
           && matchRecovery.contest_id
         ) {
-          router.replace(`/play/${encodeURIComponent(matchRecovery.contest_id)}`);
+          router.replace(`/play/${encodeURIComponent(matchRecovery.contest_id)}?resumeMatchId=${encodeURIComponent(matchRecovery.match_id ?? "missing")}` as never);
+          return;
+        }
+
+        operation = "ACTIVE_PVP";
+        const pvpRecovery = await withTransientStartupRetry(
+          () => api.startupActivePvpMatch(),
+          { operationName: "active-pvp-recovery", isCurrent, manual: attempt > 0 },
+        );
+        if (!isCurrent()) return;
+        if (pvpRecovery.status !== "absent" && "match_id" in pvpRecovery) {
+          router.replace(`/pvp/match/${encodeURIComponent(pvpRecovery.match_id)}` as never);
           return;
         }
 
@@ -85,36 +145,27 @@ export default function Index() {
           }
         }
 
-        if (active) {
+        if (isCurrent()) {
           cacheBootstrapPlayer(playerForHome);
           router.replace("/(tabs)/home");
         }
       } catch (bootstrapError) {
-        if (!active) return;
+        if (!isCurrent()) return;
 
-        const diagnostic = describeAuthenticationFailure(bootstrapError);
-        const cachedPlayer = peekBootstrapPlayer() as BootstrapPlayer | undefined;
-        if (diagnostic.code === "AUTH_NETWORK" && cachedPlayer && cachedPlayer.tutorial_done !== false) {
-          router.replace("/(tabs)/home");
-          return;
-        }
-
-        if (attempt === 0) {
-          retryTimer = setTimeout(() => {
-            if (active) setAttempt(1);
-          }, 750);
-        } else {
-          setFailure(diagnostic);
-        }
+        setFailure(startupFailureFor(bootstrapError, operation));
+      } finally {
+        stopLoadingTimer();
+        if (isCurrent()) bootstrapInFlight.current = false;
       }
     }
 
     void bootstrap();
     return () => {
       active = false;
-      if (retryTimer) clearTimeout(retryTimer);
+      stopLoadingTimer();
+      bootstrapInFlight.current = false;
     };
-  }, [attempt, router]);
+  }, [attempt, router, startLoadingTimer, stopLoadingTimer]);
 
   const confirmNewGuest = () => {
     Alert.alert(
@@ -128,12 +179,16 @@ export default function Index() {
           onPress: () => {
             setResetting(true);
             setFailure(null);
+            startLoadingTimer();
             void api.startNewGuestAccount().then((player) => {
               cacheBootstrapPlayer(player);
               router.replace("/tutorial");
             }).catch((error) => {
-              setFailure(describeAuthenticationFailure(error));
-            }).finally(() => setResetting(false));
+              setFailure(startupFailureFor(error, "PLAYER_FETCH"));
+            }).finally(() => {
+              stopLoadingTimer();
+              setResetting(false);
+            });
           },
         },
       ],
@@ -147,16 +202,16 @@ export default function Index() {
         <View style={styles.failure}>
           <FireEmptyState
             icon="!"
-            title="Unable to Enter the Arena"
+            title={failure.title}
             message={failure.message}
             buttonLabel="RETRY"
-            onPress={() => setAttempt((current) => current + 1)}
+            onPress={() => { if (!bootstrapInFlight.current) setAttempt((current) => current + 1); }}
           />
-          <Text selectable style={styles.diagnostic}>{failure.code}{failure.requestId ? ` · Request ${failure.requestId}` : ""}</Text>
-          <Text selectable style={styles.runtimeDiagnostic}>
+          <Text selectable style={styles.diagnostic}>Diagnostic {failure.startupCode}{failure.requestId ? ` · Request ${failure.requestId}` : ""}</Text>
+          <Text selectable={__DEV__} style={[styles.runtimeDiagnostic, !__DEV__ && styles.hiddenDiagnostic]}>
             {failure.routeClass}{failure.httpStatus ? ` · HTTP ${failure.httpStatus}` : ""}{failure.backendCode ? ` · ${failure.backendCode}` : ""}
           </Text>
-          <Text selectable style={styles.runtimeDiagnostic}>
+          <Text selectable={__DEV__} style={[styles.runtimeDiagnostic, !__DEV__ && styles.hiddenDiagnostic]}>
             {failure.stage} · App {publicVersion} ({nativeBuild}) · {buildExtra.authImplementation ?? runtimeAuth.authImplementation} · {shortCommit} · {runtimeAuth.backendHost}
           </Text>
           {failure.canStartNewGuest ? (
@@ -172,7 +227,9 @@ export default function Index() {
           ) : null}
         </View>
       ) : (
-        <FireLoading title="Loading Arena..." subtitle="Preparing your player profile." />
+        <FireLoading title="Loading Arena..." subtitle={slowAuthentication
+          ? "Connecting to the Arena. This may take a little longer."
+          : "Preparing your player profile."} />
       )}
     </View>
   );
@@ -183,4 +240,5 @@ const styles = StyleSheet.create({
   failure: { alignSelf: "center", justifyContent: "center", maxWidth: 430, width: "100%" },
   diagnostic: { color: "#A99483", fontSize: 11, marginHorizontal: 24, marginTop: -24, textAlign: "center" },
   runtimeDiagnostic: { color: "#806F65", fontSize: 10, marginHorizontal: 24, marginTop: 6, textAlign: "center" },
+  hiddenDiagnostic: { display: "none" },
 });

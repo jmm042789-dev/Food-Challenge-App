@@ -5,12 +5,14 @@ import os
 from pathlib import Path
 import re
 from typing import Mapping, Optional
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from dotenv import load_dotenv
 
 
-load_dotenv(dotenv_path=Path(__file__).with_name(".env"), override=False)
+# Staging never reads local dotenv files, even if the disable flag is missing.
+if os.environ.get("FIRE_FEAST_DEPLOYMENT") != "staging":
+    load_dotenv(dotenv_path=Path(__file__).with_name(".env"), override=False)
 
 
 VALID_ENVIRONMENTS = {"development", "preview", "production", "test"}
@@ -53,6 +55,39 @@ def _validate_mongo_url(value: str, *, is_production: bool) -> None:
         raise ConfigurationError("MONGO_URL must include a hostname")
     if is_production and parsed.hostname in {"localhost", "127.0.0.1", "::1"}:
         raise ConfigurationError("production MONGO_URL must not use a loopback host")
+
+
+def _staging_database_settings(values: Mapping[str, str]) -> tuple[str, str]:
+    """Staging uses dedicated settings only; no generic database fallback."""
+    if values.get("FIRE_FEAST_ENV") != "production":
+        raise ConfigurationError("staging requires FIRE_FEAST_ENV=production")
+    if values.get("PYTHON_DOTENV_DISABLED") != "1":
+        raise ConfigurationError("staging requires PYTHON_DOTENV_DISABLED=1")
+    if values.get("DB_NAME") != "fire_feast_staging":
+        raise ConfigurationError("staging requires DB_NAME=fire_feast_staging")
+    uri = _required(values, "STAGING_MONGO_URL")
+    host = _required(values, "STAGING_MONGO_HOST").lower()
+    try:
+        parsed = urlparse(uri)
+        valid = (
+            parsed.scheme == "mongodb+srv"
+            and parsed.hostname == host
+            and parsed.port is None
+            and bool(parsed.username) and bool(parsed.password)
+            and parsed.path == "/fire_feast_staging"
+            and not parsed.fragment
+            and host not in {"localhost", "127.0.0.1", "::1"}
+        )
+        options = parse_qs(parsed.query, keep_blank_values=True)
+    except ValueError:
+        raise ConfigurationError("STAGING_MONGO_URL is invalid") from None
+    allowed = {"retrywrites", "w", "authsource", "appname", "readpreference", "tls", "ssl"}
+    normalized = {key.lower(): value for key, value in options.items()}
+    if (not valid or len(normalized) != len(options)
+            or any(key not in allowed or len(value) != 1 for key, value in normalized.items())
+            or any(normalized[key][0].lower() != "true" for key in ("tls", "ssl") if key in normalized)):
+        raise ConfigurationError("staging URI must use the approved SRV host, credentials, staging database and verified TLS")
+    return uri, "fire_feast_staging"
 
 
 def _parse_origins(value: str, *, is_production: bool) -> tuple[str, ...]:
@@ -106,16 +141,19 @@ def load_config(
             "FIRE_FEAST_ENV must be development, preview, production, or test"
         )
 
-    mongo_url = (
-        _required(values, "MONGO_URL")
-        if require_database
-        else values.get("MONGO_URL", "").strip()
-    )
-    db_name = (
-        _required(values, "DB_NAME")
-        if require_database
-        else values.get("DB_NAME", "").strip()
-    )
+    if values.get("FIRE_FEAST_DEPLOYMENT") == "staging":
+        mongo_url, db_name = _staging_database_settings(values)
+    else:
+        mongo_url = (
+            _required(values, "MONGO_URL")
+            if require_database
+            else values.get("MONGO_URL", "").strip()
+        )
+        db_name = (
+            _required(values, "DB_NAME")
+            if require_database
+            else values.get("DB_NAME", "").strip()
+        )
     if mongo_url:
         _validate_mongo_url(mongo_url, is_production=environment == "production")
     if db_name and not DB_NAME_PATTERN.fullmatch(db_name):

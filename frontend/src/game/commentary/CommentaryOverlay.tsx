@@ -2,7 +2,7 @@ import React, { memo, useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import type { CommentaryItem } from "./CommentaryTypes";
 
-function CommentaryOverlay({ item, reducedMotion }: { item: CommentaryItem | null; reducedMotion: boolean }) {
+function CommentaryOverlay({ item, reducedMotion, suppressed = false }: { item: CommentaryItem | null; reducedMotion: boolean; suppressed?: boolean }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -25,7 +25,7 @@ function CommentaryOverlay({ item, reducedMotion }: { item: CommentaryItem | nul
   }, [item, opacity, reducedMotion, scale]);
 
   useEffect(() => () => { opacity.stopAnimation(); scale.stopAnimation(); }, [opacity, scale]);
-  if (!item) return null;
+  if (!item || suppressed) return null;
   return (
     <View pointerEvents="none" style={styles.layer}>
       <Animated.View
@@ -43,8 +43,8 @@ function CommentaryOverlay({ item, reducedMotion }: { item: CommentaryItem | nul
 export default memo(CommentaryOverlay);
 
 const styles = StyleSheet.create({
-  layer: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", zIndex: 1200 },
-  badge: { alignItems: "center", backgroundColor: "rgba(17,7,7,0.88)", borderColor: "#FFB52E", borderRadius: 12, borderWidth: 2, maxWidth: "88%", paddingHorizontal: 20, paddingVertical: 9, shadowColor: "#FF4B24", shadowOpacity: 0.75, shadowRadius: 10 },
-  shadow: { color: "#7E2118", fontSize: 24, fontStyle: "italic", fontWeight: "900", letterSpacing: 1.4, position: "absolute", top: 11 },
-  text: { color: "#FFF3C4", fontSize: 24, fontStyle: "italic", fontWeight: "900", letterSpacing: 1.4, textAlign: "center", textShadowColor: "#FF4B24", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  layer: { ...StyleSheet.absoluteFillObject, alignItems: "center", paddingTop: "28%", zIndex: 90 },
+  badge: { alignItems: "center", backgroundColor: "rgba(17,7,7,0.86)", borderColor: "#FFB52E", borderRadius: 9, borderWidth: 1, maxWidth: "76%", paddingHorizontal: 13, paddingVertical: 5, shadowColor: "#FF4B24", shadowOpacity: 0.45, shadowRadius: 6 },
+  shadow: { color: "#7E2118", fontSize: 15, fontStyle: "italic", fontWeight: "900", letterSpacing: 1, position: "absolute", top: 7 },
+  text: { color: "#FFF3C4", fontSize: 15, fontStyle: "italic", fontWeight: "900", letterSpacing: 1, textAlign: "center", textShadowColor: "#FF4B24", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
 });

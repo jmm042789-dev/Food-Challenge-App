@@ -1,0 +1,92 @@
+{
+  "original_head": "8436684b47e8f83d183b56636af7432f32a3403a",
+  "imported_head": "7176c23874b0dea135e551eebff4116959c8f432",
+  "policy": "Preserve all 21 HEAD-reachable commits with frontend/ path prefix and .env.example removed throughout. Preserve authors, committers, dates, messages and mapped parent relationships. No checkpoint refs imported.",
+  "verified_commits": 21,
+  "commits": [
+    {
+      "original": "b3e8715c717b9884a29cb65962fb1bdd0f2ba8fc",
+      "imported": "c3df6a0ab9e5e0e67c62c96d155f3dfc5afc0645"
+    },
+    {
+      "original": "49d59f952893096fab4f0a1646c3854be6a6eb06",
+      "imported": "c8774ff60bb764929393569db2df466a283c404a"
+    },
+    {
+      "original": "157b5261342b2e2fb0e1141ba2e47f9f257983ca",
+      "imported": "d2ac6fe61f20d196686d5d138a96838433b43aeb"
+    },
+    {
+      "original": "27fdaf4f70962362960d53fec2f6d188981a2032",
+      "imported": "cf40d033b4f732ecd5aa1790f3a87b3adb626e46"
+    },
+    {
+      "original": "9e335fa010c45dde96cb2b37d272183348f2a872",
+      "imported": "9ed5b55223807d0a73bb763fd16ef5971ccf573a"
+    },
+    {
+      "original": "fbba58288da56faa4e065aca24156b6690856e82",
+      "imported": "efbf5fd77da3fd57669313d1339b2a6fbc70a845"
+    },
+    {
+      "original": "e400e5775fb2037ec5731c4bc3eda27846765c3b",
+      "imported": "2e2e5c4b218786d62b2b13b5f0688d29d56ef899"
+    },
+    {
+      "original": "02a76ac37e797f78198bc62b0515dbf6a9554463",
+      "imported": "0931eb12f6e4f96f5776d4375755186657ecf397"
+    },
+    {
+      "original": "f501542474c4f59b7d93e21f7409357486b2142a",
+      "imported": "fe5be728ace2d1dc73073d11354f45035d414fd8"
+    },
+    {
+      "original": "8745bd113fd71ff1f65737b4ad2bb73236750435",
+      "imported": "ce218d67056c1acd889aa040c911373e15615865"
+    },
+    {
+      "original": "83bbe6e5002c2e49031a61d70692b105c62e5868",
+      "imported": "2628a596ded51f9c75c58361121ace60b0b67401"
+    },
+    {
+      "original": "be283e69a0749417e6164eb21f52edb09b1ecd55",
+      "imported": "88c3ac305bba2bf654204c3af63377987746d73a"
+    },
+    {
+      "original": "50be73594b09430d2d023dfe40d2d0b642717fc6",
+      "imported": "da87590c0b1cb458efc7a9175ed6c573e79d0d34"
+    },
+    {
+      "original": "be09dd848b927366a35913f8d24ae700fb2b0a11",
+      "imported": "3abb17ad2b81a96620ffd9c7e6d7c677bbffcc03"
+    },
+    {
+      "original": "f0e7fdf68c6078ac2827c7c23239691373e0919e",
+      "imported": "4f5119b9e762dc9d382e66548577eec6fd47c263"
+    },
+    {
+      "original": "24448df3fc03dc03fe0853df4bf263fec1b5235a",
+      "imported": "3749de657ad9dbe4686a09297aa704ccc6cc209f"
+    },
+    {
+      "original": "ce7a4130be694524f2b31a37e89a28a00861122e",
+      "imported": "4166323a23cbe8cc8242328e651cadbe4ae593a9"
+    },
+    {
+      "original": "4accee39e559eba70991cdd0b88bab374834582e",
+      "imported": "acfa4e0cc317410552a44fbcd5813a6808da3d6b"
+    },
+    {
+      "original": "62ba2eba278d488d814bf9df4426f2908305db46",
+      "imported": "6b1a12ff14d2656e2aa070136ed26b7e4e2f7ac1"
+    },
+    {
+      "original": "e29e324f97c9a78f4de90d65baa9dfb40880c568",
+      "imported": "4e83d47b192bc2aed769b8c300d588fa76381042"
+    },
+    {
+      "original": "8436684b47e8f83d183b56636af7432f32a3403a",
+      "imported": "7176c23874b0dea135e551eebff4116959c8f432"
+    }
+  ]
+}

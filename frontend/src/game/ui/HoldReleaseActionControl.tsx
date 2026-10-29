@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 
 import type { HeatTier } from "../heartburn";
+import { normalizedCoordinate, type GameplayInputEvidence } from "../inputContract";
 
 type Props = {
   active: boolean;
@@ -10,7 +11,7 @@ type Props = {
   overheatWarningActive: boolean;
   reducedMotion: boolean;
   resetKey: string;
-  onAction: () => number | null;
+  onAction: (evidence: GameplayInputEvidence) => number | null;
   onHoldStateChange?: (holding: boolean) => void;
 };
 
@@ -49,6 +50,8 @@ function HoldReleaseActionControl({ active, combo, heatTier, overheatWarningActi
   const fillAnimation = useRef<Animated.CompositeAnimation | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdingRef = useRef(false);
+  const controlSize = useRef({ width: 1, height: 1 });
+  const holdStart = useRef({ x: 0.5, y: 0.5 });
 
   const clearFeedbackTimer = useCallback(() => {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
@@ -81,12 +84,13 @@ function HoldReleaseActionControl({ active, combo, heatTier, overheatWarningActi
     };
   }, [active, feedbackFlash, fill, onHoldStateChange, resetControl, resetKey]);
 
-  const startHold = () => {
+  const startHold = (event: GestureResponderEvent) => {
     if (!active || holdingRef.current) return;
     clearFeedbackTimer();
     setFeedback(null);
     holdingRef.current = true;
     holdStartedAt.current = Date.now();
+    holdStart.current = { x: normalizedCoordinate(event.nativeEvent.locationX, controlSize.current.width), y: normalizedCoordinate(event.nativeEvent.locationY, controlSize.current.height) };
     setHolding(true);
     onHoldStateChange?.(true);
     fill.stopAnimation();
@@ -117,7 +121,7 @@ function HoldReleaseActionControl({ active, combo, heatTier, overheatWarningActi
     }, FEEDBACK_DURATION_MS);
   };
 
-  const releaseHold = () => {
+  const releaseHold = (event: GestureResponderEvent) => {
     if (!holdingRef.current) return;
     holdingRef.current = false;
     setHolding(false);
@@ -131,7 +135,7 @@ function HoldReleaseActionControl({ active, combo, heatTier, overheatWarningActi
     fill.setValue(progress);
 
     if (result === "GOOD" || result === "PERFECT") {
-      const acceptedSequence = onAction();
+      const acceptedSequence = onAction({ source: "CONTROL", start_x: holdStart.current.x, start_y: holdStart.current.y, end_x: normalizedCoordinate(event.nativeEvent.locationX, controlSize.current.width), end_y: normalizedCoordinate(event.nativeEvent.locationY, controlSize.current.height), duration_ms: Math.round(elapsed) });
       if (acceptedSequence === null) {
         fill.setValue(0);
         return;
@@ -159,6 +163,7 @@ function HoldReleaseActionControl({ active, combo, heatTier, overheatWarningActi
       disabled={!active}
       onPressIn={startHold}
       onPressOut={releaseHold}
+      onLayout={(event: LayoutChangeEvent) => { controlSize.current = event.nativeEvent.layout; }}
       style={styles.touchTarget}
     >
       <Animated.View pointerEvents="none" style={[styles.feedbackGlow, successful && styles.successGlow, failed && styles.failureGlow, {

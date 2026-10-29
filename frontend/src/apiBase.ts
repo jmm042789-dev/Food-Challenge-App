@@ -4,6 +4,7 @@ export type ApiBaseResolutionOptions = {
   explicitUrl?: string;
   expoHostUris?: readonly unknown[];
   isDevelopment: boolean;
+  isStaging?: boolean;
 };
 
 function normalizeExplicitUrl(value: string, isDevelopment: boolean): string {
@@ -48,8 +49,21 @@ export function resolveApiBase({
   explicitUrl,
   expoHostUris = [],
   isDevelopment,
+  isStaging = false,
 }: ApiBaseResolutionOptions): string {
   const configured = explicitUrl?.trim();
+  if (isStaging) {
+    let url: URL;
+    try { url = new URL(configured || ""); }
+    catch { throw new Error("Staging requires an explicit valid HTTPS backend URL."); }
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+      throw new Error("Staging requires an explicit HTTPS backend URL without credentials, query or fragment.");
+    }
+    if ([new URL(PRODUCTION_API_BASE).hostname, "fire-feast-api.onrender.com"].includes(url.hostname.toLowerCase().replace(/\.$/, ""))) {
+      throw new Error("Staging must not use the production backend.");
+    }
+    return configured!.replace(/\/+$/, "");
+  }
   if (configured) return normalizeExplicitUrl(configured, isDevelopment);
   if (!isDevelopment) return PRODUCTION_API_BASE;
 

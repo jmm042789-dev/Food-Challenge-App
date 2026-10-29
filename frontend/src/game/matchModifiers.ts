@@ -57,7 +57,8 @@ export const HEAT_SHIELD_DURATION_MS = 2000;
 export const FRESH_STOMACH_DURATION_MS = 5000;
 export const FRESH_STOMACH_SCORE_MULTIPLIER = 1.1;
 
-export function deriveMatchStats(equippedGear?: string | null): DerivedMatchStats {
+export function deriveMatchStats(equippedGear?: string | null, authoritative?: Partial<Pick<DerivedMatchStats, "tapPower" | "comboWindowMs" | "scoreMultiplier" | "heatGenerationMultiplier">> | null): DerivedMatchStats {
+  if (authoritative) return { ...BASE_MATCH_STATS, ...authoritative, equippedGear: null, equippedGearName: "Active Loadout" };
   if (!equippedGear || !(equippedGear in GEAR_STATS)) return { ...BASE_MATCH_STATS };
   const gearId = equippedGear as GameplayGearId;
   const equippedGearName = {

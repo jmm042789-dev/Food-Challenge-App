@@ -333,12 +333,19 @@ test("reward mapping and landing angle remain backend authoritative", () => {
   assert.equal(landingRotation(3, 12, 5), 2055);
 });
 
+test("a confirmed daily reward schedules one guarded replacement navigation home", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../app/daily-rewards.tsx"), "utf8");
+  assert.match(screen, /const HOME_RETURN_DELAY_MS = 1800/);
+  assert.match(screen, /if \(!claim \|\| homeReturnTimer\.current\) return/);
+  assert.match(screen, /if \(mounted\.current\) router\.replace\("\/\(tabs\)\/home"\)/);
+  assert.match(screen, /if \(homeReturnTimer\.current\) clearTimeout\(homeReturnTimer\.current\)/);
+  assert.match(screen, /if \(finished\) \{[\s\S]*setClaim\(result\)/);
+});
+
 test("every required production asset exists", () => {
   for (const asset of [
     "background/restaurant-table.png", "wheel/charcuterie-wheel.png",
     "pointer/chef-knife-pointer.png", "hub/fire-feast-hub.png",
-    "decorations/grapes-top-left.png", "decorations/salami-top-right.png",
-    "decorations/olives-bottom-left.png", "decorations/cheese-bottom-right.png",
     "effects/winner-glow.png",
   ]) assert.equal(fs.existsSync(path.join(__dirname, "../src/assets/daily-rewards", asset)), true, asset);
 });

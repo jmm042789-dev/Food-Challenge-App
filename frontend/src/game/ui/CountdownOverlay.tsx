@@ -4,6 +4,7 @@ import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { getFoodArtwork } from "../../assets/foodArtwork";
 import CharacterPortrait from "./CharacterPortrait";
 import TournamentBanner from "./TournamentBanner";
+import type { AvatarConfiguration } from "../../profile/PlayerIdentity";
 
 type Props = {
   visible: boolean;
@@ -15,6 +16,8 @@ type Props = {
   difficulty?: string;
   roundLabel?: string;
   opponentName?: string;
+  playerName: string;
+  playerAvatar: AvatarConfiguration;
   opponentAvatar?: string;
   opponentPersonality?: string;
   restaurantName?: string;
@@ -27,8 +30,6 @@ type Props = {
   sponsorLogoUrl?: string;
   sponsorMessage?: string;
 };
-
-const BLAZE = require("../../assets/characters/blaze.png");
 
 function fadeBeat(opacity: Animated.Value, delay: number, hold: number) {
   return Animated.sequence([
@@ -48,6 +49,8 @@ export default function CountdownOverlay({
   food = "Featured Feast",
   difficulty = "Elite",
   roundLabel = "WORLD TOUR EVENT",
+  playerName,
+  playerAvatar,
   opponentName = "Blaze",
   opponentAvatar,
   opponentPersonality,
@@ -194,7 +197,7 @@ export default function CountdownOverlay({
       {value === 2 ? (
         <Animated.View style={[styles.vsStage, { opacity: vsOpacity }]}>
           <Animated.View style={[styles.fighter, { transform: [{ translateX: playerX }] }]}>
-            <CharacterPortrait image={BLAZE} name="Blaze" subtitle="You" side="player" size="standard" />
+            <CharacterPortrait avatarConfiguration={playerAvatar} name={playerName} subtitle="You" side="player" size="standard" />
           </Animated.View>
           <Text style={styles.vs}>VS</Text>
           <Animated.View style={[styles.fighter, { transform: [{ translateX: opponentX }] }]}>

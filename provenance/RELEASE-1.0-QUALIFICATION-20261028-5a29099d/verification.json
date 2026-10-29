@@ -1,0 +1,22 @@
+{
+    "schema_version":  1,
+    "status":  "PASS",
+    "verification":  "Second pass: independent PowerShell/.NET streaming SHA-256, ordinal membership enumeration and Git metadata checks; not the Python generator.",
+    "manifest_sha256":  "c8e6899f9e0828e66875921c577c1d9fc5240f378fe361e7ebd1ad4be1026ffc",
+    "source_inventory_sha256":  "2a3369b793343025c02f1b0f01dccaeab8cee0edd4a137b937a956cbd118017d",
+    "checked_files":  563,
+    "original_source_files":  561,
+    "new_hashed_evidence_files":  2,
+    "reviewed_existing_changes":  42,
+    "intended_untracked_files":  24,
+    "overlay_entries":  42,
+    "excluded_paths_verified":  [
+                                    ".git/",
+                                    "frontend/node_modules/",
+                                    "validation-results/"
+                                ],
+    "preserved_anchors_verified":  true,
+    "source_membership_verified":  true,
+    "git_index_head_branch_and_existing_status_unchanged":  true,
+    "qualifications":  "Exact local source snapshot only. Original checker unchanged. No signature or external trust anchor. No live/device/build/deployment acceptance claimed."
+}

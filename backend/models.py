@@ -176,6 +176,15 @@ class MatchResult(RequestModel):
     input_events: List[MatchInputEvent] = Field(min_length=0, max_length=2_000)
 
 
+class MatchResume(RequestModel):
+    match_id: Identifier
+    contest_id: Identifier
+
+
+class MatchReceiptRequest(MatchResume):
+    """Receipt lookup accepts identity only; bearer credentials own the player."""
+
+
 class MatchStart(RequestModel):
     device_id: Identifier
     contest_id: Identifier

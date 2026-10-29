@@ -7,6 +7,7 @@ import TournamentBanner from "./TournamentBanner";
 import { formatMatchDuration } from "../contestDuration";
 import type { OpponentMood } from "../ai/OpponentMood";
 import { resolveMatchHudLayout } from "./gameplayLayout";
+import type { AvatarConfiguration } from "../../profile/PlayerIdentity";
 
 type Props = {
   timeRemaining: number;
@@ -16,6 +17,8 @@ type Props = {
   opponentMood: OpponentMood;
   opponentScore: number;
   playerScore: number;
+  playerName: string;
+  playerAvatar: AvatarConfiguration;
   combo?: number;
   contestName?: string;
   location?: string;
@@ -24,9 +27,7 @@ type Props = {
   reducedMotion?: boolean;
 };
 
-const BLAZE = require("../../assets/characters/blaze.png");
-
-function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reactionKey, reactionStrength = 0, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; score: number; mood?: OpponentMood; reaction: CharacterReaction; reactionKey: string | number; reactionStrength?: number; animatedStyle?: object }) {
+function ScoreZone({ side, name, subtitle, avatar, avatarConfiguration, score, mood, reaction, reactionKey, reactionStrength = 0, animatedStyle }: { side: "player" | "opponent"; name: string; subtitle?: string; avatar?: string; avatarConfiguration?: AvatarConfiguration; score: number; mood?: OpponentMood; reaction: CharacterReaction; reactionKey: string | number; reactionStrength?: number; animatedStyle?: object }) {
   const zone = (
     <View style={[styles.scoreZone, side === "opponent" && styles.opponentZone]}>
       <LinearGradient
@@ -36,7 +37,7 @@ function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reacti
         start={{ x: side === "player" ? 0 : 1, y: 0.5 }}
         style={StyleSheet.absoluteFill}
       />
-      <CharacterPortrait image={side === "player" ? BLAZE : undefined} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" mood={mood} reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
+      <CharacterPortrait avatarConfiguration={avatarConfiguration} fallback={avatar} name={name} subtitle={subtitle} side={side} size="compact" mood={mood} reaction={reaction} reactionKey={reactionKey} reactionStrength={reactionStrength} />
       <View style={[styles.scoreInfo, side === "opponent" && styles.opponentInfo]}>
         <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.score}>{Math.floor(score).toLocaleString()}</Text>
         <Text maxFontSizeMultiplier={1.5} style={styles.scoreLabel}>SCORE</Text>
@@ -46,7 +47,7 @@ function ScoreZone({ side, name, subtitle, avatar, score, mood, reaction, reacti
   return animatedStyle ? <Animated.View style={[styles.zoneWrap, animatedStyle]}>{zone}</Animated.View> : <View style={styles.zoneWrap}>{zone}</View>;
 }
 
-export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentMood, opponentScore, playerScore, combo = 0, contestName, roundLabel, reducedMotion = false }: Props) {
+export default function MatchHUD({ timeRemaining, playerName, playerAvatar, opponentName = "Opponent", opponentAvatar, opponentPersonality, opponentMood, opponentScore, playerScore, combo = 0, contestName, roundLabel, reducedMotion = false }: Props) {
   const { width } = useWindowDimensions();
   const layout = resolveMatchHudLayout(width);
   const formattedTime = formatMatchDuration(timeRemaining);
@@ -160,7 +161,7 @@ export default function MatchHUD({ timeRemaining, opponentName = "Opponent", opp
       <View style={styles.divider} />
       <View style={styles.matchRow}>
         <View style={styles.playerZoneWrap}>
-          <ScoreZone side="player" name="Blaze" subtitle="You" score={playerScore} reaction={playerReaction} reactionKey={playerReactionKey} animatedStyle={{ transform: [{ scale: scoreScale }] }} />
+          <ScoreZone side="player" name={playerName} avatarConfiguration={playerAvatar} subtitle="You" score={playerScore} reaction={playerReaction} reactionKey={playerReactionKey} animatedStyle={{ transform: [{ scale: scoreScale }] }} />
           <Animated.View pointerEvents="none" style={[styles.scoreFlash, { opacity: scoreFlash }]} />
         </View>
 
@@ -187,18 +188,18 @@ const styles = StyleSheet.create({
   dashboardShimmer: { backgroundColor: "rgba(255,226,174,0.28)", bottom: -30, position: "absolute", top: -30, width: 42, zIndex: 2 },
   topHighlight: { backgroundColor: "rgba(255,221,158,0.18)", height: 1, left: 9, position: "absolute", right: 9, top: 1, zIndex: 2 },
   divider: { backgroundColor: "rgba(235,145,53,0.38)", height: 1, marginHorizontal: 9 },
-  matchRow: { alignItems: "stretch", flexDirection: "row", minHeight: 78, minWidth: 0, paddingHorizontal: 5 },
+  matchRow: { alignItems: "stretch", flexDirection: "row", minHeight: 70, minWidth: 0, paddingHorizontal: 5 },
   zoneWrap: { flex: 1, minWidth: 0 },
   playerZoneWrap: { flex: 1, minWidth: 0 },
   scoreZone: { alignItems: "center", flex: 1, flexDirection: "row", minWidth: 0, overflow: "hidden", paddingHorizontal: 4 },
   opponentZone: { flexDirection: "row-reverse" },
   scoreInfo: { alignItems: "flex-end", flex: 1, marginLeft: 3, minWidth: 0 },
   opponentInfo: { alignItems: "flex-start", marginLeft: 0, marginRight: 2 },
-  score: { color: "#FFF4DF", fontSize: 20, fontWeight: "900", lineHeight: 23, maxWidth: "100%" },
+  score: { color: "#FFF4DF", fontSize: 18, fontWeight: "900", lineHeight: 21, maxWidth: "100%" },
   scoreLabel: { color: "#B3967D", fontSize: 6, fontWeight: "900", letterSpacing: 1 },
   scoreFlash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,196,72,0.22)", borderColor: "#FFD66B", borderWidth: 1 },
   centerZone: { alignItems: "center", borderColor: "rgba(226,139,50,0.3)", borderLeftWidth: 1, borderRightWidth: 1, flexShrink: 0, justifyContent: "center", paddingHorizontal: 3, width: 72 },
-  timer: { alignItems: "center", backgroundColor: "rgba(24,12,11,0.96)", borderColor: "#ED9B3B", borderRadius: 10, borderWidth: 1, height: 48, justifyContent: "center", overflow: "hidden", width: 66 },
+  timer: { alignItems: "center", backgroundColor: "rgba(24,12,11,0.96)", borderColor: "#ED9B3B", borderRadius: 10, borderWidth: 1, height: 44, justifyContent: "center", overflow: "hidden", width: 66 },
   timerWarning: { backgroundColor: "rgba(70,17,12,0.96)", borderColor: "#FF5C32" },
   timerGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,72,20,0.2)", borderColor: "#FF7A32", borderRadius: 9, borderWidth: 1 },
   timerLabel: { color: "#C49660", fontSize: 7, fontWeight: "900", letterSpacing: 1.1 },

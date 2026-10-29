@@ -1,0 +1,12 @@
+import type { AvatarV5RendererProps } from "../src/avatar-v5/AvatarV5Renderer";
+import type { AvatarV5RenderInput, AvatarV5RenderPlan } from "../src/avatar-v5/renderPlan";
+import type { AvatarV5ImageEvent } from "../src/avatar-v5/renderState";
+type Assert<T extends true> = T;
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
+export type FullBodyOnly = Assert<Equal<Extract<AvatarV5RenderPlan, { status: "ready" }>["mode"], "FULL_BODY">>;
+export type ExplicitTintChannels = Assert<Equal<keyof AvatarV5RenderInput["tintColors"], "skin" | "hair" | "eye">>;
+export type ExplicitGeometry = Assert<Equal<keyof AvatarV5RenderInput["bodyItemIds"], "standard" | "broad">>;
+export type NoGameplayAuthority = Assert<Equal<Extract<keyof AvatarV5RenderInput, "stats" | "modifiers" | "saveIdentity" | "equip">, never>>;
+export type GenerationRequired = Assert<Equal<AvatarV5ImageEvent["generation"], number>>;
+export type PlanInput = Assert<Equal<AvatarV5RendererProps["plan"], AvatarV5RenderPlan>>;
+export type FallbackRequired = Assert<Equal<{} extends Pick<AvatarV5RendererProps, "fallback"> ? true : false, false>>;

@@ -1,0 +1,17 @@
+diff --git a/frontend/eas.json b/frontend/eas.json
+--- a/frontend/eas.json
++++ b/frontend/eas.json
+@@ -45,10 +45,11 @@
+       "channel": "staging",
+       "env": {
+         "EXPO_PUBLIC_APP_ENV": "staging",
+-        "EXPO_PUBLIC_BACKEND_URL": ""
++        "EXPO_PUBLIC_BACKEND_URL": "https://fire-feast-api-staging.onrender.com"
+       },
+       "android": {
+-        "buildType": "apk"
++        "buildType": "apk",
++        "image": "latest"
+       }
+     }
+   }

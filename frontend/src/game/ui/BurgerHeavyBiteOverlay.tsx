@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import type { GestureResponderEvent, LayoutChangeEvent } from "react-native";
+import { normalizedCoordinate, type GameplayInputEvidence } from "../inputContract";
 import {
   claimHeavyBiteCompletion,
   normalizeHeavyBiteDuration,
@@ -9,7 +11,7 @@ import {
 type Props = {
   holdDurationMs?: number;
   reducedMotion: boolean;
-  onComplete: () => void;
+  onComplete: (evidence: GameplayInputEvidence) => void;
 };
 
 export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, onComplete }: Props) {
@@ -20,6 +22,9 @@ export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, 
   const completed = useRef(false);
   const completionState = useRef<HeavyBiteCompletionState>({ completed: false });
   const duration = normalizeHeavyBiteDuration(holdDurationMs);
+  const controlSize = useRef({ width: 150, height: 150 });
+  const heldPoint = useRef({ x: 0, y: 0 });
+  const startedAt = useRef(0);
 
   const clearHoldTimer = () => {
     if (!holdTimer.current) return;
@@ -37,9 +42,14 @@ export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, 
     pressure.setValue(0);
   };
 
-  const startHold = () => {
+  const startHold = (event: GestureResponderEvent) => {
     if (holding.current || completed.current) return;
     holding.current = true;
+    startedAt.current = Date.now();
+    heldPoint.current = {
+      x: normalizedCoordinate(event.nativeEvent.locationX, controlSize.current.width),
+      y: normalizedCoordinate(event.nativeEvent.locationY, controlSize.current.height),
+    };
     progress.setValue(0);
     pressure.setValue(0);
 
@@ -64,7 +74,8 @@ export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, 
       completed.current = true;
       holding.current = false;
       holdTimer.current = null;
-      onComplete();
+      const { x, y } = heldPoint.current;
+      onComplete({ source: "CONTROL", x, y, start_x: x, start_y: y, end_x: x, end_y: y, duration_ms: Math.round(Date.now() - startedAt.current) });
     }, duration);
   };
 
@@ -75,13 +86,7 @@ export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, 
   }, [pressure, progress]);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Heavy bite. Hold for ${duration} milliseconds.`}
-      onPressIn={startHold}
-      onPressOut={cancelHold}
-      style={styles.overlay}
-    >
+    <View pointerEvents="box-none" style={styles.overlay}>
       <Animated.View
         pointerEvents="none"
         style={[
@@ -121,7 +126,15 @@ export default function BurgerHeavyBiteOverlay({ holdDurationMs, reducedMotion, 
         <Text style={styles.title}>HEAVY BITE!</Text>
         <Text style={styles.holdText}>HOLD!</Text>
       </Animated.View>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Heavy bite. Hold for ${duration} milliseconds.`}
+        onPressIn={startHold}
+        onPressOut={cancelHold}
+        onLayout={(event: LayoutChangeEvent) => { controlSize.current = event.nativeEvent.layout; }}
+        style={styles.target}
+      />
+    </View>
   );
 }
 
@@ -131,6 +144,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 30,
+  },
+  target: {
+    height: 150,
+    left: "50%",
+    marginLeft: -75,
+    marginTop: -75,
+    position: "absolute",
+    top: "50%",
+    width: 150,
   },
   pressureGlow: {
     backgroundColor: "#FF8A32",

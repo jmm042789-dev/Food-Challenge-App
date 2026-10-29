@@ -14,16 +14,17 @@ import ResultBanner from "./ResultBanner";
 import RewardSummaryCard from "./RewardSummaryCard";
 import TournamentBanner from "./TournamentBanner";
 import { playSound } from "../../audio/AdaptiveAudioManager";
+import type { AvatarConfiguration } from "../../profile/PlayerIdentity";
 
 export type VictoryTournamentPresentation = { name: string; bestScore: number; progress: number; rewardPreview?: string; rank?: number | null };
 
 type VictoryOverlayProps = {
-  result: "victory" | "defeat" | "draw"; playerScore: number; opponentScore: number; opponentName?: string; opponentAvatar?: string; opponentPersonality?: string;
+  result: "victory" | "defeat" | "draw"; playerScore: number; playerName: string; playerAvatar: AvatarConfiguration; opponentScore: number; opponentName?: string; opponentAvatar?: string; opponentPersonality?: string;
   contestName?: string; location?: string; difficulty?: string; roundLabel?: string; restaurantName?: string; restaurantLogoUrl?: string; city?: string; state?: string;
   verified?: boolean; sponsored?: boolean; sponsorName?: string; sponsorLogoUrl?: string; sponsorMessage?: string; highestCombo: number; foodName: string; matchTime: number;
-  xpEarned?: number; coinsEarned?: number; totalXp?: number; rewardReady: boolean; currentXp?: number; achievements?: readonly AchievementCompletionNotification[]; restaurantUnlocks?: readonly RestaurantUnlockNotification[];
+  xpEarned?: number; coinsEarned?: number; totalXp?: number; stashCoins?: number; antacid?: number; rewardReady: boolean; currentXp?: number; achievements?: readonly AchievementCompletionNotification[]; restaurantUnlocks?: readonly RestaurantUnlockNotification[];
   titleUnlocks?: readonly TitleUnlockNotification[]; tournament?: VictoryTournamentPresentation | null;
-  onReplay: () => void; onContinue: () => void; onBackToArena: () => void;
+  onReturnToArena: () => void;
 };
 
 const VICTORY_BANNERS = ["VICTORY!", "DOMINATING PERFORMANCE!", "WHAT A FEAST!", "CHAMPION!", "UNSTOPPABLE!"] as const;
@@ -39,6 +40,9 @@ const VICTORY_CONFETTI = [
 const CONFETTI = require("../../assets/ui/effects/confetti.png");
 const SCREEN_FLASH = require("../../assets/ui/effects/screen-flash.png");
 const RANK_BADGE = require("../../assets/icons/rank-badge.png");
+const NO_ACHIEVEMENTS: readonly AchievementCompletionNotification[] = [];
+const NO_RESTAURANT_UNLOCKS: readonly RestaurantUnlockNotification[] = [];
+const NO_TITLE_UNLOCKS: readonly TitleUnlockNotification[] = [];
 let lastVictoryBanner = "";
 
 const chooseBanner = () => {
@@ -49,7 +53,7 @@ const chooseBanner = () => {
 };
 
 export default function VictoryOverlay(props: VictoryOverlayProps) {
-  const { result, playerScore, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality, contestName, location, difficulty, roundLabel, restaurantName, restaurantLogoUrl, city, state, verified, sponsored, sponsorName, sponsorLogoUrl, sponsorMessage, highestCombo, foodName, matchTime, xpEarned, coinsEarned, totalXp, rewardReady, currentXp = 0, achievements = [], restaurantUnlocks = [], titleUnlocks = [], tournament, onReplay, onContinue, onBackToArena } = props;
+  const { result, playerScore, playerName, playerAvatar, opponentScore, opponentName = "Opponent", opponentAvatar, opponentPersonality, contestName, location, difficulty, roundLabel, restaurantName, restaurantLogoUrl, city, state, verified, sponsored, sponsorName, sponsorLogoUrl, sponsorMessage, highestCombo, foodName, matchTime, xpEarned, coinsEarned, totalXp, stashCoins, antacid, rewardReady, currentXp = 0, achievements = NO_ACHIEVEMENTS, restaurantUnlocks = NO_RESTAURANT_UNLOCKS, titleUnlocks = NO_TITLE_UNLOCKS, tournament, onReturnToArena } = props;
   const insets = useSafeAreaInsets();
   const totalCoins = usePlayerBalance();
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -180,13 +184,15 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
       {!reducedMotion && result === "victory" ? <View pointerEvents="none" style={styles.confetti}>{VICTORY_CONFETTI.map((item, index) => <Animated.View key={item.left} style={[styles.spark, { backgroundColor: item.color, left: item.left, opacity: celebration.interpolate({ inputRange: [0, 0.1 + item.delay / 2400, 0.82, 1], outputRange: [0, 0.9, 0.7, 0] }), transform: [{ translateX: celebration.interpolate({ inputRange: [0, 1], outputRange: [0, item.drift] }) }, { translateY: celebration.interpolate({ inputRange: [0, 1], outputRange: [-30 - index * 5, 580 + index * 18] }) }, { rotate: `${18 + index * 31}deg` }] }]} />)}</View> : null}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 10), paddingBottom: Math.max(insets.bottom, 10) }]}>
         <View style={styles.content}>
+          <Text accessibilityRole="header" style={styles.feastComplete}>FEAST COMPLETE</Text>
           <TournamentBanner eventTitle="FIRE FEAST WORLD TOUR" contestName={contestName} location={location} food={foodName} difficulty={difficulty} roundLabel={roundLabel} variant="compact" restaurantName={restaurantName} restaurantLogoUrl={restaurantLogoUrl} city={city} state={state} verified={verified} sponsored={sponsored} sponsorName={sponsorName} sponsorLogoUrl={sponsorLogoUrl} sponsorMessage={sponsorMessage} showPartnerDetails />
-          <FireScreenEntrance disabled={reducedMotion} distance={result === "victory" ? 10 : 5} scaleFrom={result === "victory" ? 0.9 : 0.97} style={styles.resultEntrance}><ResultBanner result={result} bannerText={banner} playerScore={playerScore} opponentScore={opponentScore} opponentName={opponentName} opponentAvatar={opponentAvatar} opponentPersonality={opponentPersonality} scoresRevealed={stage >= 1} reducedMotion={reducedMotion} /></FireScreenEntrance>
+          <FireScreenEntrance disabled={reducedMotion} distance={result === "victory" ? 10 : 5} scaleFrom={result === "victory" ? 0.9 : 0.97} style={styles.resultEntrance}><ResultBanner result={result} bannerText={banner} playerScore={playerScore} playerName={playerName} playerAvatar={playerAvatar} opponentScore={opponentScore} opponentName={opponentName} opponentAvatar={opponentAvatar} opponentPersonality={opponentPersonality} scoresRevealed={stage >= 1} reducedMotion={reducedMotion} /></FireScreenEntrance>
           <RewardSummaryCard result={result} coins={coinsEarned} xp={xpEarned} totalCoins={totalCoins} rewardReady={rewardReady} highestCombo={highestCombo} foodName={foodName} matchTime={matchTime} showCombo={stage >= 1} showCoins={stage >= 2} showXp={stage >= 3} showTotal={stage >= 4} immediate={reducedMotion || isComplete} />
+          {stage >= 4 && rewardReady ? <View style={styles.stash}><Text style={styles.noticeEyebrow}>YOUR STASH</Text><Text style={styles.stashText}>{(stashCoins ?? totalCoins).toLocaleString()} COINS · {(totalXp ?? 0).toLocaleString()} XP · {Math.max(0, antacid ?? 0)} ANTACID</Text></View> : null}
           {stage >= 4 && currentBelt && totalXp !== undefined ? <FireScreenEntrance disabled={reducedMotion} distance={6} scaleFrom={0.96} style={styles.rankProgress}><View accessible accessibilityLabel={`${currentBelt.name}. ${totalXp} total XP.`} style={styles.rankProgressInner}><Image source={RANK_BADGE} resizeMode="contain" style={[styles.rankBadge, { tintColor: currentBelt.color }]} /><View style={styles.rankProgressBody}><Text style={styles.noticeEyebrow}>{gainedBelts.length ? "BELT RANK UP!" : "RANK PROGRESS"}</Text><Text style={[styles.rankName, { color: currentBelt.color }]}>{currentBelt.name.toUpperCase()}</Text><FireProgressBar value={rankXp} animateFromValue={priorRankXp} max={rankXpMax} label="XP PROGRESS" variant="xp" compact showValue /></View></View></FireScreenEntrance> : null}
           {stage >= 4 && activeNotice ? <Animated.View style={[styles.notice, { borderColor: activeNotice.color, opacity: reducedMotion || isComplete ? 1 : noticeOpacity, transform: [{ translateY: reducedMotion ? 0 : noticeY }] }]}><Text style={styles.noticeEyebrow}>{activeNotice.eyebrow}</Text><Text style={[styles.noticeTitle, { color: activeNotice.color }]}>{activeNotice.title.toUpperCase()}</Text><Text style={styles.noticeDetail}>{activeNotice.detail.toUpperCase()}</Text></Animated.View> : null}
           {stage >= 4 && tournament ? <View style={styles.tournamentProgress}><Text style={styles.noticeEyebrow}>{tournament.name.toUpperCase()}</Text><Text style={styles.tournamentScore}>BEST SCORE  {tournament.bestScore.toLocaleString()}{tournament.rank ? ` · RANK ${tournament.rank}` : ""}</Text><FireProgressBar value={tournament.progress * 100} label="TOURNAMENT PROGRESS" variant="xp" compact showValue />{tournament.rewardPreview ? <Text style={styles.noticeDetail}>{tournament.rewardPreview}</Text> : null}</View> : null}
-          {isComplete ? <View style={styles.actions}><FireButton accessibilityLabel="Continue from match results" title="CONTINUE" size="medium" variant={result === "victory" ? "gold" : "primary"} fullWidth style={styles.continueButton} onPress={onContinue} /><View style={styles.secondaryActions}><FireButton title="REPLAY" size="compact" variant="secondary" style={styles.secondaryButton} onPress={onReplay} /><FireButton title="BACK TO ARENA" size="compact" variant="ghost" style={styles.secondaryButton} onPress={onBackToArena} /></View></View> : null}
+          {isComplete ? <View style={styles.actions}><FireButton accessibilityLabel="Return to Arena" accessibilityHint="Returns to the Fire Feast Home screen" title="RETURN TO ARENA" size="medium" variant={result === "victory" ? "gold" : "primary"} fullWidth style={styles.returnButton} onPress={onReturnToArena} /></View> : null}
         </View>
       </ScrollView>
     </View>
@@ -195,16 +201,18 @@ export default function VictoryOverlay(props: VictoryOverlayProps) {
 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 2000 }, victoryOverlay: { backgroundColor: "rgba(7,5,6,0.96)" }, drawOverlay: { backgroundColor: "rgba(20,16,13,0.97)" }, defeatOverlay: { backgroundColor: "rgba(36,7,9,0.96)" },
+  feastComplete: { color: "#FFD06A", fontSize: 12, fontWeight: "900", letterSpacing: 2.1, marginBottom: 4, textAlign: "center" },
   resultLighting: { alignSelf: "center", backgroundColor: "rgba(255,133,24,0.5)", borderRadius: 260, height: 420, position: "absolute", top: "5%", width: 420 },
   screenFlash: { ...StyleSheet.absoluteFillObject, height: "100%", width: "100%" },
   confettiTexture: { ...StyleSheet.absoluteFillObject, height: "100%", width: "100%" },
   defeatLighting: { backgroundColor: "rgba(128,31,32,0.32)" },
-  scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 16 }, content: { alignItems: "center", alignSelf: "center", maxWidth: 420, width: "100%" },
+  scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 18 }, content: { alignItems: "center", alignSelf: "center", maxWidth: 400, width: "100%" },
   resultEntrance: { width: "100%" },
   skip: { backgroundColor: "rgba(17,9,9,0.9)", borderColor: "#B98550", borderRadius: 15, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 7, position: "absolute", right: 14, zIndex: 30 }, skipText: { color: "#F2D0A2", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
   confetti: { ...StyleSheet.absoluteFillObject, overflow: "hidden" }, spark: { borderRadius: 2, height: 9, position: "absolute", top: 0, width: 4 },
-  rankProgress: { backgroundColor: "rgba(27,18,15,0.98)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, elevation: 6, marginTop: 7, padding: 9, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 7, width: "100%" }, rankProgressInner: { alignItems: "center", flexDirection: "row" }, rankProgressBody: { flex: 1, minWidth: 0 }, rankBadge: { height: 46, marginRight: 9, width: 46 }, rankName: { fontSize: 16, fontWeight: "900", marginBottom: 4, marginTop: 2 },
+  rankProgress: { alignSelf: "stretch", backgroundColor: "rgba(27,18,15,0.98)", borderColor: "#FFD06A", borderRadius: 12, borderWidth: 1, elevation: 6, marginTop: 8, padding: 11, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 7 }, rankProgressInner: { alignItems: "center", flexDirection: "row" }, rankProgressBody: { flex: 1, minWidth: 0 }, rankBadge: { height: 42, marginRight: 10, width: 42 }, rankName: { fontSize: 16, fontWeight: "900", marginBottom: 4, marginTop: 2 },
   notice: { alignItems: "center", backgroundColor: "rgba(31,14,11,0.98)", borderRadius: 12, borderWidth: 1.5, elevation: 6, marginTop: 7, paddingHorizontal: 13, paddingVertical: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 7, width: "100%" }, noticeEyebrow: { color: "#E7B565", fontSize: 9, fontWeight: "900", letterSpacing: 1.2, textAlign: "center" }, noticeTitle: { fontSize: 17, fontWeight: "900", marginTop: 3, textAlign: "center" }, noticeDetail: { color: "#C8A98A", fontSize: 8, fontWeight: "800", letterSpacing: 0.25, marginTop: 3, textAlign: "center" },
   tournamentProgress: { backgroundColor: "rgba(16,11,12,0.98)", borderColor: "rgba(226,147,55,0.55)", borderRadius: 12, borderWidth: 1, elevation: 5, marginTop: 7, padding: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 7, width: "100%" }, tournamentScore: { color: "#FFF0D7", fontSize: 12, fontWeight: "900", marginBottom: 5, marginTop: 4, textAlign: "center" },
-  actions: { marginTop: 5, width: "100%" }, continueButton: { marginBottom: 3, marginTop: 8 }, secondaryActions: { flexDirection: "row", gap: 8, justifyContent: "center", minWidth: 0 }, secondaryButton: { flex: 1, marginBottom: 0, marginTop: 0, minWidth: 0 },
+  stash: { alignSelf: "stretch", backgroundColor: "rgba(22,14,12,0.98)", borderColor: "rgba(237,157,54,0.58)", borderRadius: 12, borderWidth: 1, marginTop: 8, paddingHorizontal: 11, paddingVertical: 12 }, stashText: { color: "#FFF0D7", fontSize: 12, fontWeight: "900", lineHeight: 18, marginTop: 5, textAlign: "center" },
+  actions: { alignSelf: "stretch", marginTop: 4 }, returnButton: { marginBottom: 0, marginTop: 10 },
 });

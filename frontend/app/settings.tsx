@@ -98,6 +98,7 @@ export default function SettingsScreen() {
       </FirePanel>
 
       <FirePanel title="SUPPORT" subtitle={`Beta support · ${SUPPORT_EMAIL}`} elevated>
+        <FireButton fullWidth title="CRUISE DUCK BONUS" variant="gold" onPress={() => router.push("/promotions" as never)} />
         <FireButton fullWidth title="PRIVACY POLICY" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "privacy" } })} />
         <FireButton fullWidth title="TERMS OF SERVICE" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "terms" } })} />
         <FireButton fullWidth title="GAMEPLAY & HEALTH DISCLAIMER" variant="ghost" onPress={() => router.push({ pathname: "/legal/[document]", params: { document: "disclaimer" } })} />

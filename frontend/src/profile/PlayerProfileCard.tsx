@@ -4,11 +4,11 @@ import AvatarRenderer from "./AvatarRenderer";
 import type { PlayerIdentity } from "./PlayerIdentity";
 import FireProgressBar from "../components/fire/FireProgressBar";
 
-type Props = { identity: PlayerIdentity; rank: string; rankColor: string; level: number; xp: number; progress: number; progressMax: number; coins: number; wins: number; matches: number; streak: number; achievementCompleted: number; achievementTotal: number };
-export default function PlayerProfileCard({ identity, rank, rankColor, level, xp, progress, progressMax, coins, wins, matches, streak, achievementCompleted, achievementTotal }: Props) {
+type Props = { identity: PlayerIdentity; equippedGearSlots?: Partial<Record<"hat" | "apron" | "outfit", string>>; rank: string; rankColor: string; level: number; xp: number; progress: number; progressMax: number; coins: number; wins: number; matches: number; streak: number; achievementCompleted: number; achievementTotal: number };
+export default function PlayerProfileCard({ identity, equippedGearSlots, rank, rankColor, level, xp, progress, progressMax, coins, wins, matches, streak, achievementCompleted, achievementTotal }: Props) {
   const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
   return <View style={[styles.card, { borderColor: rankColor }]}>
-    <View style={styles.hero}><AvatarRenderer configuration={identity.avatar} size={116} /><View style={styles.identity}><Text style={styles.name}>{identity.gamerName}</Text><Text style={[styles.rank, { color: rankColor }]}>{rank.toUpperCase()}</Text><Text style={styles.level}>LEVEL {level} · {xp.toLocaleString()} XP</Text><FireProgressBar compact max={progressMax} value={progress} variant="xp" /></View></View>
+    <View style={styles.hero}><AvatarRenderer configuration={identity.avatar} equippedGearSlots={equippedGearSlots} size={116} /><View style={styles.identity}><Text style={styles.name}>{identity.gamerName}</Text><Text style={[styles.rank, { color: rankColor }]}>{rank.toUpperCase()}</Text><Text style={styles.level}>LEVEL {level} · {xp.toLocaleString()} XP</Text><FireProgressBar compact max={progressMax} value={progress} variant="xp" /></View></View>
     <View style={styles.metrics}><Metric label="COINS" value={coins.toLocaleString()} /><Metric label="WIN RATE" value={`${winRate}%`} /><Metric label="DAILY STREAK" value={`${streak} DAYS`} /></View>
     <View style={styles.details}><Detail label="FAVORITE FOOD" value="COMING SOON" /><Detail label="FAVORITE RESTAURANT" value="COMING SOON" /><Detail label="ACHIEVEMENTS" value={`${achievementCompleted} / ${achievementTotal}`} /><Detail label="SEASON" value="BETA SEASON" /></View>
   </View>;

@@ -1,0 +1,145 @@
+diff --git a/frontend/app/play/[contestId].tsx b/frontend/app/play/[contestId].tsx
+--- a/frontend/app/play/[contestId].tsx
++++ b/frontend/app/play/[contestId].tsx
+@@ -125,6 +125,7 @@
+   matchStats,
+   captureRecoveryState,
+   resumeGame,
++  synchronizeMatchClock,
+ } = useGameLoop({
+   duration: matchDurationSeconds,
+   matchKey: matchRouteKey,
+@@ -579,13 +580,18 @@
+   }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
+ 
+   useEffect(() => {
++    let mounted = true;
++    let lifecycleGeneration = 0;
+     const subscription = AppState.addEventListener("change", (nextState) => {
++      const generation = ++lifecycleGeneration;
+       if (nextState !== "active" && (state.status === "COUNTDOWN" || state.status === "PLAYING")) {
+         void inputLogPersistence.flush(inputLog, captureRecoveryState(inputLog.elapsed()));
+         return;
+       }
+       if (nextState !== "active" || (state.status !== "COUNTDOWN" && state.status !== "PLAYING")) return;
++      synchronizeMatchClock();
+       void api.activeMatch().then((recovery) => {
++        if (!mounted || generation !== lifecycleGeneration) return;
+         if (
+           recovery.status !== "resumable"
+           || recovery.match_id !== serverMatchId.current
+@@ -596,8 +602,8 @@
+         // A transient resume check must not interrupt an otherwise active round.
+       });
+     });
+-    return () => subscription.remove();
+-  }, [captureRecoveryState, inputLog, inputLogPersistence, state.status]);
++    return () => { mounted = false; subscription.remove(); };
++  }, [captureRecoveryState, inputLog, inputLogPersistence, state.status, synchronizeMatchClock]);
+ 
+   useEffect(() => {
+     if (state.status !== "PLAYING") return;
+diff --git a/frontend/src/game/useGameLoop.ts b/frontend/src/game/useGameLoop.ts
+--- a/frontend/src/game/useGameLoop.ts
++++ b/frontend/src/game/useGameLoop.ts
+@@ -194,6 +194,7 @@
+   const heartburnRef = useRef(0);
+   const heatTierRef = useRef<HeatTier>("COOL");
+   const timeRemainingRef = useRef(resolvedMatchDuration);
++  const matchDeadlineRef = useRef<number | null>(null);
+   const matchKeyRef = useRef(matchKey);
+   const matchGenerationRef = useRef(0);
+   const mountedRef = useRef(true);
+@@ -574,6 +575,7 @@
+     heartburnRef.current = 0;
+     heatTierRef.current = "COOL";
+     timeRemainingRef.current = resolvedMatchDuration;
++    matchDeadlineRef.current = null;
+     statusRef.current = "IDLE";
+     heatProtectionEndsAtRef.current = 0;
+     freshStomachEndsAtRef.current = 0;
+@@ -647,6 +649,16 @@
+       freshStomachMultiplier: 1,
+     }));
+   }, [opponentConfig?.finalScore, stopAllTimers]);
++
++  const synchronizeMatchClock = useCallback(() => {
++    if (statusRef.current !== "PLAYING" || matchDeadlineRef.current === null) return;
++    const now = Date.now();
++    const nextTime = Math.max(0, Math.ceil((matchDeadlineRef.current - now) / 1000));
++    timeRemainingRef.current = nextTime;
++    setTimeRemaining(nextTime);
++    if (nextTime === 0) endGame();
++    else applyReplayCoolingUntil(now);
++  }, [applyReplayCoolingUntil, endGame]);
+ 
+   const startOpponentLoop = useCallback(() => {
+     if (opponentTimerRef.current) clearInterval(opponentTimerRef.current);
+@@ -701,6 +713,11 @@
+         countdownHideTimerRef.current = null;
+       }, 700);
+       statusRef.current = "PLAYING";
++      matchDeadlineRef.current = Date.now() + resolvedMatchDuration * 1000;
++      const generation = matchGenerationRef.current;
++      recoveryDeadlineTimerRef.current = setTimeout(() => {
++        if (generation === matchGenerationRef.current && statusRef.current === "PLAYING") endGame();
++      }, resolvedMatchDuration * 1000);
+       setState((old) => ({ ...old, status: "PLAYING" }));
+       startOpponentLoop();
+       startCoolingLoop();
+@@ -712,16 +729,13 @@
+           freshStomachRemainingMs: Math.max(0, freshStomachEndsAtRef.current - now),
+           freshStomachMultiplier: freshStomachEndsAtRef.current > now ? FRESH_STOMACH_SCORE_MULTIPLIER : 1,
+         }));
+-        const nextTime = Math.max(0, timeRemainingRef.current - 1);
+-        timeRemainingRef.current = nextTime;
+-        setTimeRemaining(nextTime);
+         // Never schedule the terminal state transition from inside another
+         // React state updater. React may replay or discard updater work while
+         // still committing the visible 0:00 clock.
+-        if (nextTime === 0) endGame();
++        synchronizeMatchClock();
+       }, 1000);
+     }, 1000);
+-  }, [endGame, resetMatch, startCoolingLoop, startOpponentLoop]);
++  }, [endGame, resetMatch, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, synchronizeMatchClock]);
+ 
+   const captureRecoveryState = useCallback((elapsedMs: number): GameplayRecoveryState => {
+     const now = Date.now();
+@@ -818,6 +832,7 @@
+     warningEndsAtRef.current = warningUntil > elapsedMs ? now + warningUntil - elapsedMs : 0;
+     penaltyEndsAtRef.current = penaltyUntil > elapsedMs ? now + penaltyUntil - elapsedMs : 0;
+     const remainingMs = finished ? 0 : Math.max(0, resolvedMatchDuration * 1000 - elapsedMs);
++    matchDeadlineRef.current = now + remainingMs;
+     const remaining = Math.ceil(remainingMs / 1000);
+     timeRemainingRef.current = remaining;
+     statusRef.current = remaining > 0 ? "PLAYING" : "FINISHED";
+@@ -851,19 +866,13 @@
+       if (penaltyEndsAtRef.current > now) penaltyTimerRef.current = setTimeout(() => finishOverheatPenalty(generation), penaltyEndsAtRef.current - now);
+       startOpponentLoop();
+       startCoolingLoop();
+-      const deadline = now + remainingMs;
+       recoveryDeadlineTimerRef.current = setTimeout(() => {
+         if (generation === matchGenerationRef.current && statusRef.current === "PLAYING") endGame();
+       }, remainingMs);
+-      gameTimerRef.current = setInterval(() => {
+-        const nextTime = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+-        timeRemainingRef.current = nextTime;
+-        setTimeRemaining(nextTime);
+-        if (nextTime === 0) endGame();
+-      }, 1000);
++      gameTimerRef.current = setInterval(synchronizeMatchClock, 1000);
+     }
+     return true;
+-  }, [applyOverheatPenalty, endGame, finishOverheatPenalty, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers]);
++  }, [applyOverheatPenalty, endGame, finishOverheatPenalty, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers, synchronizeMatchClock]);
+ 
+   const tap = useCallback((occurredAt?: number): number | null => {
+     const now = occurredAt ?? Date.now();
+@@ -979,5 +988,6 @@
+     applyAntacid,
+     captureRecoveryState,
+     resumeGame,
++    synchronizeMatchClock,
+   };
+ }

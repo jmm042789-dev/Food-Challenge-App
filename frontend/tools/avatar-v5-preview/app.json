@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Fire Feast Avatar V5 Proof Preview",
+    "slug": "fire-feast-avatar-v5-proof-preview",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "android": { "package": "com.firefeast.avatarv5proofpreview" },
+    "ios": { "bundleIdentifier": "com.firefeast.avatarv5proofpreview" }
+  }
+}

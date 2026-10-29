@@ -126,7 +126,7 @@ class MatchLifecycleTests(unittest.TestCase):
     def test_expired_match_cannot_grant_rewards(self):
         settle = Mock()
         with (
-            patch.object(match_service, "find_internal_player", return_value={"device_id": "player-a"}),
+            patch.object(match_service, "find_internal_player", return_value={"device_id": "player-a", "active_match": active_match(age_seconds=1000)}),
             patch.object(match_service, "expire_stale_match", return_value=True),
             patch.object(match_service, "settle_player_match", settle),
             self.assertRaises(match_service.MatchExpiredError),

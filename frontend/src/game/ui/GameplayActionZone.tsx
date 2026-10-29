@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import type { BiteMechanic } from "../../api";
 import type { FoodProfile } from "../food/FoodProfiles";
 import type { HeatTier } from "../heartburn";
+import type { GameplayInputEvidence } from "../inputContract";
 import { resolveActionControlKind } from "./actionControlSelection";
 import HoldReleaseActionControl from "./HoldReleaseActionControl";
 import RapidActionControl from "./RapidActionControl";
@@ -18,7 +19,7 @@ type Props = {
   overheatWarningActive: boolean;
   reducedMotion: boolean;
   resetKey: string;
-  onAction: () => number | null;
+  onAction: (evidence: GameplayInputEvidence) => number | null;
   onHoldStateChange?: (holding: boolean) => void;
   swipeGesture?: FoodProfile["swipeGesture"];
 };

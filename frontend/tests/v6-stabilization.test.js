@@ -43,7 +43,7 @@ test("all mapped gameplay food sprites and Blaze are alpha PNGs", () => {
 
 test("immersive status bar is scoped to the play route", () => {
   const source = fs.readFileSync(path.join(__dirname, "../app/_layout.tsx"), "utf8");
-  assert.match(source, /hidden=\{segments\[0\] === "play"\}/);
+  assert.match(source, /<StatusBar animated hidden style="light" \/>/);
 });
 
 test("Shop and Locker resolve authoritative gear and cosmetic state identically", () => {
@@ -64,9 +64,9 @@ test("gameplay HUD reserves compact center space on representative Android width
   assert.deepEqual(resolveMatchHudLayout(412), { centerWidth: 72, horizontalPadding: 9 });
 });
 
-test("leaderboard uses a compact natural-flow podium without fixed vertical fill", () => {
+test("leaderboard uses compact natural-flow ranking cards without fixed vertical fill", () => {
   const source = fs.readFileSync(path.join(__dirname, "../app/(tabs)/leaderboard.tsx"), "utf8");
-  assert.match(source, /crown:\{fontSize:34\}/);
-  assert.match(source, /padding:10/);
-  assert.doesNotMatch(source, /flexGrow|minHeight|height:\s*\d{3}/);
+  assert.match(source, /minHeight: 66/);
+  assert.match(source, /padding: 10/);
+  assert.doesNotMatch(source, /flexGrow|height:\s*\d{3}/);
 });

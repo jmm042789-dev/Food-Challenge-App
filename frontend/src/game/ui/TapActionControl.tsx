@@ -1,7 +1,8 @@
 import React, { memo, useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 
 import type { HeatTier } from "../heartburn";
+import { normalizedCoordinate, type GameplayInputEvidence } from "../inputContract";
 
 export type TapActionControlProps = {
   active: boolean;
@@ -9,7 +10,7 @@ export type TapActionControlProps = {
   heatTier: HeatTier;
   overheatWarningActive: boolean;
   reducedMotion: boolean;
-  onAction: () => number | null;
+  onAction: (evidence: GameplayInputEvidence) => number | null;
   title?: string;
   subtitle?: string;
   energyTier?: 0 | 1 | 2 | 3;
@@ -36,6 +37,7 @@ function TapActionControl({
 }: TapActionControlProps) {
   const pressScale = useRef(new Animated.Value(1)).current;
   const impact = useRef(new Animated.Value(0)).current;
+  const controlSize = useRef({ width: 1, height: 1 });
 
   const animatePress = (pressed: boolean) => {
     pressScale.stopAnimation();
@@ -47,8 +49,8 @@ function TapActionControl({
     }).start();
   };
 
-  const triggerAction = () => {
-    const acceptedSequence = onAction();
+  const triggerAction = (event: GestureResponderEvent) => {
+    const acceptedSequence = onAction({ source: "CONTROL", x: normalizedCoordinate(event.nativeEvent.locationX, controlSize.current.width), y: normalizedCoordinate(event.nativeEvent.locationY, controlSize.current.height) });
     if (acceptedSequence === null) return;
     onAccepted?.(acceptedSequence);
     impact.stopAnimation();
@@ -74,6 +76,7 @@ function TapActionControl({
       accessibilityState={{ disabled: !active }}
       disabled={!active}
       onPress={triggerAction}
+      onLayout={(event: LayoutChangeEvent) => { controlSize.current = event.nativeEvent.layout; }}
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
       style={styles.touchTarget}
@@ -106,14 +109,14 @@ function TapActionControl({
 export default memo(TapActionControl);
 
 const styles = StyleSheet.create({
-  touchTarget: { alignItems: "center", height: 88, justifyContent: "center", maxWidth: 520, width: "84%" },
+  touchTarget: { alignItems: "center", height: 88, justifyContent: "center", maxWidth: 520, width: "78%" },
   softGlow: { backgroundColor: "rgba(255,106,33,0.2)", borderRadius: 28, bottom: 1, left: -7, position: "absolute", right: -7, shadowColor: "#FF6A21", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 14, top: 1 },
   comboGlow: { backgroundColor: "rgba(255,187,55,0.28)", shadowColor: "#FFC75A", shadowOpacity: 0.44 },
   disabledGlow: { opacity: 0 },
   impactGlow: { backgroundColor: "rgba(255,141,47,0.48)", borderRadius: 24, bottom: 1, left: -5, position: "absolute", right: -5, top: 1 },
   energyGlow: { backgroundColor: "rgba(255,187,55,0.58)" },
   maxGlow: { left: -8, right: -8 },
-  pad: { backgroundColor: "#24100B", borderColor: "#F09A37", borderRadius: 22, borderWidth: 3, elevation: 8, height: 76, justifyContent: "center", overflow: "hidden", shadowColor: "#FF6A21", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, width: "100%" },
+  pad: { backgroundColor: "#24100B", borderColor: "#F09A37", borderRadius: 20, borderWidth: 3, elevation: 8, height: 66, justifyContent: "center", overflow: "hidden", shadowColor: "#FF6A21", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, width: "100%" },
   padInset: { alignItems: "center", backgroundColor: "#B63B13", borderColor: "#FFB04B", borderRadius: 17, borderWidth: 2, bottom: 6, justifyContent: "center", left: 6, position: "absolute", right: 6, top: 6 },
   comboPad: { borderColor: "#FFC75A", shadowOpacity: 0.72 },
   energyPad: { borderColor: "#FFD35E", shadowOpacity: 0.78 },
@@ -121,6 +124,6 @@ const styles = StyleSheet.create({
   criticalPad: { borderColor: "#FF663D" },
   warningPad: { borderColor: "#FF8B53", shadowOpacity: 0.38 },
   disabledPad: { opacity: 0.42, shadowOpacity: 0 },
-  title: { color: "#FFF4D7", fontSize: 26, fontWeight: "900", letterSpacing: 1.6, lineHeight: 28 },
+  title: { color: "#FFF4D7", fontSize: 23, fontWeight: "900", letterSpacing: 1.5, lineHeight: 25 },
   subtitle: { color: "#FFD18A", fontSize: 8, fontWeight: "900", letterSpacing: 1.2, marginTop: 1 },
 });

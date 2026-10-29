@@ -57,7 +57,7 @@ test("a never-resolving request is aborted and rejects with a bounded timeout", 
       signal.addEventListener("abort", () => { aborted = true; });
       return new Promise(() => {});
     }, 15),
-    (error) => error instanceof ResultVerificationTimeoutError && error.code === "RESULT_VERIFICATION_TIMEOUT",
+    (error) => error instanceof ResultVerificationTimeoutError && error.code === "RESULT_REQUEST_TIMEOUT",
   );
   assert.equal(aborted, true);
 });

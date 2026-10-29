@@ -10,11 +10,12 @@ import { getFoodArtwork } from "../../assets/foodArtwork";
 type Props = {
   tournament: ActiveTournament;
   progress: TournamentPlayerProgress;
+  entryUnavailableReason: string | null;
   onEnter: () => void;
   onClaimReward: (rewardId: string) => void;
 };
 
-export default function TournamentPanel({ tournament, progress, onEnter, onClaimReward }: Props) {
+export default function TournamentPanel({ tournament, progress, entryUnavailableReason, onEnter, onClaimReward }: Props) {
   const restaurant = RESTAURANT_BY_ID.get(tournament.featuredRestaurantId);
   const artwork = getFoodArtwork(tournament.entryContestId || tournament.featuredFoods[0] || "");
   return (
@@ -33,24 +34,34 @@ export default function TournamentPanel({ tournament, progress, onEnter, onClaim
         <View style={styles.feature}><Text style={styles.label}>BEST SCORE</Text><Text style={styles.score}>{progress.bestScore.toLocaleString()}</Text></View>
       </View>
       <View style={styles.stats}><Text style={styles.stat}>{progress.matchesEntered} ENTERED</Text><Text style={styles.stat}>{progress.wins} WINS</Text><Text style={styles.stat}>x{progress.highestCombo} COMBO</Text></View>
-      <Text style={styles.rewardTitle}>REWARD PREVIEW</Text>
+      <Text style={styles.rewardTitle}>LOCAL MILESTONE</Text>
+      <Text style={styles.rewardTitle}>Saved on this device. Does not add account coins or XP.</Text>
       {tournament.rewardTable.map((reward) => {
         const claimed = progress.claimedRewardIds.includes(reward.id);
         const earned = progress.matchesEntered > 0 && progress.bestScore >= reward.minimumScore;
         return (
           <View key={reward.id} style={styles.rewardRow}>
             <View style={styles.rewardInfo}><Text style={styles.rewardLabel}>{reward.label}</Text><Text style={styles.rewardRequirement}>{reward.minimumScore ? `${reward.minimumScore}+ SCORE` : "ENTER 1 MATCH"}</Text></View>
-            <Text style={styles.rewardValue}>+{reward.coins} C · +{reward.xp} XP</Text>
-            {earned && !claimed ? <Pressable accessibilityRole="button" accessibilityLabel={`Claim ${reward.label} tournament reward`} onPress={() => onClaimReward(reward.id)} style={styles.claim}><Text style={styles.claimText}>CLAIM</Text></Pressable> : <Text style={[styles.rewardStatus, claimed && styles.claimed]}>{claimed ? "CLAIMED" : "LOCKED"}</Text>}
+            {earned && !claimed ? <Pressable accessibilityRole="button" accessibilityLabel={`Record ${reward.label} local milestone`} onPress={() => onClaimReward(reward.id)} style={styles.claim}><Text style={styles.claimText}>RECORD</Text></Pressable> : <Text style={[styles.rewardStatus, claimed && styles.claimed]}>{claimed ? "RECORDED" : "LOCKED"}</Text>}
           </View>
         );
       })}
-      <FireButton accessibilityLabel={`Enter ${tournament.name}`} title="ENTER TOURNAMENT" subtitle="PLAY WEEKLY EVENT" onPress={onEnter} fullWidth size="compact" variant="gold" style={styles.enter} />
+      {entryUnavailableReason ? <Text accessibilityRole="alert" style={styles.unavailable}>{entryUnavailableReason}</Text> : null}
+      <FireButton
+        accessibilityLabel={entryUnavailableReason ? `${tournament.name}: contest unavailable` : `Enter ${tournament.name}`}
+        accessibilityHint={entryUnavailableReason ?? undefined}
+        disabled={Boolean(entryUnavailableReason)}
+        title={entryUnavailableReason ? "CONTEST UNAVAILABLE" : "ENTER TOURNAMENT"}
+        subtitle={entryUnavailableReason ? undefined : "PLAY WEEKLY EVENT"}
+        onPress={() => { if (!entryUnavailableReason) onEnter(); }}
+        fullWidth size="compact" variant="gold" style={styles.enter}
+      />
     </FirePanel>
   );
 }
 
 const styles = StyleSheet.create({
+  unavailable: { color: "#F5D9AE", fontSize: 13, lineHeight: 19, marginTop: 10 },
   panel: { marginBottom: 10, padding: 10 }, header: { alignItems: "center", flexDirection: "row" },
   art: { alignItems: "center", backgroundColor: "#5D260E", borderColor: "#F0A342", borderRadius: 10, borderWidth: 1, height: 60, justifyContent: "center", marginRight: 9, width: 60 },
   artImage: { height: 66, width: 66 }, heading: { flex: 1, minWidth: 0 },

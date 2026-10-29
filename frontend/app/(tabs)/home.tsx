@@ -16,14 +16,14 @@ import DailyMissionCard from "../../src/components/fire/DailyMissionCard";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import RestaurantIdentity from "../../src/game/ui/RestaurantIdentity";
 import SponsorStrip from "../../src/game/ui/SponsorStrip";
-import { BELTS, beltForXp, nextBelt } from "../../src/ranks";
+import { resolveOfficialProgression } from "../../src/ranks";
 import { useDailyMissions } from "../../src/missions/useDailyMissions";
 import { usePlayerBalance } from "../../src/playerBalance";
 import { useContestEntry } from "../../src/game/useContestEntry";
 import { useAchievements } from "../../src/achievements/useAchievements";
 import type { DailySpinStatus } from "../../src/retention/DailyRewards";
 
-type Player = { coins?: number; xp?: number };
+type Player = { coins?: number; xp?: number; level?: number };
 
 const WELCOME_COIN = require("../../src/assets/icons/coin.png");
 const WELCOME_ANTACID = require("../../src/assets/icons/antacid.png");
@@ -135,7 +135,7 @@ export default function HomeScreen() {
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [contests, setContests] = useState<Contest[]>([]);
-  const [player, setPlayer] = useState<Player>({ coins: 0, xp: 0 });
+  const [player, setPlayer] = useState<Player>({});
   const coins = usePlayerBalance(Number(player.coins ?? 0));
   const [showWelcome, setShowWelcome] = useState(welcome === "1");
   const { state: dailyMissionState, refresh: refreshMissions, claim: claimMission } = useDailyMissions();
@@ -157,7 +157,7 @@ export default function HomeScreen() {
       setDailyRewardReady(status.eligible === true);
       setShowDailySpin(status.eligible === true);
     }).catch(() => setDailyRewardReady(false));
-    void api.getPlayer().then((nextPlayer) => setPlayer(nextPlayer as Player)).catch(() => {
+    void api.getPlayer().then((nextPlayer) => setPlayer((previous) => resolveOfficialProgression(nextPlayer as Player).available || !resolveOfficialProgression(previous).available ? nextPlayer as Player : previous)).catch(() => {
       // Preserve the last confirmed server value when refresh fails.
     });
   }, [refreshAchievements, refreshMissions]));
@@ -178,7 +178,7 @@ export default function HomeScreen() {
       } else {
         setLoadError(true);
       }
-      if (playerResult.status === "fulfilled" && playerResult.value) setPlayer(playerResult.value as Player);
+      if (playerResult.status === "fulfilled" && playerResult.value) setPlayer((previous) => resolveOfficialProgression(playerResult.value as Player).available || !resolveOfficialProgression(previous).available ? playerResult.value as Player : previous);
       setLoading(false);
     }
     loadHome();
@@ -188,11 +188,7 @@ export default function HomeScreen() {
   if (loading) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireLoading title="Loading Arena..." subtitle="Preparing today's contests." /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} /></View>;
   if (!contests.length) return <View style={styles.screen}><ArcadeBackground active={isFocused} /><FireEmptyState icon={loadError ? "!" : "🍽️"} title={loadError ? "Arena Unavailable" : "No Contests Available"} message={loadError ? "We couldn't reach Fire Feast. Check your connection and try again." : "Check back again soon."} buttonLabel={loadError ? "RETRY" : undefined} onPress={loadError ? () => setLoadAttempt((current) => current + 1) : undefined} /><WelcomeRewardModal visible={showWelcome} onDismiss={dismissWelcome} /><DailySpinModal visible={showDailySpin && !showWelcome} onLater={() => setShowDailySpin(false)} onSpin={() => router.push("/daily-rewards")} /></View>;
 
-  const xp = Number(player.xp ?? 0) + (dailyMissionState?.claimedRewards.xp ?? 0);
-  const belt = beltForXp(xp);
-  const next = nextBelt(xp);
-  const level = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);
-  const nextLevelXp = next?.min_xp ?? Math.max(xp, 1);
+  const official = resolveOfficialProgression(player);
   const [featured, ...upcoming] = contests;
 
   return (
@@ -200,7 +196,7 @@ export default function HomeScreen() {
       <ArcadeBackground active={isFocused} />
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 8) }]} showsVerticalScrollIndicator={false}>
         <FireScreenEntrance duration="fast" distance={8}>
-          <FireHeader level={level} xp={xp} nextLevelXp={nextLevelXp} coins={coins} />
+          <FireHeader progression={official} coins={coins} />
         </FireScreenEntrance>
         <FireScreenEntrance delay={35} duration="fast" distance={6}>
           <View style={styles.quickActions}>
@@ -231,7 +227,6 @@ export default function HomeScreen() {
                   title={mission.title}
                   progress={mission.currentProgress}
                   maxProgress={mission.goal}
-                  reward={`+${mission.reward.coins} COINS  +${mission.reward.xp} XP`}
                   completed={mission.completed}
                   claimed={mission.claimed}
                   onClaim={() => { void claimMission(mission.id); }}

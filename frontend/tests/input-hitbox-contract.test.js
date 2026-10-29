@@ -47,18 +47,18 @@ test("controls pass raw normalized evidence into the one accepted-action callbac
 
 test("play checks log capacity before gameplay mutation and records accepted evidence once", () => {
   const source = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
-  const capacity = source.indexOf("if (!inputLog.canRecord()) return null");
+  const capacity = source.indexOf("if (!canRecord) return null");
   const mutation = source.indexOf("const acceptedActionSequence = tapLatest(actionNow)");
-  const record = source.indexOf("inputLog.record(actionType, evidence, actionNow)");
+  const record = source.indexOf("inputLog.recordAtElapsed(actionType, evidence, eventTime)");
   assert.ok(capacity > 0 && capacity < mutation && mutation < record);
-  assert.equal((source.match(/inputLog\.record\(actionType, evidence, actionNow\)/g) ?? []).length, 1);
+  assert.equal((source.match(/inputLog\.recordAtElapsed\(actionType, evidence, eventTime\)/g) ?? []).length, 1);
 });
 
 test("rejected controls and non-controls cannot append input evidence", () => {
   const play = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
   const food = fs.readFileSync(path.join(__dirname, "../src/game/ui/FoodArena.tsx"), "utf8");
   const rejected = play.indexOf("if (acceptedActionSequence === null) return null");
-  const record = play.indexOf("inputLog.record(actionType, evidence, actionNow)");
+  const record = play.indexOf("inputLog.recordAtElapsed(actionType, evidence, eventTime)");
 
   assert.ok(rejected > 0 && rejected < record);
   assert.doesNotMatch(food, /inputLog\.|source: "FOOD"/);

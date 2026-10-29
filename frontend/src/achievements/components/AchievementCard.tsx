@@ -8,7 +8,7 @@ type Props = { definition: AchievementDefinition; progress: AchievementProgress;
 
 export default function AchievementCard({ definition, progress, onClaim }: Props) {
   const shownProgress = Math.min(progress.currentProgress, progress.goal);
-  const status = progress.claimed ? "CLAIMED" : progress.completed ? "COMPLETED" : definition.tier ?? definition.category;
+  const status = progress.claimed ? "RECORDED" : progress.completed ? "COMPLETED" : definition.tier ?? definition.category;
   return (
     <View accessible accessibilityLabel={`${definition.title}. ${definition.description}. ${shownProgress} of ${progress.goal}. ${status}.`} style={[styles.card, progress.completed && styles.completeCard]}>
       <View style={styles.header}>
@@ -21,9 +21,9 @@ export default function AchievementCard({ definition, progress, onClaim }: Props
       <FireProgressBar value={shownProgress} max={progress.goal} variant={progress.completed ? "xp" : "combo"} compact />
       <View style={styles.footer}>
         <Text style={styles.progress}>{shownProgress.toLocaleString()} / {progress.goal.toLocaleString()}</Text>
-        <Text style={styles.reward}>+{definition.reward.coins} COINS  +{definition.reward.xp} XP</Text>
+        <Text style={styles.reward}>LOCAL MILESTONE{ "\n" }Saved on this device. Does not add account coins or XP.</Text>
         {progress.completed && !progress.claimed ? (
-          <FireButton accessibilityLabel={`Claim ${definition.title} achievement reward`} title="CLAIM" onPress={onClaim} size="compact" variant="gold" style={styles.claim} />
+          <FireButton accessibilityLabel={`Record ${definition.title} local milestone`} title="RECORD" onPress={onClaim} size="compact" variant="gold" style={styles.claim} />
         ) : null}
       </View>
     </View>

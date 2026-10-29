@@ -9,9 +9,29 @@ function isValidDuration(value) {
   return Number.isInteger(value) && value >= 0 && value <= 5000;
 }
 
-function hasValidInputEvidence(event) {
+function hasValidInputEvidence(event, mechanic, contestId) {
   if (event.type === "ANTACID") return true;
   if (event.source !== "CONTROL" && event.source !== "FOOD") return false;
+  if (mechanic !== undefined) {
+    const swipe = mechanic === "slice" || mechanic === "swipe";
+    if (event.type !== (swipe ? "SLICE" : "BITE")) return false;
+    if (swipe || mechanic === "hold_release") {
+      if (event.source !== "CONTROL"
+        || !isFiniteNormalized(event.start_x) || !isFiniteNormalized(event.start_y)
+        || !isFiniteNormalized(event.end_x) || !isFiniteNormalized(event.end_y)
+        || !Number.isInteger(event.duration_ms)) return false;
+      if (!swipe) return event.duration_ms >= 300 && event.duration_ms <= 900;
+      const wings = contestId === "wing-bowl";
+      const distance = Math.abs(event.end_x - event.start_x);
+      const offAxis = Math.abs(event.end_y - event.start_y) / Math.max(distance, 0.0001);
+      return distance >= (wings ? 0.18 : 0.3)
+        && event.duration_ms >= (wings ? 50 : 140)
+        && event.duration_ms <= (wings ? 320 : 700)
+        && offAxis <= (wings ? 0.6 : 0.75);
+    }
+    return isFiniteNormalized(event.x) && isFiniteNormalized(event.y)
+      && (event.source !== "FOOD" || ((event.x - 0.5) / 0.5) ** 2 + ((event.y - 0.5) / 0.46) ** 2 <= 1);
+  }
   if (event.type === "SLICE") {
     return isFiniteNormalized(event.start_x)
       && isFiniteNormalized(event.start_y)
@@ -36,6 +56,7 @@ function createInputLogBuffer(clock = Date.now, options = {}) {
   let maximumElapsed = 86400000;
   let events = [];
   let frozen = null;
+  let recoveryElapsedMs = null;
   const requireExplicitTimestamps = options.requireExplicitTimestamps ?? true;
 
   const elapsedFor = (timestamp, clampToMaximum = true) => {
@@ -44,6 +65,22 @@ function createInputLogBuffer(clock = Date.now, options = {}) {
     return clampToMaximum ? Math.min(maximumElapsed, calculated) : calculated;
   };
   const elapsed = () => elapsedFor(clock(), true);
+  const orderedElapsed = (currentElapsed) => {
+    const prior = events[events.length - 1];
+    return prior ? Math.max(prior.t_ms, currentElapsed) : currentElapsed;
+  };
+  const recordAtElapsed = (type, evidence = {}, t_ms) => {
+    if (startedAt === null || frozen || events.length >= MAX_INPUT_EVENTS) return false;
+    if (!Number.isInteger(t_ms) || t_ms < 0 || t_ms < (events.at(-1)?.t_ms ?? 0)) return false;
+    const event = { seq: events.length + 1, t_ms, type };
+    for (const [key, value] of Object.entries(evidence)) {
+      if (key !== "seq" && key !== "t_ms" && key !== "type") event[key] = value;
+    }
+    const frozenEvent = Object.freeze(event);
+    if (!hasValidInputEvidence(frozenEvent)) return false;
+    events.push(frozenEvent);
+    return true;
+  };
 
   return {
     start(maximumElapsedMs = maximumElapsed, originTimestamp = null) {
@@ -74,26 +111,32 @@ function createInputLogBuffer(clock = Date.now, options = {}) {
         ? originTimestamp
         : clock();
       if (snapshot.finalized) frozen = Object.freeze(events.slice());
+      recoveryElapsedMs = authoritativeElapsedMs;
       return true;
     },
     canRecord() {
       return startedAt !== null && !frozen && events.length < MAX_INPUT_EVENTS;
+    },
+    eventTimeFor(timestamp) { return orderedElapsed(elapsedFor(timestamp, false)); },
+    events() { return Object.freeze(events.slice()); },
+    recordAtElapsed,
+    // Diagnostic-only view: no clock reads, writes, or authoritative fields.
+    getDiagnostics(timestamp) {
+      return Object.freeze({
+        startedAt,
+        elapsedBase,
+        recovered: recoveryElapsedMs !== null,
+        authoritativeElapsedMs: recoveryElapsedMs,
+        nextSequence: events.length + 1,
+        event_t_ms: orderedElapsed(elapsedFor(timestamp, false)),
+      });
     },
     record(type, evidence = {}, occurredAt = null) {
       if (startedAt === null || frozen || events.length >= MAX_INPUT_EVENTS) return false;
       const hasExplicitTimestamp = typeof occurredAt === "number" && Number.isFinite(occurredAt);
       if (requireExplicitTimestamps && !hasExplicitTimestamp) return false;
       const currentElapsed = hasExplicitTimestamp ? elapsedFor(occurredAt, false) : elapsed();
-      const prior = events[events.length - 1];
-      const event = Object.freeze({
-        seq: events.length + 1,
-        t_ms: prior ? Math.max(prior.t_ms, currentElapsed) : currentElapsed,
-        type,
-        ...evidence,
-      });
-      if (!hasValidInputEvidence(event)) return false;
-      events.push(event);
-      return true;
+      return recordAtElapsed(type, evidence, orderedElapsed(currentElapsed));
     },
     finish() {
       if (!frozen) frozen = Object.freeze(events.slice());
@@ -115,6 +158,7 @@ function createInputLogBuffer(clock = Date.now, options = {}) {
       maximumElapsed = 86400000;
       events = [];
       frozen = null;
+      recoveryElapsedMs = null;
     },
   };
 }

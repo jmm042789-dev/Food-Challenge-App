@@ -28,16 +28,17 @@ test("FoodArena renders one aspect-preserving sprite without rectangular segment
 
 test("achievement cards stay compact without dropping descriptions, progress, rewards, or claims", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/achievements/components/AchievementCard.tsx"), "utf8");
-  for (const content of ["definition.description", "FireProgressBar", "definition.reward.coins", "definition.reward.xp", 'title="CLAIM"']) {
+  for (const content of ["definition.description", "FireProgressBar", "LOCAL MILESTONE", "Does not add account coins or XP", 'title="RECORD"', '"RECORDED"']) {
     assert.ok(source.includes(content), content);
   }
   assert.match(source, /paddingHorizontal: 8, paddingVertical: 6/);
   assert.match(source, /minHeight: 44/);
 });
 
-test("fullscreen remains scoped to play without an unsupported navigation-bar native dependency", () => {
+test("fullscreen is applied globally through the supported Expo navigation-bar dependency", () => {
   const layout = fs.readFileSync(path.join(__dirname, "../app/_layout.tsx"), "utf8");
   const pkg = fs.readFileSync(path.join(__dirname, "../package.json"), "utf8");
-  assert.match(layout, /hidden=\{segments\[0\] === "play"\}/);
-  assert.doesNotMatch(pkg, /expo-navigation-bar/);
+  assert.match(layout, /<StatusBar animated hidden style="light" \/>/);
+  assert.match(layout, /useAndroidImmersiveMode\(\)/);
+  assert.match(pkg, /expo-navigation-bar/);
 });

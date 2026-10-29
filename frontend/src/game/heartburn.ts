@@ -1,4 +1,5 @@
 import { COMPLETED_FOOD_BONUS_HEAT, DEFAULT_HEARTBURN, HEAT_MULTIPLIERS, OVERHEAT_TIME, RECOVERY_HEAT } from "./balance";
+import { BURNOUT_DURATION_MS } from "./burnoutPolicy";
 
 export type HeatTier = "COOL" | "WARM" | "HOT" | "CRITICAL" | "OVERHEATED";
 
@@ -12,7 +13,9 @@ export const COOLING_PER_SECOND = 9;
 export const MAX_HEARTBURN = 100;
 export const OVERHEAT_WARNING_DURATION_MS = 2000;
 export const OVERHEAT_RESET_HEAT = 68;
-export const OVERHEAT_PENALTY_MS = 850;
+// The warning remains the Antacid save window. Once it expires, burnout is a
+// deterministic scoring lockout shared with authoritative server replay.
+export const OVERHEAT_PENALTY_MS = BURNOUT_DURATION_MS;
 export const ANTACID_CRITICAL_THRESHOLD = 85;
 export const ANTACID_PROMPT_THRESHOLD = 90;
 export const REPEATED_OVERHEAT_WINDOW_MS = 5000;
@@ -47,8 +50,7 @@ export function coolHeartburn(heartburn: number, elapsedMs: number): number {
 }
 
 export function getOverheatCombo(combo: number, now: number, lastOverheatAt: number): number {
-  if (lastOverheatAt > 0 && now - lastOverheatAt <= REPEATED_OVERHEAT_WINDOW_MS) return 0;
-  return Math.floor(Math.max(0, combo) * 0.5);
+  return 0;
 }
 
 export function canConsumeAntacid(inventory: number, status: string, heartburn: number, protectedUntil: number, now: number): boolean {

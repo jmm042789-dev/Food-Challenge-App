@@ -1,0 +1,14 @@
+{
+    "schema_version":  1,
+    "status":  "PASS",
+    "method":  "Independent PowerShell/.NET SHA-256 and full resolved-inventory membership verification; no Python-generator hash reuse.",
+    "derivative_manifest_sha256":  "c30b64081cedc7d1f7b76732535b0b3e2fc43957e8ad54b1557b0ce4f27e9418",
+    "source_inventory_sha256":  "d8490427bd9bb9fc900b079b1bfe23669b1f242d6a39492e788ce009b6172bb7",
+    "resolved_files":  568,
+    "sole_changed_source_file":  "frontend/eas.json",
+    "eas_sha256":  "bdc98db0b78b5c9af935a15948ce1f49f4e995227e233bca67c3311b1cbf49e3",
+    "reverse_two_approved_edits_matches_parent":  true,
+    "prior_evidence_and_historical_anchors_unchanged":  true,
+    "git_index_head_branch_and_existing_status_unchanged":  true,
+    "qualifications":  "Offline source/configuration qualification only; unsigned and no external trust anchor. No build, network, provider, signing or device validation performed."
+}

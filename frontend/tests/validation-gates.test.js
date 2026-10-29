@@ -10,7 +10,7 @@ test("default frontend test command uses cross-platform Node discovery", () => {
   const packageJson = JSON.parse(
     fs.readFileSync(path.join(frontendRoot, "package.json"), "utf8"),
   );
-  assert.equal(packageJson.scripts.test, "node --test");
+  assert.equal(packageJson.scripts.test, "node --test --test-concurrency=1");
   assert.doesNotMatch(packageJson.scripts.test, /[*?]/);
 });
 

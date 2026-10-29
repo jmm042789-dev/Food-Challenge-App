@@ -12,7 +12,6 @@ type Props = {
   title: string;
   progress: number;
   maxProgress: number;
-  reward: string;
   completed?: boolean;
   claimed?: boolean;
   onClaim?: () => void;
@@ -23,7 +22,6 @@ export default function DailyMissionCard({
   title,
   progress,
   maxProgress,
-  reward,
   completed = false,
   claimed = false,
   onClaim,
@@ -43,7 +41,8 @@ export default function DailyMissionCard({
             {title}
           </Text>
 
-          <Text style={styles.reward}>{reward}</Text>
+          <Text style={styles.reward}>LOCAL MILESTONE</Text>
+          <Text style={styles.reward}>Saved on this device. Does not add account coins or XP.</Text>
 
         </View>
 
@@ -53,9 +52,9 @@ export default function DailyMissionCard({
 
       <View style={styles.footer}>
         <Text style={styles.progress}>{progress} / {maxProgress}</Text>
-        {claimed ? <Text style={styles.claimed}>CLAIMED</Text> : completed ? (
-          <Pressable accessibilityLabel={`Claim reward for ${title}`} accessibilityRole="button" onPress={onClaim} style={styles.claimButton}>
-            <Text style={styles.claimText}>CLAIM</Text>
+        {claimed ? <Text style={styles.claimed}>RECORDED</Text> : completed ? (
+          <Pressable accessibilityLabel={`Record local milestone for ${title}`} accessibilityRole="button" onPress={onClaim} style={styles.claimButton}>
+            <Text style={styles.claimText}>RECORD</Text>
           </Pressable>
         ) : null}
       </View>

@@ -1,0 +1,577 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-26T21:49:39.600647+00:00",
+  "project": "FireFeast-ReleaseCandidate",
+  "base_head": "7973669816bb8243850562edddde8ee0a8310ccd",
+  "candidate_type": "working-tree inventory; not an immutable Git revision",
+  "scope": "Complete backend plus explicit staging configuration, documentation and qualification support. Frontend package metadata describes existing Node validation dependencies; frontend application code is outside this backend inventory.",
+  "file_count": 76,
+  "backend_file_count": 65,
+  "support_file_count": 11,
+  "total_length_bytes": 1084934,
+  "hash_algorithm": "SHA-256 over exact bytes, no line-ending normalization",
+  "exclusions": [
+    "Git internals",
+    "environment files including templates",
+    "credential/key files",
+    "dependencies, caches and logs",
+    "validation-results",
+    "backups and historical provenance outside backend",
+    "generated manifest/report to avoid self-reference"
+  ],
+  "qualified_backend_inventory_sha256": "13f50a88bee9f3fe454f2aa70d13d135b4bb14d651ceec6db36d45b1c48ca63e",
+  "qualified_backend_digest_order": "Windows pathlib.Path ordering of UTF-8 lines: SHA256 + two spaces + relative POSIX path + newline",
+  "runtime": {
+    "python_required": "3.14.3",
+    "python_tested": "3.14.6",
+    "requirements": "backend/requirements.txt",
+    "test_requirements": "backend/requirements-test.txt",
+    "transitive_python_lock_present": false,
+    "instances": 1,
+    "uvicorn_workers": 1
+  },
+  "qualification": {
+    "source": "Prior task execution in this conversation; not rerun for artifact generation",
+    "backend_tests_passed": 222,
+    "backend_subtests_passed": 46,
+    "existing_warnings": 4,
+    "deployment_tests_passed": 2,
+    "descriptor_validation": "PASS",
+    "whitespace_validation": "PASS",
+    "live_mongodb_acceptance": false
+  },
+  "files": [
+    {
+      "path": ".gitignore",
+      "length_bytes": 339,
+      "sha256": "8960415e97795796749fa9200946f8eb2a83057bb04a52ef7dae3b043b8bf711",
+      "git_status": "?? .gitignore",
+      "role": "staging_support"
+    },
+    {
+      "path": "README.md",
+      "length_bytes": 7596,
+      "sha256": "96437b7190c523fc28789ed7054d6837881ea8f41d899d92e88f6e45449353bd",
+      "git_status": "?? README.md",
+      "role": "staging_support"
+    },
+    {
+      "path": "backend/.gitignore",
+      "length_bytes": 255,
+      "sha256": "df66c6f445f00aabf5c3a77eea8f07519c6406ca9620182db123e845520e690b",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/.python-version",
+      "length_bytes": 8,
+      "sha256": "bec08d209e78d0d38c3a338904c20f9393dc1ecb20673c87fad46bc6743fdcd3",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/DEPLOYMENT.md",
+      "length_bytes": 9752,
+      "sha256": "f4a116db464f614e79281df67b112cad57643bdc05c529b634ed38a5e99b2506",
+      "git_status": "M backend/DEPLOYMENT.md",
+      "role": "backend"
+    },
+    {
+      "path": "backend/MATCH-RECEIPTS.md",
+      "length_bytes": 6262,
+      "sha256": "cd5ad422e318c793a98bd694bf36c11db4d739cae91473f23010cae7cb440cae",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/MATCH-RESUME.md",
+      "length_bytes": 6475,
+      "sha256": "de073d0111971c21095c044067d81c3c221d4c3df7e2465024011117d482dce5",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/auth.py",
+      "length_bytes": 3275,
+      "sha256": "75f5c00e434373299f37d6f100a43b834cbf0e16dec648da88ba576c5e7c29c6",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/config.py",
+      "length_bytes": 6964,
+      "sha256": "637399db9936f7aab3654780b641acb047610a4b9c6976b1c5e2a84e10a044b2",
+      "git_status": "M backend/config.py",
+      "role": "backend"
+    },
+    {
+      "path": "backend/data/contests.py",
+      "length_bytes": 4770,
+      "sha256": "05288ea68f256d3fda8db4d5884c46626b0dbeff18257c6b1ffe8e374185220d",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/data/gear.py",
+      "length_bytes": 9714,
+      "sha256": "49458a94f3395f61e3518ec101a48e0af8ac07096822ac1879b1fc63ec75930e",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/data/opponents.py",
+      "length_bytes": 2897,
+      "sha256": "1cf31c21e3581fbee623c964f0a155be4d6e727662a024ced92477e8f1bc43e7",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/data/promotions.py",
+      "length_bytes": 266,
+      "sha256": "63d43a74e83cbc109d51b6fdcb80c71033a6ed175a176c7f868f81208b3eb4a1",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/data/rewards.py",
+      "length_bytes": 3555,
+      "sha256": "c65246dbadbe4bf1291b485e80059d1aeb2aeb4a954b55fb1979f4bc12491a93",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/data/shop.py",
+      "length_bytes": 3722,
+      "sha256": "21a288a9134e4fca564d18cee787691272dc08ac70274df8f713893e8ce7adf6",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/database.py",
+      "length_bytes": 24894,
+      "sha256": "d28f0cf3e3adaa4aa6c0946eb1cc7622a4bdf5a836e2f82db43bc624d978a6a5",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/models.py",
+      "length_bytes": 8733,
+      "sha256": "f9b0a4647e7fb47d46bf21e8f8a2d93ec4b9cead7bfec21b6b5552cdacd33912",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/observability.py",
+      "length_bytes": 1288,
+      "sha256": "9b80a8d3b8fc5a388a733a0e6e383ace564da992faf1726e907b9650db5b35cd",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/pytest.ini",
+      "length_bytes": 111,
+      "sha256": "1a0798118c410149b2219cef9bdffd37cdf6203f73c1eaa45d2189ef541c15d4",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/rate_limit.py",
+      "length_bytes": 2057,
+      "sha256": "6be9a702bd65b948d8b1b3420f73eaf5db5c56523f5bedf6257ade70531bbb0f",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/requirements-test.txt",
+      "length_bytes": 51,
+      "sha256": "9f54a129e581e6e720dbc6e1877384d4b297a6432bc3287fc692c52d92537704",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/requirements.txt",
+      "length_bytes": 92,
+      "sha256": "e88f9595ed51d206a14634013370911d90511618902cf00edd2c3c25df21dd21",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/scripts/provision_cruise_ducks.py",
+      "length_bytes": 2038,
+      "sha256": "e2ca74626154f920606cb9bf995774f3387a8daaceba31a027bc92f92211aee9",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/scripts/public_identity_backfill.py",
+      "length_bytes": 1639,
+      "sha256": "aa54c4c8c091f97b81681c090f68c5698c533e19abc6fbfd8f5ee2ea4517b48f",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/server.py",
+      "length_bytes": 43060,
+      "sha256": "0d25d055d413020b31c536ef12cdb299647e2800ee47ab3998c1dcff04fbf90e",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/contest_service.py",
+      "length_bytes": 2303,
+      "sha256": "503128d6bc7ff23a1a9eeb62adf2e4fc38dda405538ad0cd6cec844316f0c56c",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/daily_reward_service.py",
+      "length_bytes": 5660,
+      "sha256": "707ffb9e8cac4bf68560a0903c4a96c1bad74545e3b8ade30e2e2c7f7c034e9c",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/leaderboard_service.py",
+      "length_bytes": 2755,
+      "sha256": "993abdfffe718deee1914709b87aaa2a46310f31112dba652b48d5d73c1bc12b",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/match_service.py",
+      "length_bytes": 44672,
+      "sha256": "5f47b08133f8946e6fb5b595c8451c0725aa6ffa9810d91a228262957e79b786",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/match_validation.py",
+      "length_bytes": 31851,
+      "sha256": "56004b471b6d3695618eeebf83939e8fc9321b741cfd6caea0c4984701fc9201",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/player_service.py",
+      "length_bytes": 13564,
+      "sha256": "e0306f04fc14203890b58610d07495145cd5a3b5e31c7df27e4a14ca6b31d89e",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/promotion_service.py",
+      "length_bytes": 3539,
+      "sha256": "5365ef62721601bb673d3b80888a3c5a155086ed64d3fb65f147a25cc8ebdd37",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/public_identity_backfill.py",
+      "length_bytes": 8029,
+      "sha256": "94ecdff552ce223c89b1a2537ecbe972dfb9f17ff3cc6820d01f261cf9111c93",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/pvp_service.py",
+      "length_bytes": 29556,
+      "sha256": "dc508c90e2c3606001fe16d5071c521800ff6d55a9ea8bfac7685b58d2ed2b43",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/reward_service.py",
+      "length_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/shop_service.py",
+      "length_bytes": 6730,
+      "sha256": "878ae37d9c58a937f0861d84a989a2d3096a0d239cbddd32598811c014a7407a",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/services/social_service.py",
+      "length_bytes": 13047,
+      "sha256": "ebb20173ca806d44a9c57cc3cd95410aba4812098cdc049c268be55d74b0a107",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/__init__.py",
+      "length_bytes": 17,
+      "sha256": "71f6a156ee15925a957b6d5aa7a0bdd82cbddafb8b2c4cc3e350107ed8947007",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_account_deletion.py",
+      "length_bytes": 7558,
+      "sha256": "527e2d502fe008b04b270f7a8ca96159abc77f0b30ee4c25073987d64959a754",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_api_hardening.py",
+      "length_bytes": 6791,
+      "sha256": "a3ca006d4210a3a6ac641fb6e63e174bd73a51c87450ce19c8faef1e7b0444df",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_authenticated_integration.py",
+      "length_bytes": 936,
+      "sha256": "1148cc5152e8b838216cf6dd2219f8d86000b9bf363181403eefa498b86f6e52",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_authentication.py",
+      "length_bytes": 10529,
+      "sha256": "462eec71c7798756aed3555e6909d60ec76a4f6ecda1486dcbb17f46070fe4c5",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_avatar_schema_v3.py",
+      "length_bytes": 2172,
+      "sha256": "2a00104075b910a315379afff22a9e8600585f763396f9fee150d2d74640b362",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_chomp_champs.py",
+      "length_bytes": 8741,
+      "sha256": "7d56c8d1e8b1e4b5fca95cae5e9da893b0413c5bedd88dadd77fb4f80852c74f",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_closed_beta_welcome_pack.py",
+      "length_bytes": 5059,
+      "sha256": "fea2aee714a23e39002d477a4bf525f5dc39460dc83e12ec257391f4fd7b6c09",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_configuration.py",
+      "length_bytes": 8187,
+      "sha256": "d5fe0f976f23534349cb0065754bb3aeb22a0785793092ce5e08f848cd1a85b1",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_contest_leaderboards.py",
+      "length_bytes": 4510,
+      "sha256": "87505732d9ebd933ce816d7669ba7a4c99b7ed335de8ae1cf2f0c81d278a625d",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_cosmetic_equipment.py",
+      "length_bytes": 3653,
+      "sha256": "66de5d0070db21de4a029f5401687d8697fe56032c4b7a505bec07cc26ba45bb",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_cruise_duck_promotions.py",
+      "length_bytes": 5970,
+      "sha256": "1ec1f7d18dd966c203e3b832ed5ef9009102b4474d3a3d0bfbdcaa57d474943a",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_daily_rewards.py",
+      "length_bytes": 7055,
+      "sha256": "6bbff8be2c774cdf6f1db30b775fcd39486cd174142955a61c508a60f2ed3ed4",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_gear_step5.py",
+      "length_bytes": 3869,
+      "sha256": "18e51403854657f0c371e7341d2a0c6234be67bff1ec2f31b9330588d2db679f",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_guest_bootstrap_recovery.py",
+      "length_bytes": 9049,
+      "sha256": "18a079471962053d765a8f29a40c5d1320688a64f8544797a72c3c1e05d82009",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_health.py",
+      "length_bytes": 5100,
+      "sha256": "27e7d7703a4a39a9b2177131657f63731d3445dd57982ff57651bb90a5840ad7",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_input_geometry_v2.py",
+      "length_bytes": 4097,
+      "sha256": "106c68cd9c6d0eb40b1a537a29ad3beaeed6cadb14eda815bb48e41323a62116",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_match_anti_cheat.py",
+      "length_bytes": 36146,
+      "sha256": "3a71fdc96679fe5e5dbe5f803ca8693e25317b7a80bdecda7bc90123853df15b",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_match_lifecycle.py",
+      "length_bytes": 29812,
+      "sha256": "69b402815c2d26d82b4f761dc8756bf1f53bdc1b1a2126c1cd81ccc2f07b439b",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_match_receipts.py",
+      "length_bytes": 17465,
+      "sha256": "9838459ee033dee04ca8f5f354c82a68e8edaa074540ed14b4c68bf285bd9563",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_match_resume.py",
+      "length_bytes": 9826,
+      "sha256": "8632380e6b5aebac45e9b3a4f15f5b0d0b7e5ec83a9cd3e0a116f7f4f260c19b",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_match_security_audit.py",
+      "length_bytes": 15194,
+      "sha256": "3c0586c1937af7aab5838a5592edc615d9e4ae7419712aae47dc6128e2a483e5",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_new_features.py",
+      "length_bytes": 10187,
+      "sha256": "fe7f5bae19a42607f36cb1b6062c53550ac01b8e967982ac77a745a4a561c0d6",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_observability.py",
+      "length_bytes": 12446,
+      "sha256": "d7780583d842fcb377ea01230206c6ff287ccbb1671193e3eed79d3adee5ca13",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_public_identity_backfill.py",
+      "length_bytes": 9020,
+      "sha256": "679de0c0805eca2e1212f253b2f06492646b9b1708b963bf58e1ed1b51edd8bf",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_pvp_phase3.py",
+      "length_bytes": 16220,
+      "sha256": "55e3ab9c1b39d3cf9b29651536a6ca8f83042ce1cf06780787609fdcb1c5dc03",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_pvp_step4.py",
+      "length_bytes": 5870,
+      "sha256": "4fd78ef991171fe139e1c945638062ae5f85c878201f902b7b82a4aa458158b5",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_social_phase1.py",
+      "length_bytes": 10179,
+      "sha256": "3beccc4eea104d3f8fc4d2891261a3b9885a43bb88936398832da397ba47bd8c",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_staging_configuration.py",
+      "length_bytes": 3381,
+      "sha256": "0522325eec6ab8f707e75e2628da0b8afb1aadbc60eae9fbc6723d4264bfe705",
+      "git_status": "?? backend/tests/test_staging_configuration.py",
+      "role": "backend"
+    },
+    {
+      "path": "backend/tests/test_validation_gates.py",
+      "length_bytes": 4069,
+      "sha256": "bd137184c8e583875837480ddee7d7906116b3124abe1cab0a47d6bfa3fabded",
+      "git_status": "tracked unchanged",
+      "role": "backend"
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "length_bytes": 481733,
+      "sha256": "3ee6a2528c1a56d96c9ae6861a186b60cb8d37e47708995aa52c0907fd15b002",
+      "git_status": "tracked unchanged",
+      "role": "staging_support"
+    },
+    {
+      "path": "frontend/package.json",
+      "length_bytes": 2464,
+      "sha256": "c0eff0502be14c3b3c503c1ff8e0750ae62d7c90ced2947bdca20d9a79e0a18a",
+      "git_status": "tracked unchanged",
+      "role": "staging_support"
+    },
+    {
+      "path": "frontend/scripts/validation/backend-local.py",
+      "length_bytes": 4471,
+      "sha256": "2dc27b23894ee0beee0ab3b87f1a86a2f6eb265c758aaa9d05780f8e82bd2f25",
+      "git_status": "M frontend/scripts/validation/backend-local.py",
+      "role": "staging_support"
+    },
+    {
+      "path": "frontend/scripts/validation/deployment.js",
+      "length_bytes": 3375,
+      "sha256": "ca5054977e91b9a4a81679594d8497d26985e8f5e0fbeea4d837a0653514d325",
+      "git_status": "?? frontend/scripts/validation/deployment.js",
+      "role": "staging_support"
+    },
+    {
+      "path": "frontend/tests/deployment-config.test.js",
+      "length_bytes": 1342,
+      "sha256": "6d39ef3220552f82a82257c92bf9ddc6621fceb752abfdb9efc55bedeaed1f4f",
+      "git_status": "?? frontend/tests/deployment-config.test.js",
+      "role": "staging_support"
+    },
+    {
+      "path": "render.yaml",
+      "length_bytes": 929,
+      "sha256": "dfb1df4928651b809bda5511f3abd6e952a6202aa2c195a7af34bda0754373b8",
+      "git_status": "?? render.yaml",
+      "role": "staging_support"
+    },
+    {
+      "path": "scripts/validate-integration.ps1",
+      "length_bytes": 1769,
+      "sha256": "9e317ec7be8449b3e49ab645e3a0f82425c27a7a18f331ee0234b5f229b92980",
+      "git_status": "?? scripts/validate-integration.ps1",
+      "role": "staging_support"
+    },
+    {
+      "path": "scripts/validate.ps1",
+      "length_bytes": 3453,
+      "sha256": "730f066fa942e40b0fcc735daa4919aed21cb9f4b8f42bafd1ece76f342e69c1",
+      "git_status": "M scripts/validate.ps1",
+      "role": "staging_support"
+    },
+    {
+      "path": "scripts/validation-common.ps1",
+      "length_bytes": 771,
+      "sha256": "646299d9916c9709b1e0bd05167968412d72290105181f9bd53effedb2fad227",
+      "git_status": "?? scripts/validation-common.ps1",
+      "role": "staging_support"
+    }
+  ]
+}

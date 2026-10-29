@@ -21,6 +21,20 @@ test("input events are compact, sequenced, and match-relative", () => {
   ]);
 });
 
+test("recorded input events must reserve seq/t_ms/type against evidence payloads", () => {
+  const log = createInputLogBuffer(() => 1000);
+  log.start(60_000, 0);
+  assert.equal(log.recordAtElapsed("BITE", {
+    seq: 99,
+    t_ms: 999,
+    type: "ANTACID",
+    source: "CONTROL",
+    x: 0.5,
+    y: 0.5,
+  }, 250), true);
+  assert.deepEqual(log.finish(), [{ seq: 1, t_ms: 250, type: "BITE", source: "CONTROL", x: 0.5, y: 0.5 }]);
+});
+
 test("completed input log is frozen and reused by retry", async () => {
   let now = 5_000;
   const log = createInputLogBuffer(() => now);
@@ -43,9 +57,9 @@ test("completed input log is frozen and reused by retry", async () => {
 
 test("play route validates official evidence before scoring and freezes it into result submission", () => {
   const play = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
-  assert.match(play, /hasValidInputEvidence\(\{ type: actionType, \.\.\.evidence \}\)\) return null;[\s\S]*const acceptedActionSequence = tapLatest\(actionNow\)/);
+  assert.match(play, /hasValidInputEvidence\(\{ \.\.\.evidence, type: actionType \}, mechanic, selectedContestId\)\) return null;[\s\S]*const acceptedActionSequence = tapLatest\(actionNow\)/);
   assert.match(play, /inputLog\.start\(matchDurationSeconds \* 1000, matchStartedAt\.current \?\? actionNow\);[\s\S]*if \(!inputLog\.canRecord\(\)\) return false;[\s\S]*const used = applyAntacid\(actionNow\)/);
-  assert.match(play, /if \(!used\) return false;[\s\S]*if \(!inputLog\.record\("ANTACID", undefined, actionNow\)\) return false/);
+  assert.match(play, /if \(!used\) return false;[\s\S]*if \(!inputLog\.recordAtElapsed\("ANTACID", undefined, eventTime\)\) return false/);
   assert.match(play, /const finalizedInputEvents = inputLog\.finish\(\)[\s\S]*input_events: finalizedInputEvents/);
   assert.match(play, /validation_version: 3/);
 });
@@ -247,10 +261,10 @@ test("play route samples one action timestamp for scoring and official evidence"
   const play = fs.readFileSync(path.join(__dirname, "../app/play/[contestId].tsx"), "utf8");
   const tap = play.slice(play.indexOf("const handleTap = useCallback"), play.indexOf("const handleUseAntacid"));
   assert.ok(tap.indexOf("const actionNow = Date.now()") < tap.indexOf("tapLatest(actionNow)"));
-  assert.ok(tap.indexOf("tapLatest(actionNow)") < tap.indexOf("inputLog.record(actionType, evidence, actionNow)"));
+  assert.ok(tap.indexOf("tapLatest(actionNow)") < tap.indexOf("inputLog.recordAtElapsed(actionType, evidence, eventTime)"));
   const antacid = play.slice(play.indexOf("const handleUseAntacid = useCallback"), play.indexOf("const abandonAndReturn"));
   assert.ok(antacid.indexOf("const actionNow = Date.now()") < antacid.indexOf("applyAntacid(actionNow)"));
-  assert.ok(antacid.indexOf("applyAntacid(actionNow)") < antacid.indexOf("inputLog.record(\"ANTACID\", undefined, actionNow)"));
+  assert.ok(antacid.indexOf("applyAntacid(actionNow)") < antacid.indexOf("inputLog.recordAtElapsed(\"ANTACID\", undefined, eventTime)"));
 });
 
 test("play route starts v3 input evidence from the same match-time origin as gameplay", () => {

@@ -5,7 +5,7 @@ const test = require("node:test");
 
 test("match result request is not preempted by the shared eight-second API timeout", () => {
   const api = fs.readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
-  assert.match(api, /req\(`\/match\/result`[\s\S]*}, true, true, 20_000\)/);
+  assert.match(api, /req\(`\/match\/result`[\s\S]*}, true, true, 20_000, undefined, expectedPlayerId\)/);
   assert.match(api, /setTimeout\(\(\) => controller\.abort\(\), requestTimeoutMs\)/);
 });
 

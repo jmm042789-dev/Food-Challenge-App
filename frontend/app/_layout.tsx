@@ -13,9 +13,12 @@ import FirePanel from "@/src/components/fire/FirePanel";
 import ArcadeBackground from "@/src/game/ui/ArcadeBackground";
 import { disposeAudio, initializeAudio, pauseAllAudio, resumeAudio, stopMusic, transitionMusic } from "@/src/audio/AdaptiveAudioManager";
 import { AppPreferencesProvider } from "@/src/preferences/AppPreferences";
+import { useAndroidImmersiveMode } from "@/src/systemUi/useAndroidImmersiveMode";
+import { PlayerIdentityProvider } from "@/src/profile/PlayerIdentityContext";
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   const router = useRouter();
+  useAndroidImmersiveMode();
 
   return (
     <GestureHandlerRootView style={styles.errorScreen}>
@@ -43,6 +46,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useIconFonts();
   const segments = useSegments();
+  useAndroidImmersiveMode();
 
   useEffect(() => {
     if (loaded || error) {
@@ -74,8 +78,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#070405" }}>
       <SafeAreaProvider>
-        <StatusBar animated hidden={segments[0] === "play"} style="light" />
+        <StatusBar animated hidden style="light" />
         <AppPreferencesProvider>
+          <PlayerIdentityProvider>
           <AnimationProvider>
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#070405" } }}>
             <Stack.Screen name="(tabs)" />
@@ -84,15 +89,21 @@ export default function RootLayout() {
             <Stack.Screen name="matchmaking" options={{ animation: "fade" }} />
             <Stack.Screen name="tutorial" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="settings" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="promotions" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="legal/[document]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="daily-rewards" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="achievements" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="missions" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="avatar-customization" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="career" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="friends" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="player/[publicId]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="pvp/challenge/[publicId]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="pvp/match/[matchId]" options={{ animation: "fade" }} />
             <Stack.Screen name="locker" options={{ animation: "slide_from_right" }} />
             </Stack>
           </AnimationProvider>
+          </PlayerIdentityProvider>
         </AppPreferencesProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -30,6 +30,7 @@ const WHEEL_DIAMETER_RATIO = 0.92;
 const STAGE_TO_RESULT_GAP = 0;
 const RESULT_SLOT_MIN_HEIGHT = 68;
 const POINTER_WEDGE_DEPTH_RATIO = 0.1;
+const HOME_RETURN_DELAY_MS = 1800;
 
 type RewardSliceLabelProps = {
   anchor: ReturnType<typeof dailyRewardAnchors>[number];
@@ -50,6 +51,8 @@ export default function DailyRewardsScreen() {
   const { preferences } = useAppPreferences();
   const rotation = useRef(new Animated.Value(0)).current;
   const responseReceivedAt = useRef(Date.now());
+  const homeReturnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
   const [status, setStatus] = useState<DailySpinStatus | null>(null);
   const [claim, setClaim] = useState<DailySpinClaim | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,11 +77,26 @@ export default function DailyRewardsScreen() {
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  useEffect(() => {
     if (!status || status.eligible) return;
     const timer = setInterval(() => setElapsed(Date.now() - responseReceivedAt.current), 1000);
     return () => clearInterval(timer);
   }, [status]);
   useEffect(() => () => rotation.stopAnimation(), [rotation]);
+  useEffect(() => {
+    if (!claim || homeReturnTimer.current) return;
+    homeReturnTimer.current = setTimeout(() => {
+      homeReturnTimer.current = null;
+      if (mounted.current) router.replace("/(tabs)/home");
+    }, HOME_RETURN_DELAY_MS);
+    return () => {
+      if (homeReturnTimer.current) clearTimeout(homeReturnTimer.current);
+      homeReturnTimer.current = null;
+    };
+  }, [claim, router]);
 
   const countdown = useMemo(() => status
     ? formatCountdown(serverCountdownMs(status.server_time, status.next_daily_spin, elapsed))

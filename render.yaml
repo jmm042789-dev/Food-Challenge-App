@@ -1,15 +1,30 @@
+# Staging only. No resources are created until an explicitly approved deployment.
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 services:
   - type: web
-    name: fire-feast-api
+    name: fire-feast-api-staging
     runtime: python
+    branch: release-candidate-1
+    plan: starter
+    region: oregon
     rootDir: backend
+    numInstances: 1
+    autoDeployTrigger: "off"
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /api/health/ready
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.3"
       - key: FIRE_FEAST_ENV
         value: production
-      - key: MONGO_URL
-        sync: false
+      - key: PYTHON_DOTENV_DISABLED
+        value: "1"
       - key: DB_NAME
-        value: fire_feast
+        value: fire_feast_staging
+      - key: FIRE_FEAST_DEPLOYMENT
+        value: staging
+      - key: STAGING_MONGO_HOST
+        sync: false
+      - key: STAGING_MONGO_URL
+        sync: false

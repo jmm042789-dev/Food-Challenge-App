@@ -51,6 +51,8 @@ from services.match_service import (
     cleanup_stale_matchmaking_state,
     expire_stale_match,
     recover_match,
+    resume_match,
+    result_receipt,
     start_match,
     submit_result,
 )
@@ -75,6 +77,8 @@ from models import (
     GuestRecoveryRequest,
     MatchResult,
     MatchStart,
+    MatchResume,
+    MatchReceiptRequest,
     PvpAttemptResult,
     PvpAttemptStart,
     PvpChallengeAction,
@@ -863,6 +867,32 @@ def active_match_endpoint(
 ):
     player = authenticated_bearer_player(authorization)
     return recover_match(player["device_id"])
+
+
+@app.post("/api/match/resume", dependencies=[Depends(match_recovery_limit)])
+def match_resume_endpoint(
+    data: MatchResume,
+    authorization: str | None = Header(default=None),
+):
+    player = authenticated_bearer_player(authorization)
+    try:
+        return resume_match(player["device_id"], data.match_id, data.contest_id)
+    except PlayerNotFoundError:
+        raise HTTPException(status_code=401, detail="invalid or missing authentication credentials")
+    except MatchExpiredError:
+        raise HTTPException(status_code=410, detail={"code": "MATCH_EXPIRED"})
+    except MatchNotFoundError:
+        # Do not disclose whether another player owns the supplied identifiers.
+        raise HTTPException(status_code=409, detail={"code": "MATCH_NOT_RESUMABLE"})
+
+
+@app.post("/api/match/receipt", dependencies=[Depends(match_recovery_limit)])
+def match_receipt_endpoint(data: MatchReceiptRequest, authorization: str | None = Header(default=None)):
+    player = authenticated_bearer_player(authorization)
+    try:
+        return result_receipt(player["device_id"], data.match_id, data.contest_id)
+    except PlayerNotFoundError:
+        raise HTTPException(status_code=401, detail="invalid or missing authentication credentials")
 
 
 @app.post("/api/match/abandon", dependencies=[Depends(match_abandon_limit)])

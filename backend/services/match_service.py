@@ -1,5 +1,6 @@
 """Server-authoritative AI match lifecycle and progression updates."""
 
+from copy import deepcopy
 import random
 import secrets
 import uuid
@@ -196,10 +197,11 @@ def cleanup_stale_matchmaking_state(now_epoch: float | None = None) -> None:
         active_matches.pop(match_id, None)
 
 
-def expire_stale_match(device_id: str, now: datetime | None = None) -> bool:
+def expire_stale_match(device_id: str, now: datetime | None = None, expected_match_id: str | None = None) -> bool:
     player = find_internal_player(device_id)
     active = player.get("active_match") if player else None
-    if not active or not _match_is_stale(active, now):
+    if (not active or (expected_match_id is not None and active.get("id") != expected_match_id)
+            or not _match_is_stale(active, now)):
         return False
     match_id = active.get("id")
     ended_at = (now or _utc_now()).isoformat()
@@ -231,6 +233,52 @@ def recover_match(device_id: str) -> dict:
     if status in {"expired", "cancelled", "rejected", "settled"}:
         return {"status": status}
     return {"status": "absent"}
+
+
+def resume_match(device_id: str, match_id: str, contest_id: str) -> dict:
+    """Read-only resume: never call start_match or mutate lifecycle/wallet state.
+
+    The final player read is the observation point, not a reservation. Settlement
+    after that read remains possible; result submission still owns all authority.
+    Recheck wall time after that read so expiry during processing fails closed.
+    """
+    def checked_active(player):
+        if not player:
+            raise PlayerNotFoundError
+        active = player.get("active_match")
+        if (not isinstance(active, dict)
+                or active.get("id") != match_id
+                or active.get("contest_id") != contest_id
+                or active.get("device_id") != device_id
+                or active.get("status") != "active"):
+            raise MatchNotFoundError
+        return active
+
+    active = deepcopy(checked_active(find_internal_player(device_id)))
+    if _match_is_stale(active):
+        raise MatchExpiredError
+    response = deepcopy(active.get("start_response"))
+    if (active.get("schema_version") != MATCH_SCHEMA_VERSION
+            or not isinstance(response, dict)
+            or response.get("match_id") != match_id
+            or not isinstance(response.get("contest"), dict)
+            or response["contest"].get("id") != contest_id
+            or response.get("server_started_at") != active.get("started_at")
+            or response.get("expires_at") != active.get("expires_at")):
+        raise MatchNotFoundError
+    current = checked_active(find_internal_player(device_id))
+    now = _utc_now()
+    if _match_is_stale(current, now):
+        raise MatchExpiredError
+    if current != active:
+        raise MatchNotFoundError
+    return {
+        "status": "resumable",
+        "match_id": match_id,
+        "contest_id": contest_id,
+        "server_time": now.isoformat(),
+        "start": response,
+    }
 
 
 def cancel_match(device_id: str) -> dict:
@@ -541,7 +589,7 @@ def _validation_telemetry(result) -> dict:
 
 def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict, request_id: str | None = None, started: float | None = None) -> None:
     now = _utc_now().isoformat()
-    transition_player_match(
+    transitioned = transition_player_match(
         device_id,
         active.get("id"),
         "rejected",
@@ -561,7 +609,9 @@ def _reject_match(device_id: str, active: dict, reason: str, telemetry: dict, re
         round((time.perf_counter() - started) * 1000, 3) if started is not None else "unavailable",
         safe_telemetry,
     )
-    raise MatchValidationError(reason)
+    error = MatchValidationError(reason)
+    error.transition_succeeded = bool(transitioned)
+    raise error
 
 
 def _plausibility_bounds(active: dict, result, server_elapsed: float) -> dict:
@@ -797,7 +847,11 @@ def submit_result(result, request_id: str | None = None) -> dict:
             result.device_id,
         )
         return {**dict(previous["response"]), "already_finalized": True}
-    if expire_stale_match(result.device_id):
+    initial_active = player.get("active_match")
+    if initial_active and (initial_active.get("id") != requested_match_id
+                           or initial_active.get("contest_id") != result.contest_id):
+        raise MatchValidationError("ownership_mismatch")
+    if initial_active and expire_stale_match(result.device_id, expected_match_id=requested_match_id):
         raise MatchExpiredError
     player = find_internal_player(result.device_id)
     if not player:
@@ -830,17 +884,28 @@ def submit_result(result, request_id: str | None = None) -> dict:
     if active.get("id") != requested_match_id:
         raise MatchValidationError("ownership_mismatch")
 
-    contest = get_contest(active.get("contest_id"))
-    if not contest:
-        _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
-    validation_started = time.perf_counter()
-    validation, validation_outcome = _validate_result(active, result, _utc_now(), request_id=request_id, started=validation_started)
+    try:
+        contest = get_contest(active.get("contest_id"))
+        if not contest:
+            _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
+        validation_started = time.perf_counter()
+        validation, validation_outcome = _validate_result(active, result, _utc_now(), request_id=request_id, started=validation_started)
+        opponent_score = authoritative_opponent_score(active)
+        if opponent_score is None:
+            _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
+    except MatchValidationError as error:
+        if getattr(error, "transition_succeeded", True):
+            raise
+        latest = find_internal_player(result.device_id) or {}
+        previous = latest.get("last_match_result") or {}
+        if previous.get("match_id") == requested_match_id and previous.get("fingerprint") == fingerprint:
+            return {**dict(previous["response"]), "already_finalized": True}
+        # A failed transition is not proof of rejection. Existing clients retain
+        # this generic unresolved outcome and can query the read-only receipt.
+        raise MatchNotFoundError from error
     replay = validation["replay"]
     replay["validation_elapsed_ms"] = round((time.perf_counter() - validation_started) * 1000, 3)
     accepted_score = replay["replayed_score"]
-    opponent_score = authoritative_opponent_score(active)
-    if opponent_score is None:
-        _reject_match(result.device_id, active, "invalid_match_state", _validation_telemetry(result))
     authoritative_outcome = (
         "win"
         if accepted_score > opponent_score
@@ -878,6 +943,11 @@ def submit_result(result, request_id: str | None = None) -> dict:
     if MATCH_DIAGNOSTICS_ENABLED:
         response["validation_outcome"] = validation_outcome
         response["anti_cheat"] = replay
+    receipt = {
+        "schema_version": 1, "player_id": result.device_id,
+        "match_id": active["id"], "contest_id": active["contest_id"],
+        "outcome": "settled", "rewards_granted": True, "settlement_final": True,
+    }
     update_pipeline = [
         {
             "$set": {
@@ -914,6 +984,7 @@ def submit_result(result, request_id: str | None = None) -> dict:
                 "antacid": response["new_tums"],
                 "elo": {"$add": [{"$ifNull": ["$elo", 1000]}, 25 if won else -10 if lost else 0]},
                 "last_match_result": {
+                    "receipt": {"$literal": receipt},
                     "match_id": active["id"],
                     "fingerprint": fingerprint,
                     "response": response,
@@ -922,6 +993,7 @@ def submit_result(result, request_id: str | None = None) -> dict:
                     "anti_cheat": replay,
                 },
                 "last_match_lifecycle": {
+                    "receipt": {"$literal": receipt},
                     "match_id": active["id"],
                     "status": "settled",
                     "ended_at": _utc_now().isoformat(),
@@ -968,3 +1040,51 @@ def submit_result(result, request_id: str | None = None) -> dict:
     raise MatchNotFoundError
 
 
+
+
+def result_receipt(device_id: str, match_id: str, contest_id: str) -> dict:
+    """One authoritative read; no transition, expiration, or reward side effects."""
+    player = find_internal_player(device_id)
+    if not player:
+        raise PlayerNotFoundError
+    unresolved = {"schema_version": 1, "status": "UNRESOLVED",
+                  "player_id": device_id, "match_id": match_id, "contest_id": contest_id}
+    if player.get("device_id") != device_id:
+        return unresolved
+    active = player.get("active_match")
+    if isinstance(active, dict) and active.get("id") == match_id:
+        return unresolved
+    def proven(record, outcomes):
+        if not isinstance(record, dict) or record.get("match_id") != match_id:
+            return None
+        evidence = record.get("receipt")
+        if (not isinstance(evidence, dict) or type(evidence.get("schema_version")) is not int
+                or evidence.get("schema_version") != 1
+                or evidence.get("player_id") != device_id or evidence.get("match_id") != match_id
+                or evidence.get("contest_id") != contest_id or not isinstance(evidence.get("outcome"), str)
+                or evidence.get("outcome") not in outcomes
+                or evidence.get("settlement_final") is not True
+                or evidence.get("rewards_granted") is not (evidence.get("outcome") == "settled")):
+            return None
+        return evidence
+    settled = player.get("last_match_result")
+    evidence = proven(settled, {"settled"})
+    if evidence:
+        response = settled.get("response")
+        fields = ("coin_reward", "xp_reward", "new_coins", "new_xp", "new_tums", "accepted_score", "authoritative_opponent_score")
+        if (not isinstance(response, dict) or response.get("match_id") != match_id
+                or response.get("verified") is not True
+                or any(type(response.get(k)) not in (int, float) or not math.isfinite(response[k]) or response[k] < 0 for k in fields)
+                or type(response.get("won")) is not bool
+                or not isinstance(response.get("authoritative_outcome"), str)
+                or response.get("authoritative_outcome") not in {"win", "loss", "tie"}):
+            return unresolved
+        return {**unresolved, "status": "SETTLED", "receipt": deepcopy(evidence), "result": deepcopy(response)}
+    # Contradictory or incomplete settlement evidence must never become no-reward proof.
+    if isinstance(settled, dict) and settled.get("match_id") == match_id:
+        return unresolved
+    lifecycle = player.get("last_match_lifecycle")
+    evidence = proven(lifecycle, {"rejected", "expired"})
+    if evidence and lifecycle.get("status") == evidence["outcome"]:
+        return {**unresolved, "status": "TERMINAL_NO_REWARD", "receipt": deepcopy(evidence)}
+    return unresolved

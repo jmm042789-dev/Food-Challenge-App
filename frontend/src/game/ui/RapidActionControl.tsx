@@ -2,6 +2,7 @@ import React, { memo, useEffect, useRef, useState } from "react";
 import { Image, StyleSheet } from "react-native";
 
 import type { HeatTier } from "../heartburn";
+import type { GameplayInputEvidence } from "../inputContract";
 import TapActionControl from "./TapActionControl";
 
 type Props = {
@@ -11,7 +12,7 @@ type Props = {
   overheatWarningActive: boolean;
   reducedMotion: boolean;
   resetKey: string;
-  onAction: () => number | null;
+  onAction: (evidence: GameplayInputEvidence) => number | null;
 };
 
 export const RAPID_MIN_INTERVAL_MS = 90;
@@ -37,11 +38,11 @@ function RapidActionControl({ active, combo, heatTier, overheatWarningActive, re
     };
   }, [active, resetKey]);
 
-  const tryRapidAction = (): number | null => {
+  const tryRapidAction = (evidence: GameplayInputEvidence): number | null => {
     const now = Date.now();
     if (!active || now - lastAttemptAt.current < RAPID_MIN_INTERVAL_MS) return null;
     lastAttemptAt.current = now;
-    return onAction();
+    return onAction(evidence);
   };
 
   const handleAccepted = () => {

@@ -9,8 +9,9 @@ import FireButton from "../src/components/fire/FireButton";
 import FirePanel from "../src/components/fire/FirePanel";
 import PlayerProfileCard from "../src/profile/PlayerProfileCard";
 import CareerSection, { type CareerStat } from "../src/profile/CareerSection";
-import { DEFAULT_IDENTITY, AVATAR_OPTIONS, loadPlayerIdentity, type PlayerIdentity } from "../src/profile/PlayerIdentity";
-import { BELTS, beltForXp, nextBelt } from "../src/ranks";
+import { DEFAULT_IDENTITY, AVATAR_OPTIONS } from "../src/profile/PlayerIdentity";
+import { usePlayerIdentity } from "../src/profile/PlayerIdentityContext";
+import { resolveOfficialProgression } from "../src/ranks";
 import { loadAchievementState } from "../src/achievements/AchievementStorage";
 import type { AchievementState } from "../src/achievements/AchievementTypes";
 import { loadDailyMissions } from "../src/missions/MissionTracker";
@@ -20,7 +21,7 @@ import { TITLE_BY_ID } from "../src/titles/TitleCatalog";
 import type { TitleProgressState } from "../src/titles/TitleTypes";
 import { useAppPreferences } from "../src/preferences/AppPreferences";
 
-type Player = { xp?: number; coins?: number; matches?: number; wins?: number; losses?: number; best_score?: number; longest_combo?: number; streak_days?: number; current_streak?: number; longest_streak?: number; total_daily_spins?: number };
+type Player = { level?: number; xp?: number; coins?: number; matches?: number; wins?: number; losses?: number; best_score?: number; longest_combo?: number; streak_days?: number; current_streak?: number; longest_streak?: number; total_daily_spins?: number };
 const placeholder = (label: string): CareerStat => ({ label, value: "NOT YET TRACKED", placeholder: true });
 const dateLabel = (value: string | null | undefined) => value ? new Date(value).toLocaleDateString() : "NOT YET RECORDED";
 
@@ -28,7 +29,8 @@ export default function CareerScreen() {
   const router = useRouter();
   const { preferences } = useAppPreferences();
   const [player, setPlayer] = useState<Player>({});
-  const [identity, setIdentity] = useState<PlayerIdentity>(DEFAULT_IDENTITY);
+  const { identity: storedIdentity } = usePlayerIdentity();
+  const identity = storedIdentity ?? DEFAULT_IDENTITY;
   const [achievements, setAchievements] = useState<AchievementState | null>(null);
   const [missions, setMissions] = useState<DailyMissionState | null>(null);
   const [titles, setTitles] = useState<TitleProgressState | null>(null);
@@ -38,20 +40,19 @@ export default function CareerScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setLiveStatsError(false);
-    const results = await Promise.allSettled([api.getPlayer(), loadPlayerIdentity(), loadAchievementState(), loadDailyMissions(), loadTitleProgress()]);
-    if (results[0].status === "fulfilled") setPlayer(results[0].value as Player);
+    const results = await Promise.allSettled([api.getPlayer(), loadAchievementState(), loadDailyMissions(), loadTitleProgress()]);
+    if (results[0].status === "fulfilled") setPlayer((previous) => { const next = (results[0] as PromiseFulfilledResult<unknown>).value as Player; return resolveOfficialProgression(next).available || !resolveOfficialProgression(previous).available ? next : previous; });
     else setLiveStatsError(true);
-    if (results[1].status === "fulfilled") setIdentity(results[1].value);
-    if (results[2].status === "fulfilled") setAchievements(results[2].value);
-    if (results[3].status === "fulfilled") setMissions(results[3].value);
-    if (results[4].status === "fulfilled") setTitles(results[4].value);
+    if (results[1].status === "fulfilled") setAchievements(results[1].value);
+    if (results[2].status === "fulfilled") setMissions(results[2].value);
+    if (results[3].status === "fulfilled") setTitles(results[3].value);
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const xp = Number(player.xp ?? 0); const coins = Number(player.coins ?? 0); const matches = Number(player.matches ?? 0); const wins = Number(player.wins ?? 0); const losses = Number(player.losses ?? 0);
-  const belt = beltForXp(xp); const next = nextBelt(xp); const level = Math.max(1, BELTS.findIndex((item) => item.key === belt.key) + 1);
-  const progress = next ? xp - belt.min_xp : 1; const progressMax = next ? next.min_xp - belt.min_xp : 1;
+  const official = resolveOfficialProgression(player);
+  const { xp, level, belt, intervalXp: progress, intervalSize: progressMax } = official;
+  const coins = Number(player.coins ?? 0); const matches = Number(player.matches ?? 0); const wins = Number(player.wins ?? 0); const losses = Number(player.losses ?? 0);
   const completed = achievements?.progress.filter((item) => item.completed) ?? [];
   const progressById = useMemo(() => new Map(achievements?.progress.map((item) => [item.achievementId, item]) ?? []), [achievements]);
   const totalScore = progressById.get("total_score_1000")?.currentProgress;
@@ -72,7 +73,7 @@ export default function CareerScreen() {
   const records: CareerStat[] = [{ label: "Highest Combo", value: `x${Number(player.longest_combo ?? 0)}` }, placeholder("Total Combos"), placeholder("Average Combo"), placeholder("Perfect Matches"), placeholder("Fastest Victory"), placeholder("Longest Match")];
   const food: CareerStat[] = [placeholder("Favorite Food"), placeholder("Most Played Food"), placeholder("Foods Completed"), placeholder("Total Food Consumed"), placeholder("Favorite Arena")];
   const progression: CareerStat[] = [
-    { label: "Total XP", value: xp.toLocaleString() }, trackedXp === undefined ? placeholder("Locally Tracked XP Earned") : { label: "Locally Tracked XP Earned", value: trackedXp.toLocaleString() },
+    { label: "Total XP", value: xp === null ? "UNAVAILABLE" : xp.toLocaleString() }, trackedXp === undefined ? placeholder("Locally Tracked XP Earned") : { label: "Locally Tracked XP Earned", value: trackedXp.toLocaleString() },
     trackedCoins === undefined ? placeholder("Locally Tracked Coins Earned") : { label: "Locally Tracked Coins Earned", value: trackedCoins.toLocaleString() },
     { label: "Achievements Completed", value: `${completed.length} / ${achievements?.progress.length ?? 0}` }, { label: "Daily Charcuterie Spins", value: Number(player.total_daily_spins ?? 0) },
     { label: "Missions Completed Today", value: missions?.missions.filter((item) => item.completed).length ?? 0 },
@@ -80,7 +81,7 @@ export default function CareerScreen() {
   const collection: CareerStat[] = [{ label: "Avatar Cosmetics Available", value: cosmeticsOwned }, { label: "Badges Earned", value: completed.length }, { label: "Titles Unlocked", value: titles?.unlockedTitles.length ?? 0 }, placeholder("Seasonal Rewards")];
   const history: CareerStat[] = [
     { label: "First Match", value: dateLabel(progressById.get("matches_played_001")?.completedAt) }, { label: "First Victory", value: dateLabel(progressById.get("matches_won_001")?.completedAt) },
-    { label: "Reached Level 5", value: level >= 5 ? "UNLOCKED · DATE UNAVAILABLE" : "NOT YET REACHED", placeholder: level < 5 }, placeholder("Reached Level 10"),
+    { label: "Reached Level 5", value: level === null ? "UNAVAILABLE" : level >= 5 ? "UNLOCKED · DATE UNAVAILABLE" : "NOT YET REACHED", placeholder: level === null || level < 5 }, placeholder("Reached Level 10"),
     { label: "Highest Combo", value: `x${Number(player.longest_combo ?? 0)}` }, { label: "First Achievement", value: dateLabel(firstAchievement?.completedAt) },
   ];
 
@@ -89,7 +90,10 @@ export default function CareerScreen() {
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {loading ? <Text style={styles.loading}>LOADING CAREER…</Text> : <>
         {liveStatsError ? <FirePanel accent="danger" title="LIVE STATS UNAVAILABLE" subtitle="Your local history is still available. Reconnect and retry to refresh match totals."><FireButton fullWidth title="RETRY LIVE STATS" size="small" variant="secondary" onPress={() => { void load(); }} /></FirePanel> : null}
+        {xp !== null && level !== null && belt && progress !== null && progressMax !== null ? <>
+        <Text style={{ color: "#FFD54A" }}>{official.nextBelt ? "NEXT BELT" : "MAX BELT"}</Text>
         <PlayerProfileCard identity={identity} rank={belt.name} rankColor={belt.color} level={level} xp={xp} progress={progress} progressMax={progressMax} coins={coins} wins={wins} matches={matches} streak={Number(player.streak_days ?? 0)} achievementCompleted={completed.length} achievementTotal={achievements?.progress.length ?? 0} />
+        </> : <Text style={{ color: "#FFD54A" }}>Official progression unavailable</Text>}
         <View style={styles.season}><Text style={styles.seasonLabel}>CURRENT SEASON</Text><Text style={styles.seasonValue}>BETA SEASON</Text><Text style={styles.seasonLabel}>CURRENT TITLE</Text><Text style={styles.seasonValue}>{equippedTitle?.toUpperCase() ?? "NO TITLE EQUIPPED"}</Text></View>
         <CareerSection largeText={large} title="MATCH STATISTICS" stats={matchStats} />
         <CareerSection largeText={large} title="GAMEPLAY RECORDS" stats={records} />

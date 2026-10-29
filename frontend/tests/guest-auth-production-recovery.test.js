@@ -1,3 +1,4 @@
+/* global __dirname */
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -174,7 +175,7 @@ test("fresh credentials are reloaded from protected storage before session verif
   assert.match(reset, /readStoredCredentials\(authStateGeneration\)/);
   assert.match(reset, /AUTH_CREDENTIAL_PERSIST_FAILED/);
   assert.match(reset, /AUTH_SESSION_VERIFY_FAILED/);
-  assert.match(reset, /req\("\/auth\/session", \{\}, true, false\)/);
+  assert.match(reset, /req\("\/auth\/session", \{\}, true, false, STARTUP_RECOVERY_TIMEOUT_MS\)/);
 });
 
 test("confirmed reset is journaled and an interrupted reset remains recoverable", () => {
@@ -189,7 +190,7 @@ test("confirmed reset is journaled and an interrupted reset remains recoverable"
 test("reset failures replace the old diagnostic and reset never deletes a server account", () => {
   const handlerStart = startupSource.indexOf("const confirmNewGuest");
   const handler = startupSource.slice(handlerStart, startupSource.indexOf("\n  return (", handlerStart));
-  assert.match(handler, /setFailure\(describeAuthenticationFailure\(error\)\)/);
+  assert.match(handler, /setFailure\(startupFailureFor\(error, "PLAYER_FETCH"\)\)/);
   assert.doesNotMatch(handler, /AUTH_BEARER_REJECTED/);
   const reset = apiSource.slice(
     apiSource.indexOf("async function clearLocalGuestAuthenticationForReset"),
@@ -213,10 +214,10 @@ test("safe request IDs are retained without accepting secret-like values", () =>
   assert.doesNotMatch(startupSource, /authToken|installationId|recovery_nonce|auth_token/);
 });
 
-test("Expo config enables precise SecureStore backup rules and versionCode 10", () => {
+test("Expo config preserves precise SecureStore backup rules from versionCode 19 onward", () => {
   assert.equal(appConfig.expo.version, "1.0.0");
   assert.equal(appConfig.expo.android.package, "com.firefeast.app");
-  assert.equal(appConfig.expo.android.versionCode, 10);
+  assert.ok(Number.isInteger(appConfig.expo.android.versionCode) && appConfig.expo.android.versionCode >= 19);
   assert.ok(appConfig.expo.plugins.some((plugin) => Array.isArray(plugin)
     && plugin[0] === "expo-secure-store"
     && plugin[1]?.configureAndroidBackup === true));

@@ -6,6 +6,7 @@ import type { GameplayPresentationEvent } from "../useGameLoop";
 type Props = {
   events: readonly GameplayPresentationEvent[];
   overheatWarningActive: boolean;
+  overheatPenaltyActive: boolean;
   overheatRemainingMs: number;
 };
 
@@ -49,7 +50,7 @@ function resolvePresentation(event: GameplayPresentationEvent): Presentation | u
     case "PERFECT_COOLDOWN":
       return { title: "PERFECT COOLDOWN", subtitle: "+5", positive: true, effect: "sparkle" };
     case "OVERHEAT_PENALTY_STARTED":
-      return { title: "OVERHEAT BREAK", subtitle: "COMBO RECOVERING" };
+      return { title: "OVERHEATED", subtitle: "COOLING DOWN · BITES LOCKED" };
     case "OVERHEAT_PENALTY_ENDED":
       return { title: "HEAT RECOVERED", positive: true, subtle: true };
     default:
@@ -57,7 +58,7 @@ function resolvePresentation(event: GameplayPresentationEvent): Presentation | u
   }
 }
 
-function HeatPresentationOverlay({ events, overheatWarningActive, overheatRemainingMs }: Props) {
+function HeatPresentationOverlay({ events, overheatWarningActive, overheatPenaltyActive, overheatRemainingMs }: Props) {
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.94)).current;
   const effectProgress = useRef(new Animated.Value(0)).current;
@@ -140,6 +141,15 @@ function HeatPresentationOverlay({ events, overheatWarningActive, overheatRemain
         <View style={styles.warningTrack}><View style={[styles.warningFill, { width: `${progress * 100}%` }]} /></View>
         <Text maxFontSizeMultiplier={1.3} style={styles.warningTime}>{(overheatRemainingMs / 1000).toFixed(1)}s TO SAVE COMBO</Text>
       </Animated.View>
+    );
+  }
+
+  if (overheatPenaltyActive) {
+    return (
+      <View accessibilityRole="alert" pointerEvents="none" style={[styles.event, styles.danger]}>
+        <Text maxFontSizeMultiplier={1.25} style={styles.eventTitle}>OVERHEATED</Text>
+        <Text maxFontSizeMultiplier={1.3} style={styles.eventSubtitle}>COOLING DOWN · BITES LOCKED</Text>
+      </View>
     );
   }
 

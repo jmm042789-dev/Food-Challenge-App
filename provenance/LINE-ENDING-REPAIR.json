@@ -1,0 +1,2528 @@
+{
+  "repair_policy": "Byte-preserving copy from original source; candidate-only changes; no normalization or logic edits.",
+  "repaired_files": 315,
+  "verified_frontend_files": 460,
+  "verified_backend_files": 64,
+  "files": [
+    {
+      "path": "frontend/.easignore",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\.easignore",
+      "before_sha256": "5be0103086abe207e53aef2ccf50eedd7df5bc15fee3977f31b8952bbcd4a946",
+      "after_sha256": "2c3f495f6447fdd356b12d46fc8d6ecc61d418934a5e9cd80dadbbfb1712d663",
+      "source_bytes": 701,
+      "candidate_before_bytes": 703
+    },
+    {
+      "path": "frontend/.gitignore",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\.gitignore",
+      "before_sha256": "e83dc18613860de8b6fd3dd874ed0681d9e1bb81778ae0944d0248bc2fda0f44",
+      "after_sha256": "c084fdac896d60c56f7e11d66dfce65364c179d1b651309301810ced881fcc41",
+      "source_bytes": 689,
+      "candidate_before_bytes": 706
+    },
+    {
+      "path": "frontend/ASSET_OPTIMIZATION_AUDIT.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\ASSET_OPTIMIZATION_AUDIT.md",
+      "before_sha256": "7c19aea3abbf548441881e835fa579d573dc69e7148809ce1a8ba8ae869e3ecc",
+      "after_sha256": "595d8e9e68462766443e7c0f28568483c91001eb85f39704e09839759ab20e7f",
+      "source_bytes": 15281,
+      "candidate_before_bytes": 15391
+    },
+    {
+      "path": "frontend/DEPLOYMENT.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\DEPLOYMENT.md",
+      "before_sha256": "55b55357c0d1be69f87e7434cd362b488e00ecf73b0a6be0fb69246498f0f9c0",
+      "after_sha256": "6385b3f0da9d91e04f9418b6334691c58f0435195204f0f01cb65f2288b9fca6",
+      "source_bytes": 12194,
+      "candidate_before_bytes": 12366
+    },
+    {
+      "path": "frontend/README.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\README.md",
+      "before_sha256": "31bc9ffe260411b2dca541fd6b8c5b3ebe099ca626655e6e469c17330ad336d2",
+      "after_sha256": "986a64ddc770a6e4f7ba812f26842d19e52ffbbf2d2cbe70e673caed540137df",
+      "source_bytes": 1898,
+      "candidate_before_bytes": 1908
+    },
+    {
+      "path": "frontend/RELEASE-VALIDATION.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\RELEASE-VALIDATION.md",
+      "before_sha256": "692a12bcd9acafa9d4c7f38e6f73ab65e1f93b610a25818610c4ee3202d7ea6f",
+      "after_sha256": "b0c57f725f6ec1fe0ae6b62c1e0fef72967364fed8d0e9734982a91e0ebca9d8",
+      "source_bytes": 8147,
+      "candidate_before_bytes": 8276
+    },
+    {
+      "path": "frontend/app.config.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app.config.js",
+      "before_sha256": "ae5dda628651e3b2173cec7ec42060109ace93c68d7f9606eb2105c4c91fd35b",
+      "after_sha256": "1926bf8de665fe106c5ebaa042590696b66635a14bc792dd54f07d81ee84e5c8",
+      "source_bytes": 690,
+      "candidate_before_bytes": 720
+    },
+    {
+      "path": "frontend/app.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app.json",
+      "before_sha256": "9b75bcb457e268c3d78b6dfa558fee16fa5f2729af82ef993f92942c63ff4193",
+      "after_sha256": "4a4b66faa7ee86eeff774f9302c853ebd946706e8a7817c00232e926725b876e",
+      "source_bytes": 2058,
+      "candidate_before_bytes": 2059
+    },
+    {
+      "path": "frontend/app/(tabs)/_layout.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\(tabs)\\_layout.tsx",
+      "before_sha256": "75f03c4ac51e180fc609429372667852479ff0655ce45396ab0a375fd4ff39c4",
+      "after_sha256": "fd9347196de7a30e39520e714aba40de5b61a39f1799bf472163a1d454e0ad7f",
+      "source_bytes": 3048,
+      "candidate_before_bytes": 3106
+    },
+    {
+      "path": "frontend/app/(tabs)/leaderboard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\(tabs)\\leaderboard.tsx",
+      "before_sha256": "7f0eb8ba587f248b69fed73f903522b9c6fd089ac9405d36a133bf749a8d2f60",
+      "after_sha256": "f6dcfec966ea4a1c8f1d056588cb3592335913a6b1b69177c2304f2576f96791",
+      "source_bytes": 9460,
+      "candidate_before_bytes": 9546
+    },
+    {
+      "path": "frontend/app/(tabs)/shop.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\(tabs)\\shop.tsx",
+      "before_sha256": "f12bb11d5c4ca54d03f60b77e7d9a31aa855750238a5fc18059b63eb982dc8ed",
+      "after_sha256": "ff25d908067a83f3a02fb9b7e0a4f82b2ce7261c1ccc045f8b8c803b3da01d23",
+      "source_bytes": 20374,
+      "candidate_before_bytes": 20718
+    },
+    {
+      "path": "frontend/app/+html.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\+html.tsx",
+      "before_sha256": "003197dfe7414f36759b98ed1a5bb2d2015b1d53ff5c7543f453e6e150d59b9a",
+      "after_sha256": "5d7c888914b4fe9d302967bb867059b98f7f457a3891ce011e6e4a9849c9a792",
+      "source_bytes": 1392,
+      "candidate_before_bytes": 1436
+    },
+    {
+      "path": "frontend/app/_layout.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\_layout.tsx",
+      "before_sha256": "6b335365706e57941bc475da2d054c0372399d8b5b80a19e5d11657ec9f84cfe",
+      "after_sha256": "6df1828b5012ae11b1f6c93ebe9314e33ed72854dfeeb7668dfe44a83a06bbcd",
+      "source_bytes": 5993,
+      "candidate_before_bytes": 6017
+    },
+    {
+      "path": "frontend/app/avatar-customization.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\avatar-customization.tsx",
+      "before_sha256": "23821b7308b1c5c75d827f14b4779f6183c113e2b1989aa14b076466880b0a4e",
+      "after_sha256": "a79d9c2f6965137f3dca78a5a8f15d51a9f98602de53c2a1f0f76826cb6db1c7",
+      "source_bytes": 12909,
+      "candidate_before_bytes": 12960
+    },
+    {
+      "path": "frontend/app/daily-rewards.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\daily-rewards.tsx",
+      "before_sha256": "7528eae0e5eea893bea141a53b1c4c22df3adebe26327f70a24ff7010b123bda",
+      "after_sha256": "0a018aef631b007851c43c9e5d2f3419fbbcf1963821c16684dd6cb7032626eb",
+      "source_bytes": 14056,
+      "candidate_before_bytes": 14162
+    },
+    {
+      "path": "frontend/app/debug/game-loop.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\debug\\game-loop.tsx",
+      "before_sha256": "f77260357e1da3b958ee60d6499d94d3065c9e21bd0ce7e197374a097b67b448",
+      "after_sha256": "1aa77a9e4f10a3f5e9a4bdd304a0d83ba759c5cfd2caaa452567789f7eb5f8d1",
+      "source_bytes": 2438,
+      "candidate_before_bytes": 2448
+    },
+    {
+      "path": "frontend/app/friends.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\friends.tsx",
+      "before_sha256": "79a66d13972a0a9c0c30f057413399fc87c8fed99a63f191324f86cb417ebaec",
+      "after_sha256": "746e140ee70b0a5e26fea53b289a17b91215d41cf152799f1088ec43df6719ef",
+      "source_bytes": 14150,
+      "candidate_before_bytes": 14269
+    },
+    {
+      "path": "frontend/app/index.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\index.tsx",
+      "before_sha256": "a115d99035b6d67dd3d165e6aca30d1ac48e0f901fc7085483dc08533a60a904",
+      "after_sha256": "cebec3c8f3c53a7bd6234692d41d8305a0903d748dec897384180e9653563a89",
+      "source_bytes": 9813,
+      "candidate_before_bytes": 10048
+    },
+    {
+      "path": "frontend/app/legal/[document].tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\legal\\[document].tsx",
+      "before_sha256": "ea008558a6e818688bcbf5403560a93b897d1604eb5e4beccd1818b3263a9422",
+      "after_sha256": "127f3ff8eb6228239093c32c1454388f392f4a467723cd41cbad625eec5b003a",
+      "source_bytes": 2552,
+      "candidate_before_bytes": 2587
+    },
+    {
+      "path": "frontend/app/locker.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\locker.tsx",
+      "before_sha256": "675706851b13f15f51fd9db73114868a14bb06c5fb18cd7a3453d6da1407c1dc",
+      "after_sha256": "83ed5954f782fdf674faeabc3c447f9aefbf5add13aa6c1eec808eadf132c85e",
+      "source_bytes": 6623,
+      "candidate_before_bytes": 6726
+    },
+    {
+      "path": "frontend/app/match-recovery.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\match-recovery.tsx",
+      "before_sha256": "cc72b7c979c4126392176d0efb704dd8e3e5a4ea40193d7138ca1c1f87112dd9",
+      "after_sha256": "35fdbd1b32440b54b9a7b385b8c074ac4e327c5a6d71567ffd0d05d1b004ccfe",
+      "source_bytes": 4634,
+      "candidate_before_bytes": 4638
+    },
+    {
+      "path": "frontend/app/matchmaking.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\matchmaking.tsx",
+      "before_sha256": "9da8449d292128f71ac0bf7086e6a2dcf3c20952fc0964d033628b9c591e0931",
+      "after_sha256": "91c053f9e0ee5cc83e63f593069bf7e29f19f162cb1ca270aca45a6f14f789ea",
+      "source_bytes": 1504,
+      "candidate_before_bytes": 1534
+    },
+    {
+      "path": "frontend/app/play/[contestId].tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\play\\[contestId].tsx",
+      "before_sha256": "db0595120ce8968044b1435ccea4c752e32ca1bc98176f542631862d1b6fff7e",
+      "after_sha256": "93c581534e8c5c44d0d145bb3e115b78bcdd19130f86c347a57225b7ed871e68",
+      "source_bytes": 72019,
+      "candidate_before_bytes": 72661
+    },
+    {
+      "path": "frontend/app/player/[publicId].tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\player\\[publicId].tsx",
+      "before_sha256": "5057d1c52849f30422247293b8b93371ddd030a4249ab9d43e643ce316470a02",
+      "after_sha256": "3343f0dfd589836c307a5efc86a1f9cbeca704a9c0946d899ddc2b1b8301a54b",
+      "source_bytes": 4481,
+      "candidate_before_bytes": 4509
+    },
+    {
+      "path": "frontend/app/promotions.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\promotions.tsx",
+      "before_sha256": "cbacac68e2d19754044d7d5181a178604768a53c5395a630996d85c551290b59",
+      "after_sha256": "6164831a60efc710c509706b8eb3041170bac224dfa92dbce6e23d4df3b7dcdb",
+      "source_bytes": 6487,
+      "candidate_before_bytes": 6574
+    },
+    {
+      "path": "frontend/app/pvp/challenge/[publicId].tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\pvp\\challenge\\[publicId].tsx",
+      "before_sha256": "d7e1bc3ae3a57ca1e2f57c544291ff384ab99c3e618bfd9f0e979c19a38d706c",
+      "after_sha256": "cda1a60cd4a7c442c4d5dc28f0a3ac2cfa4c19b05fc14f9db300a0cdd19c1cc4",
+      "source_bytes": 3702,
+      "candidate_before_bytes": 3748
+    },
+    {
+      "path": "frontend/app/pvp/match/[matchId].tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\pvp\\match\\[matchId].tsx",
+      "before_sha256": "794e8889bec266bc4508cfd9388db29af4d19dfd5db199877884047396357b8f",
+      "after_sha256": "9aca76965c72a75d28b0edbfe0760e2ba460f5664008e28c7eabbef8fb86081d",
+      "source_bytes": 6930,
+      "candidate_before_bytes": 6963
+    },
+    {
+      "path": "frontend/app/result.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\result.tsx",
+      "before_sha256": "c017da32ff91f8d17a7f0507ba5799c545bd720a3395cc1dc32dead0239f33fa",
+      "after_sha256": "413f761d062ac8af433c1ffbebf1392da9eb3cc5e4967f82c4be6cf7a8b5beeb",
+      "source_bytes": 2846,
+      "candidate_before_bytes": 2897
+    },
+    {
+      "path": "frontend/app/settings.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\settings.tsx",
+      "before_sha256": "0a2743aec7ac613fafa0822e7e0020997afbd60ea40d400b052a32621b1454a7",
+      "after_sha256": "dd2a82ff5dd1be71d1e10c2042e7a2a910d7ca7535060e647bb542d7eef6d8ea",
+      "source_bytes": 11823,
+      "candidate_before_bytes": 11863
+    },
+    {
+      "path": "frontend/app/tutorial.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\app\\tutorial.tsx",
+      "before_sha256": "3b6800e46fb6bbacf277f1582c92f196c5e6749059ec9405e133835f2616d70e",
+      "after_sha256": "dda812783b4fcd27e8d058b4daf6b96118e49b20eafe22737ae0062a4a147389",
+      "source_bytes": 5830,
+      "candidate_before_bytes": 5842
+    },
+    {
+      "path": "frontend/eas.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\eas.json",
+      "before_sha256": "3ba161dec0fbb0248be51bf9cb26ba29022dc51f74585d161915ab20edf39f4d",
+      "after_sha256": "1d6d8aaacc1e000511f45316c2f60f1b63d6f53b11080cd9b4d50b1471990017",
+      "source_bytes": 951,
+      "candidate_before_bytes": 994
+    },
+    {
+      "path": "frontend/metro.config.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\metro.config.js",
+      "before_sha256": "019690b0719b0938dc8eb3e1b1cd0f960fbf0a6752cde75807d00b41135ba593",
+      "after_sha256": "47080ee41b1e4cc3e925ef6cd85939d5d9c47faa254a51fdbb2d3ca271719e73",
+      "source_bytes": 130,
+      "candidate_before_bytes": 135
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\package-lock.json",
+      "before_sha256": "c9d8cf929b924581acb625ef92a196a95c169d4a4a275d1dc91a96655e62f8f0",
+      "after_sha256": "3ee6a2528c1a56d96c9ae6861a186b60cb8d37e47708995aa52c0907fd15b002",
+      "source_bytes": 481733,
+      "candidate_before_bytes": 494661
+    },
+    {
+      "path": "frontend/package.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\package.json",
+      "before_sha256": "a817492b186e0f85e0c8c14b6a1ac1f72fa4d6812c9a92c165be57de7a4d7059",
+      "after_sha256": "c0eff0502be14c3b3c503c1ff8e0750ae62d7c90ced2947bdca20d9a79e0a18a",
+      "source_bytes": 2464,
+      "candidate_before_bytes": 2532
+    },
+    {
+      "path": "frontend/plugins/withAndroidAuthBackupExclusions.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\plugins\\withAndroidAuthBackupExclusions.js",
+      "before_sha256": "894c473fb97dc23b11622ab1602e688cb4b632e0e7118f360e61edd11a3cfd45",
+      "after_sha256": "fcca0cc2b71622c1ce1acaa607175687c2ecc1d4ecf4267dcf05e9d00a6102cf",
+      "source_bytes": 2520,
+      "candidate_before_bytes": 2583
+    },
+    {
+      "path": "frontend/release-integrity-baseline.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\release-integrity-baseline.json",
+      "before_sha256": "2b2afec0b3fba2e85f92fb60eb6ea0a5573a75d92882130c55eb5bafb864b1c2",
+      "after_sha256": "f9ae2ca3e42ede0fd52e289f7642331ccd2650a7894badc449b4cd08d6bf0b76",
+      "source_bytes": 11296,
+      "candidate_before_bytes": 11638
+    },
+    {
+      "path": "frontend/scripts/audit-daily-reward-artwork.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\audit-daily-reward-artwork.js",
+      "before_sha256": "ffea0704a9fcc89b3944fb519d51403571cdbb32dfe0b8e1facfad57cc6b82b9",
+      "after_sha256": "da684ac3bdfcce30bde289b39c02e791714c764bee03658c3619c851f1a6beb6",
+      "source_bytes": 4575,
+      "candidate_before_bytes": 4668
+    },
+    {
+      "path": "frontend/scripts/check-avatar-v5-proof.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\check-avatar-v5-proof.js",
+      "before_sha256": "9e657988d57a8fd5470f1a5de690026898c5d09969376fcdf3e8c022b7cdd697",
+      "after_sha256": "f840a9bc3a31ede5f0d0f58d3bd1051cdf2df7b435c43af8b373f6b41e94940c",
+      "source_bytes": 6614,
+      "candidate_before_bytes": 6728
+    },
+    {
+      "path": "frontend/scripts/check-pkg.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\check-pkg.js",
+      "before_sha256": "b348634d1d1c1fe2f8e8b71530b458b04a8d7a2cfc114f88837595dcd117496f",
+      "after_sha256": "915099c81b0e2b8d2a8f2e5ff6f9352ad6890abdb567cad167b15e0f144c8021",
+      "source_bytes": 1826,
+      "candidate_before_bytes": 1830
+    },
+    {
+      "path": "frontend/scripts/check-png-integrity.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\check-png-integrity.js",
+      "before_sha256": "a81648719248169cdb8e13de4c7f9abcc91d7e842080749b8570414a3a01b345",
+      "after_sha256": "784a793cb29781b612fa2d6262c873ca4047d7bdc8fe6185465a6b01e7393bfb",
+      "source_bytes": 4311,
+      "candidate_before_bytes": 4429
+    },
+    {
+      "path": "frontend/scripts/check-release-integrity.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\check-release-integrity.js",
+      "before_sha256": "db338816b3be4168eb7c531e8f08c965ed20ac135faa2a622156bb3b0980ea34",
+      "after_sha256": "003644a2acca1ab96ccd81ebd9c0564e2dacac9976137e81a505cb42c06f573d",
+      "source_bytes": 2309,
+      "candidate_before_bytes": 2369
+    },
+    {
+      "path": "frontend/scripts/generate-release-integrity-baseline.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\generate-release-integrity-baseline.js",
+      "before_sha256": "80a4d6f914e20d5bb31da1f82eab77c29e034a483b96de45380b2f87c3f7b7fb",
+      "after_sha256": "86e0dcd997cb0ba0e45a92613ac440d2fa38b1a237bff04d4a5073bf5a7b17a2",
+      "source_bytes": 1444,
+      "candidate_before_bytes": 1481
+    },
+    {
+      "path": "frontend/scripts/recenter-daily-reward-artwork.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\recenter-daily-reward-artwork.js",
+      "before_sha256": "54135e7a05dd089f49b8d8916fcdcf94263d27807cd52b2246851c6933b2da72",
+      "after_sha256": "307878c420ed127d253730a798a4b59ec82b5c77d9cd3f033215b5748acbccf2",
+      "source_bytes": 3108,
+      "candidate_before_bytes": 3209
+    },
+    {
+      "path": "frontend/scripts/release-integrity-files.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\release-integrity-files.js",
+      "before_sha256": "d73bddc925cf335e2f044f6fe0cd02a7332a1f4e76569287b5622a27d4520742",
+      "after_sha256": "d2a8bd452e14709bc0f42f1cef5496d993b8f57365f4d9d7760a62da5b8a7af3",
+      "source_bytes": 1411,
+      "candidate_before_bytes": 1451
+    },
+    {
+      "path": "frontend/scripts/sync-legal-docs.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\sync-legal-docs.js",
+      "before_sha256": "e298eabafa07fac9da16c2bdb726e236e565f71de5ea32b997a0222b3d0e2a48",
+      "after_sha256": "4db45b5b4d443e8277401b4056aa64a6820ef1497e9322f9171c7e430a2f1b98",
+      "source_bytes": 1116,
+      "candidate_before_bytes": 1146
+    },
+    {
+      "path": "frontend/scripts/validate-local-release.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\validate-local-release.js",
+      "before_sha256": "e5eb6be7f045418274afb155ddf5876651737c5999d80ddfd4bf22400d96a926",
+      "after_sha256": "b6ceed5d96427f0fae5ef2aa0c77ec66117ad6efe7caa2a46de3ce99adda22f3",
+      "source_bytes": 10865,
+      "candidate_before_bytes": 11015
+    },
+    {
+      "path": "frontend/scripts/validation/api-contracts.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\validation\\api-contracts.js",
+      "before_sha256": "0b8986c541d721edfd13771a5d4952207c2c431f1cb2a144381e31952d130436",
+      "after_sha256": "103f5ea6b50f383c48900c1d114cf032105f8c21bf78fafc303137e52f88da5c",
+      "source_bytes": 8448,
+      "candidate_before_bytes": 8574
+    },
+    {
+      "path": "frontend/scripts/validation/backend-local.py",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\validation\\backend-local.py",
+      "before_sha256": "d8acc514469da260437c8648189f65cf0c7224539c7185e8ddeeb250785d085d",
+      "after_sha256": "5a6ed3ae11f23ef69df7d1d8082c804d10ed506d12d3f96e2e3f906c38260a20",
+      "source_bytes": 4270,
+      "candidate_before_bytes": 4364
+    },
+    {
+      "path": "frontend/scripts/validation/scoped-typescript.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\scripts\\validation\\scoped-typescript.js",
+      "before_sha256": "17ae1d6660ff288abb8c838a36b8d8c1849a91441e063f9914aa372e7c7460bd",
+      "after_sha256": "c9f4f2ca93ea8100d0a9d5d9aeb33027ff89b6081ecad05533aee2a2d52416f2",
+      "source_bytes": 1673,
+      "candidate_before_bytes": 1695
+    },
+    {
+      "path": "frontend/src/achievements/AchievementCatalog.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\AchievementCatalog.ts",
+      "before_sha256": "17edee138ad0c8c8bc921804d317baa5ba4080649643e967b38d6652a3a84318",
+      "after_sha256": "1a6bea9a4cf19ab26e93403cf4f7e6fac17c53f7c497b888c78a42c9f843a346",
+      "source_bytes": 5311,
+      "candidate_before_bytes": 5339
+    },
+    {
+      "path": "frontend/src/achievements/AchievementStorage.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\AchievementStorage.ts",
+      "before_sha256": "6248443ab67a489adcb5d595f27cfcb37911afebdcacb4e0b593c08ccb985d4f",
+      "after_sha256": "8c39a3f6d914addb675dcdcac88c907b77229ba1d7ca11c00a8ff323f256dc7a",
+      "source_bytes": 1549,
+      "candidate_before_bytes": 1589
+    },
+    {
+      "path": "frontend/src/achievements/AchievementTracker.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\AchievementTracker.ts",
+      "before_sha256": "dc41357adddf9af240c4d713d406c26d6bf5c07704b45bbef7b7f326b77f60be",
+      "after_sha256": "446ac36126ba3f48e61b7e08d2117a220f1238be405a03c0579ee10aa7cea31e",
+      "source_bytes": 7936,
+      "candidate_before_bytes": 8114
+    },
+    {
+      "path": "frontend/src/achievements/AchievementTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\AchievementTypes.ts",
+      "before_sha256": "2c8a4042b258caf0f2330d1cf8561052701db12f226564efbd4746cd62882efb",
+      "after_sha256": "379cdc0b9db61d8dc28de61efff5009f9f647b4c8c250b54f074e69a4f44b27a",
+      "source_bytes": 2904,
+      "candidate_before_bytes": 2988
+    },
+    {
+      "path": "frontend/src/achievements/components/AchievementCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\components\\AchievementCard.tsx",
+      "before_sha256": "52040706c0d8afcbf0802e900729479c8a7dc0b669f094bf3928fb680549a54a",
+      "after_sha256": "dad9be910c5b05f952e358367443c4cc0a604d73bb58e8c87197d343c4844404",
+      "source_bytes": 2902,
+      "candidate_before_bytes": 2948
+    },
+    {
+      "path": "frontend/src/achievements/components/AchievementPanel.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\components\\AchievementPanel.tsx",
+      "before_sha256": "84c16bffc16c4e57a97ee2d864df220d75709bd58bb13cd721f1b1d9dd4cb930",
+      "after_sha256": "c88caf94a8c909bf9e2e1aa71c26abd049b0423291d1e7ddbe632d0c4ca49bac",
+      "source_bytes": 2640,
+      "candidate_before_bytes": 2685
+    },
+    {
+      "path": "frontend/src/achievements/useAchievements.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\achievements\\useAchievements.ts",
+      "before_sha256": "1d1c225c3cb8cdae69a8e26cb254145d0b043191d82b0804e606227b9e5c4e14",
+      "after_sha256": "1c970ddf66ebba4f654295834c5dc78a648a641f64cc4f9eb6cffb8f5ce8847b",
+      "source_bytes": 1762,
+      "candidate_before_bytes": 1801
+    },
+    {
+      "path": "frontend/src/api.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\api.ts",
+      "before_sha256": "11a9ed28fb2ef1be2ae68a86588fb873598962337ff93cb4aa45cb822b3a0139",
+      "after_sha256": "712f7b377f34ab5d8ce4f0e66c5497a3a0f1f55a51ec4f8a5fb502e303774658",
+      "source_bytes": 60588,
+      "candidate_before_bytes": 62197
+    },
+    {
+      "path": "frontend/src/apiBase.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\apiBase.ts",
+      "before_sha256": "4b7b8d72a225f591fbc33086ace7b89593a6ef84e4594fa38866d43f8bb4ddeb",
+      "after_sha256": "a71dec31bd14aed6debb94a019dd1fba15e219db19db4ff8b9a3045e262fcb8f",
+      "source_bytes": 2240,
+      "candidate_before_bytes": 2309
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/accessories/misc/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\accessories\\misc\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/accessories/neck/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\accessories\\neck\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/accessories/wrist/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\accessories\\wrist\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/base/female/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\base\\female\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/base/male/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\base\\male\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/base/nonbinary/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\base\\nonbinary\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/bottoms/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\bottoms\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/effects/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\effects\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/eyewear/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\eyewear\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/faces/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\faces\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/facial-hair/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\facial-hair\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/gear/feet/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\gear\\feet\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/gear/hands/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\gear\\hands\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/gear/head/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\gear\\head\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/gear/torso/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\gear\\torso\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/hair/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\hair\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/headwear/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\headwear\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/proofs/flattened-standard/README.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\proofs\\flattened-standard\\README.md",
+      "before_sha256": "56ff864379d03973b6bd3324cc8c39b68637694df460ad6f6e143a1cb14d4c10",
+      "after_sha256": "af19934e47623bb65368ee156c2f4919837815a9461e5379ce2b819e7642535d",
+      "source_bytes": 1411,
+      "candidate_before_bytes": 1436
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/proofs/standard/README.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\proofs\\standard\\README.md",
+      "before_sha256": "7bdc31a8623094a5fcc1bc761c5eee070e8318edce5977c750f169f05bb41529",
+      "after_sha256": "fce9bf4e6503ccf360059fffaef02c08baee79c07bf2b71d3d95e19839f73e29",
+      "source_bytes": 4258,
+      "candidate_before_bytes": 4336
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/references/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\references\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/shoes/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\shoes\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/avatar-v5/tops/.gitkeep",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\avatar-v5\\tops\\.gitkeep",
+      "before_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "after_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "source_bytes": 1,
+      "candidate_before_bytes": 2
+    },
+    {
+      "path": "frontend/src/assets/daily-rewards/artwork.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\daily-rewards\\artwork.ts",
+      "before_sha256": "af72f58942174ecff885bc43e6e6f304cc383b7c983d78bb343c890fef99c955",
+      "after_sha256": "f64172ab8c9feac656da25d926953d04965626e8bf201b557085fe4f204f1350",
+      "source_bytes": 1793,
+      "candidate_before_bytes": 1816
+    },
+    {
+      "path": "frontend/src/assets/foodArtwork.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\foodArtwork.ts",
+      "before_sha256": "d14cf10ae9794b8b34e83018ae2d484edef2f92dee78c1e0c721072b7988d7c1",
+      "after_sha256": "b0f73a00ef6515a9bb016ad060f829042c4ab668b13bfeb5762b9504c422e967",
+      "source_bytes": 994,
+      "candidate_before_bytes": 1020
+    },
+    {
+      "path": "frontend/src/assets/foodArtworkKeys.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\assets\\foodArtworkKeys.ts",
+      "before_sha256": "343a16a3a36a102cda82d8bfa497b01e9fdd8b30340d1044316363d32f8852ac",
+      "after_sha256": "4a39fd446a155fb24f235ec809bb887ab631fbe02b7b4d86b52d3d8a9b1f8aa4",
+      "source_bytes": 564,
+      "candidate_before_bytes": 584
+    },
+    {
+      "path": "frontend/src/audio.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\audio.ts",
+      "before_sha256": "7859ea0aa5bb88020402cad81a72ae21019edfcce40896f8dfb60b97849cf621",
+      "after_sha256": "d997efc31e79ed22f5bebc9640628185819c7f4da7d69debb5735214eb4a2f7b",
+      "source_bytes": 2362,
+      "candidate_before_bytes": 2410
+    },
+    {
+      "path": "frontend/src/audio/AdaptiveAudioManager.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\audio\\AdaptiveAudioManager.ts",
+      "before_sha256": "18a1c48ba618734520924af5be195b48030ac71e47e53fd2779ce5d6da80df19",
+      "after_sha256": "4c8974f8e24d426a35398ae517d10cd6d46d02aaf17183b608c8fbf458eb4c1f",
+      "source_bytes": 12984,
+      "candidate_before_bytes": 13311
+    },
+    {
+      "path": "frontend/src/audio/AudioRegistry.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\audio\\AudioRegistry.ts",
+      "before_sha256": "038bbadcc5455aee93e78f19ebaf0de9463a993293a58803e09bff4d50f72cdd",
+      "after_sha256": "98eaf952468a7896f7c7cd4cb53e88a3c829c406c2762092b896221a5e33b575",
+      "source_bytes": 4628,
+      "candidate_before_bytes": 4690
+    },
+    {
+      "path": "frontend/src/audio/AudioSettings.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\audio\\AudioSettings.ts",
+      "before_sha256": "cc1adbc7a30a29fcbc5b6a631f4322c0ec832cdd552266a36388ed1330f7c20f",
+      "after_sha256": "4236d3899f10e2604774678ee30c1937fec5017acc8a3b91f74618e495806000",
+      "source_bytes": 1391,
+      "candidate_before_bytes": 1413
+    },
+    {
+      "path": "frontend/src/audio/AudioTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\audio\\AudioTypes.ts",
+      "before_sha256": "3f3dbf031e06238e351c7d6cd6efc0d6301db3e17dbd58714bf3e00f7f9710fa",
+      "after_sha256": "f7056aca5a58cbc5bd1a7bec00f638d1e7fcda0184c86e957823a6a29c69ded4",
+      "source_bytes": 1408,
+      "candidate_before_bytes": 1419
+    },
+    {
+      "path": "frontend/src/audio/useAdaptiveAudio.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\audio\\useAdaptiveAudio.ts",
+      "before_sha256": "22148ce76522193de34917759ea36c960300adce39af9248cde7ac19d1b334ba",
+      "after_sha256": "de4d30bea5709e91cbc99b7d55c3f058a42c50318929f2cea36e324916ce9f85",
+      "source_bytes": 1617,
+      "candidate_before_bytes": 1659
+    },
+    {
+      "path": "frontend/src/avatar-v5/AvatarV5Renderer.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\AvatarV5Renderer.tsx",
+      "before_sha256": "fdfcf850633a94157dce3f39004f1f0d34d8dd87fa4bf3661c98576931620a09",
+      "after_sha256": "7151311d0fb439867b2c7de1d10122d836a491fda31778be90ef34b867f227ab",
+      "source_bytes": 2682,
+      "candidate_before_bytes": 2728
+    },
+    {
+      "path": "frontend/src/avatar-v5/STEP-2G.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\STEP-2G.md",
+      "before_sha256": "54acf09741e88532288ec3ee13c749ac8841a62c6cdf9bb444ea39af6f5fb553",
+      "after_sha256": "9c33e62b257da8ad3ad73490da3aefe59307e509dea3dea220071452718046c0",
+      "source_bytes": 7677,
+      "candidate_before_bytes": 7796
+    },
+    {
+      "path": "frontend/src/avatar-v5/appearanceDraft.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\appearanceDraft.ts",
+      "before_sha256": "b01c23e1b38b1b9da90ac206a2913b24bd64bae0ed3126b39144b7a4024ff1a7",
+      "after_sha256": "ff66eef13fc00283de9826670b37d059b39454b04768349e167fb2d53941498b",
+      "source_bytes": 5392,
+      "candidate_before_bytes": 5459
+    },
+    {
+      "path": "frontend/src/avatar-v5/appearanceValidation.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\appearanceValidation.ts",
+      "before_sha256": "f42eb06b3df8dacbfa0985f8d0897984dedf10fa578868c8f0f686626c0e25b4",
+      "after_sha256": "6806ac1511d75fe1090bd03f3da422c4ee536fc2b0920e8c854457d9a346e014",
+      "source_bytes": 9901,
+      "candidate_before_bytes": 10032
+    },
+    {
+      "path": "frontend/src/avatar-v5/paletteResolution.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\paletteResolution.ts",
+      "before_sha256": "29bd017d082146cbbc0737c94bce1cff4c47c1b5bf4ca09bb1ee73f9f394edd7",
+      "after_sha256": "3b28aa6cce8b792d04e777c4e96b04e5418cfe0753df653087073c93bbcae910",
+      "source_bytes": 3669,
+      "candidate_before_bytes": 3708
+    },
+    {
+      "path": "frontend/src/avatar-v5/proof/FlattenedStandardProof.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\proof\\FlattenedStandardProof.tsx",
+      "before_sha256": "d8d64586e315838310f25d0ab6a90e53ee0b4f546bba85aa57fa2e488562bbe9",
+      "after_sha256": "4d660d67b4a7f1e6322d3bb3f1d64feea57913176b70a33ecd9a5b7044644048",
+      "source_bytes": 1068,
+      "candidate_before_bytes": 1090
+    },
+    {
+      "path": "frontend/src/avatar-v5/renderPlan.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\renderPlan.ts",
+      "before_sha256": "b6b8d51bd1ed72911b327e6525eeb49b717d965d9c0781c9dee14cb669e5d7af",
+      "after_sha256": "5f0b118c569d1b9260a26296c8e17c299025e335870bd38b1d97daa0f81d8fb1",
+      "source_bytes": 8764,
+      "candidate_before_bytes": 8904
+    },
+    {
+      "path": "frontend/src/avatar-v5/renderState.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\avatar-v5\\renderState.ts",
+      "before_sha256": "f4a7dc7c97352104e16f34f9733500c576ffe25253cee2943e4a2e207efe1f88",
+      "after_sha256": "0fd0598fb8b2ec5fecee3d1161a18a8af2a1869c4ef1d9d685e678627d2beecc",
+      "source_bytes": 1026,
+      "candidate_before_bytes": 1045
+    },
+    {
+      "path": "frontend/src/components/GameButton.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\GameButton.tsx",
+      "before_sha256": "9c930eb4ad7070aa2a3c25342b8a82d9b9e8fc3b36d999c2df338a70aa7fdc03",
+      "after_sha256": "3deef794ecca77d0f1a2f8eae8552f4bcc33cba273ecedc74855653aad4f1eae",
+      "source_bytes": 308,
+      "candidate_before_bytes": 314
+    },
+    {
+      "path": "frontend/src/components/animations/ArenaGlow.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\animations\\ArenaGlow.tsx",
+      "before_sha256": "6f6298a737b39c5bed84f128a640b1529b58dbb955b2ebab19a1e60982fdc861",
+      "after_sha256": "74bb9228f081127e39d927e6a491158516d8241a516b45a58df6948d96e0c513",
+      "source_bytes": 1335,
+      "candidate_before_bytes": 1394
+    },
+    {
+      "path": "frontend/src/components/animations/index.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\animations\\index.ts",
+      "before_sha256": "870c7b383b5546e80e41197485a0af798fcc4c5fdd18d494a752fce5537fafc5",
+      "after_sha256": "444816331375ee0241cc39225180d99bc91533d7459ed725563bd83707fff163",
+      "source_bytes": 606,
+      "candidate_before_bytes": 609
+    },
+    {
+      "path": "frontend/src/components/fire/CompactScreenHeader.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\CompactScreenHeader.tsx",
+      "before_sha256": "477a1590b40720c64985f0922044ecddc0f9a1322bfd82eef07d961274912fb6",
+      "after_sha256": "ae86876fb2d14679568c354ea3aa94972642a7ba759b9915620937cedef209fc",
+      "source_bytes": 1022,
+      "candidate_before_bytes": 1042
+    },
+    {
+      "path": "frontend/src/components/fire/FeaturedChallengeCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FeaturedChallengeCard.tsx",
+      "before_sha256": "459fc93c2292902ad1f0da18ae9d7acb99bede38d271ac27962ba3221866acd8",
+      "after_sha256": "9e8766fd0b07d09fb8ab8db790102ff1a740b967b85543334b8113a2d21e2a22",
+      "source_bytes": 1942,
+      "candidate_before_bytes": 2036
+    },
+    {
+      "path": "frontend/src/components/fire/FireBadge.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireBadge.tsx",
+      "before_sha256": "200ddd96c531b053bfe50a01bb904dc526cfc3c0b8fe3cf8df30fafe1d8aeb33",
+      "after_sha256": "d98c37b73d2102eae0ecb00ba60dada97f4eed2df9150e651f2f3611d3ff8804",
+      "source_bytes": 1764,
+      "candidate_before_bytes": 1779
+    },
+    {
+      "path": "frontend/src/components/fire/FireButton.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireButton.tsx",
+      "before_sha256": "1d6586bec7071c7d34a926e1b8010f0fc1ca630322a4c613d445daf92021dd4c",
+      "after_sha256": "908b1d04bc844b7b95f8fa474b2bbf6ae7d6fef3109bbc7a9d49795b1799cf16",
+      "source_bytes": 7443,
+      "candidate_before_bytes": 7451
+    },
+    {
+      "path": "frontend/src/components/fire/FireCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireCard.tsx",
+      "before_sha256": "c3971ad0630611f44eae2186c5625aa8bc60b5c70c4df3f96a23c2008bfc7129",
+      "after_sha256": "8fefff7b714e331355a1e8e3573a6b936d9ef35b59b168f174ad323a6baf991a",
+      "source_bytes": 1666,
+      "candidate_before_bytes": 1683
+    },
+    {
+      "path": "frontend/src/components/fire/FireCurrencyBar.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireCurrencyBar.tsx",
+      "before_sha256": "6c11d7338b7acb1a4a8a244f0364f0791577fd8814bf746311568b01f1647ef7",
+      "after_sha256": "bbdfe71790636962475013d14662a5d203695397950b09d6feddd89858eb783a",
+      "source_bytes": 929,
+      "candidate_before_bytes": 948
+    },
+    {
+      "path": "frontend/src/components/fire/FireHUD/FireCoinBar.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireHUD\\FireCoinBar.tsx",
+      "before_sha256": "55b1f72107c48f90cd8cf34d2aa546657e73d63b390f6a40ddc22a64391a8ff4",
+      "after_sha256": "b8ea1c96a95236fa8ecd6fe682a5f86a0d28c60085736a9fca16a037f41d9f58",
+      "source_bytes": 588,
+      "candidate_before_bytes": 607
+    },
+    {
+      "path": "frontend/src/components/fire/FireHUD/FireHUD.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireHUD\\FireHUD.tsx",
+      "before_sha256": "fcb341c38e0fe1050f2ef9444156c52d4b381d29a4731af48b55d31bf938172a",
+      "after_sha256": "b35ad8252dda1f05d9333d1549ee5e0f691eb19ed465da43c75041f88f08c0e9",
+      "source_bytes": 1125,
+      "candidate_before_bytes": 1154
+    },
+    {
+      "path": "frontend/src/components/fire/FireHUD/FireXPBar.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireHUD\\FireXPBar.tsx",
+      "before_sha256": "ccf0f5ab1f6c6424cae52c619cabf398443baaa2b320c9e76454b630d832b0b7",
+      "after_sha256": "4a0a23cb5ef1c4bff588ecf7d37d988ba1e100116ec52156278627730c084dda",
+      "source_bytes": 733,
+      "candidate_before_bytes": 751
+    },
+    {
+      "path": "frontend/src/components/fire/FireHUDFrame.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireHUDFrame.tsx",
+      "before_sha256": "788886004a885300a949c61ea0b3c085ff0f0574cc66893346318105bd6aba0a",
+      "after_sha256": "bb6821540af1d7e46cc4871ea84ea083aa9c6d3f7cf49888c83433ae769477df",
+      "source_bytes": 2969,
+      "candidate_before_bytes": 3050
+    },
+    {
+      "path": "frontend/src/components/fire/FireHeader.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireHeader.tsx",
+      "before_sha256": "911f3ab2a80e7a88cc4a332557109ce9471d989d19cad1746b82455648c8b9e5",
+      "after_sha256": "8fc6364a18b3322c9c2abe7370038feb46dade266d30d2242c90e15006f385bf",
+      "source_bytes": 2085,
+      "candidate_before_bytes": 2139
+    },
+    {
+      "path": "frontend/src/components/fire/FirePanel.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FirePanel.tsx",
+      "before_sha256": "2ae24d301a4becba80c5046d9cc95f61211e670d6ad0613f36ad0b7cac634700",
+      "after_sha256": "00be3bc29c25f10009e5d9f58e75dca1ad5d7c094b9e27b8737aa475c7cae1d8",
+      "source_bytes": 3809,
+      "candidate_before_bytes": 3864
+    },
+    {
+      "path": "frontend/src/components/fire/FireScreenEntrance.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireScreenEntrance.tsx",
+      "before_sha256": "86746b691fed36ce115d33675e4abaaa89b6323b56b900bb96a95facd6fc16ff",
+      "after_sha256": "ce7c177af7bf9b0277f7a0e146b03e6c7a3a5a33ed9b174cf6be5814e676298a",
+      "source_bytes": 2436,
+      "candidate_before_bytes": 2514
+    },
+    {
+      "path": "frontend/src/components/fire/FireSection.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireSection.tsx",
+      "before_sha256": "8b46a0df171e632026e646f31cfdd5a769d995b95ee5816191f6ff72f1c38e1f",
+      "after_sha256": "ab6999afb07524233fbbbb057e6c79992275c0801fe044fa57debfc0512e9e93",
+      "source_bytes": 1941,
+      "candidate_before_bytes": 2041
+    },
+    {
+      "path": "frontend/src/components/fire/FireText.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireText.tsx",
+      "before_sha256": "c0db03666879a119eafdb6665f796529ec53b01f9773d8436392444d67f83565",
+      "after_sha256": "19c96c6fd4c605337c77abf4fc34e3466aaae05fde5fdcdfbf848a016a001a43",
+      "source_bytes": 1476,
+      "candidate_before_bytes": 1500
+    },
+    {
+      "path": "frontend/src/components/fire/FireXPBar.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\components\\fire\\FireXPBar.tsx",
+      "before_sha256": "3b1b2733c10a158118fefaeabd89499c4b774ebc02a137c0603393db1adfb441",
+      "after_sha256": "7dc734a9622e296b4d62cd5824c07023a4c63a4f06ee7d5a67f7abe42c454a2a",
+      "source_bytes": 797,
+      "candidate_before_bytes": 817
+    },
+    {
+      "path": "frontend/src/equipmentState.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\equipmentState.ts",
+      "before_sha256": "ae2f4907b3d3f095fe57dd42a6a2b491264a77176316fc3018ae272302f3fbc7",
+      "after_sha256": "165f10cfe4d70e778ce6f07d669fef42f0881a617b25f051effe827d3c797b71",
+      "source_bytes": 736,
+      "candidate_before_bytes": 755
+    },
+    {
+      "path": "frontend/src/game/AnimatedBackground.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\AnimatedBackground.tsx",
+      "before_sha256": "b71b6f38232b3890687b77bc766189ab8dba90263df1b976fb9dd10de4f69438",
+      "after_sha256": "5ab7ec7927afea3cb7b7cf0da337e2aa845103c7d98e34f11905d8c4c2085f62",
+      "source_bytes": 130,
+      "candidate_before_bytes": 132
+    },
+    {
+      "path": "frontend/src/game/ArcadeHeader.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ArcadeHeader.tsx",
+      "before_sha256": "5840cac36cb5b5ea064d701a31ceaaee946141e166c917ff66e830939b087844",
+      "after_sha256": "d87730e6c0d3e68adb60f24c86256099c0e3442df7b9aa52fb16de0fe8f52833",
+      "source_bytes": 5129,
+      "candidate_before_bytes": 5132
+    },
+    {
+      "path": "frontend/src/game/FireArenaBackground.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\FireArenaBackground.tsx",
+      "before_sha256": "15da962d46832f04e6623f1cecbbed16eb3462a6654e53922d6a30d3385ed420",
+      "after_sha256": "169e09f61b4a815f2d1d853bf6942fb9aa840b8cd7aec10da8d1e61cd2e4ed93",
+      "source_bytes": 17099,
+      "candidate_before_bytes": 17446
+    },
+    {
+      "path": "frontend/src/game/HeroPlayButton.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\HeroPlayButton.tsx",
+      "before_sha256": "cea2afa7b7573711d13802b181f08e54a886028cb8b1eb8e91ad7cb95e0934fd",
+      "after_sha256": "192f0cd391fefc18db18ad2a2de4f5da9cefec7510bf74051a578ddd872e2e87",
+      "source_bytes": 456,
+      "candidate_before_bytes": 465
+    },
+    {
+      "path": "frontend/src/game/MatchIntro.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\MatchIntro.ts",
+      "before_sha256": "633666c3473b13ea7f370fd3490bcbd33740ab72f01cf07db330fc71bbe7d916",
+      "after_sha256": "9e56f11c72b7bb62a7842eb31e42a7273d3ee207c3091d97560c6b8ac43fda45",
+      "source_bytes": 1822,
+      "candidate_before_bytes": 1875
+    },
+    {
+      "path": "frontend/src/game/activeMatchInputLog.d.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\activeMatchInputLog.d.ts",
+      "before_sha256": "bb45df2a0b6d953e7e57daa23225aa734d5d529fa88693f5655b5a233be0857e",
+      "after_sha256": "e2a11db23bfcda166a5398c269bf84021ed20adf92613fa5117f86ce82599fb7",
+      "source_bytes": 1298,
+      "candidate_before_bytes": 1332
+    },
+    {
+      "path": "frontend/src/game/activeMatchInputLog.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\activeMatchInputLog.js",
+      "before_sha256": "a158ad8ae6697ee3667202b69781e4d02cc9b66538b2ebdcbf22630ea7f3e448",
+      "after_sha256": "5a40446e66459fe8058b935bfe8614fbcbbe122b43837c62d9e177de228853df",
+      "source_bytes": 4379,
+      "candidate_before_bytes": 4504
+    },
+    {
+      "path": "frontend/src/game/ai/OpponentAI.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ai\\OpponentAI.ts",
+      "before_sha256": "844efd5e4e46749608d778f8d2aba8a722cf86244ed72e38dfeed089758ad11a",
+      "after_sha256": "cd583873bfd3ece65ae548a6d68da08e9d10a31b02daac98e03052b89aa2070a",
+      "source_bytes": 5623,
+      "candidate_before_bytes": 5818
+    },
+    {
+      "path": "frontend/src/game/ai/OpponentDatabase.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ai\\OpponentDatabase.ts",
+      "before_sha256": "f9613cb46df7256333434f008d995bb6dab3384fc3d688427cdd86294c2ddb39",
+      "after_sha256": "5c4d7dd42474c39b4c398ceeda4734c45bfbd3630f7ac9f367a773399e3e514c",
+      "source_bytes": 3406,
+      "candidate_before_bytes": 3410
+    },
+    {
+      "path": "frontend/src/game/ai/OpponentMood.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ai\\OpponentMood.ts",
+      "before_sha256": "8c69db2363950d17cd6aaf8bec9180b6e53f5437e98148c73686ee579b54941f",
+      "after_sha256": "0843f69073dc83fdc215ef1a26b3ffdc50e30f4a1e6567e24372fd559e465b54",
+      "source_bytes": 1325,
+      "candidate_before_bytes": 1369
+    },
+    {
+      "path": "frontend/src/game/ai/types.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ai\\types.ts",
+      "before_sha256": "f1101faf2d54e5fe912ae2b3acee1bbce0232d4865a34d023cd071de3ea45598",
+      "after_sha256": "8d68d7829f96534b03931b5169772d3b4f35f2d2551e780ddd072720be36a1a6",
+      "source_bytes": 715,
+      "candidate_before_bytes": 723
+    },
+    {
+      "path": "frontend/src/game/arena/ArenaAtmosphere.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\arena\\ArenaAtmosphere.ts",
+      "before_sha256": "b1d2cc700a0506eb95e62b806ccac90eb25da7832d0be76ec9ab347f8c6ac1a1",
+      "after_sha256": "2a1fd0afd78dbd616f27b4ece56c4d6d0730a683971dd93a145d362706be224c",
+      "source_bytes": 4278,
+      "candidate_before_bytes": 4379
+    },
+    {
+      "path": "frontend/src/game/arena/ArenaEffects.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\arena\\ArenaEffects.tsx",
+      "before_sha256": "ae33b8dc5d9e92a90b2071baaa2f41489b8beb4887f1c425fdc5970eac98bdcd",
+      "after_sha256": "43632ad88a11f524a12be54d7fa106842a08d0984f328eac5a901d4e583ea911",
+      "source_bytes": 5016,
+      "candidate_before_bytes": 5089
+    },
+    {
+      "path": "frontend/src/game/arena/ArenaReactionTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\arena\\ArenaReactionTypes.ts",
+      "before_sha256": "ee1666a62cbb3b844d90903b1ba6fec9092f8292b957f40c9bee3ce19d7b8975",
+      "after_sha256": "366de0b78435a30fba19d36bf65d946f322163928dd9fc72a7ee2d4b51379e3e",
+      "source_bytes": 850,
+      "candidate_before_bytes": 887
+    },
+    {
+      "path": "frontend/src/game/authoritativeOpponent.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\authoritativeOpponent.ts",
+      "before_sha256": "dcef053169fc782d4dedfe7f4b0592f3f4d49ee8b27ab8c402ed5f10bf5688ef",
+      "after_sha256": "d51f4efee151792d545e8207e1b9fc4cc5a5bbf348a811bfa3de4517b9577f0e",
+      "source_bytes": 3244,
+      "candidate_before_bytes": 3339
+    },
+    {
+      "path": "frontend/src/game/balance.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\balance.ts",
+      "before_sha256": "4cb7965759a8248ef36a8d5b27858dedff41e6c2c0108c34f6635d2367a0028d",
+      "after_sha256": "dab1296ce05954937a8fca660bbe0535d11cdeb8a1b0b7b9ad90b8713fe80d69",
+      "source_bytes": 970,
+      "candidate_before_bytes": 1021
+    },
+    {
+      "path": "frontend/src/game/burnoutPolicy.d.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\burnoutPolicy.d.ts",
+      "before_sha256": "050256cf7e21a4b8d19139589358d588d1ff76b3036d6829404ebf700fa23542",
+      "after_sha256": "5a2b95012e815a744ce2201cc9f03ba1abd728c54c21f43b0b210ce817734205",
+      "source_bytes": 257,
+      "candidate_before_bytes": 260
+    },
+    {
+      "path": "frontend/src/game/burnoutPolicy.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\burnoutPolicy.js",
+      "before_sha256": "2235d446de16782d6dbe93e0163a9baa933779f0e4532513d5eb0aaa76c3302d",
+      "after_sha256": "18d10aae43c9c42f944737feb524c3b7d17057f76b6443b30587685245499d8d",
+      "source_bytes": 772,
+      "candidate_before_bytes": 790
+    },
+    {
+      "path": "frontend/src/game/burnoutReplay.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\burnoutReplay.ts",
+      "before_sha256": "732ce70ed000cd7107489e15bfc6269f6d8e3a9a1c72a2b0241c610efcc84f93",
+      "after_sha256": "dd5aeff694e349a4e1ad3034e69f022fef462650da0873b69d067a98270ec21c",
+      "source_bytes": 2254,
+      "candidate_before_bytes": 2303
+    },
+    {
+      "path": "frontend/src/game/commentary/CommentaryCatalog.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\commentary\\CommentaryCatalog.ts",
+      "before_sha256": "b08fd2424f1d5a977b33b30f4700fc0beef4c7b297c1bcf6934deaa19b1102e6",
+      "after_sha256": "20aec452f0decff076663043bbc81defd707707e6e942a59159b2d2594dbfb01",
+      "source_bytes": 1715,
+      "candidate_before_bytes": 1732
+    },
+    {
+      "path": "frontend/src/game/commentary/CommentaryEngine.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\commentary\\CommentaryEngine.ts",
+      "before_sha256": "2a5c3f6a58c37af6e14ee95f38f2b8cdd65f8067cb4e216a632fbe401bb28640",
+      "after_sha256": "c3f835336ecc24e55be25e970b00348bd28f61dcea6c68ca8eb5dd252e5680c6",
+      "source_bytes": 3205,
+      "candidate_before_bytes": 3293
+    },
+    {
+      "path": "frontend/src/game/commentary/CommentaryOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\commentary\\CommentaryOverlay.tsx",
+      "before_sha256": "4c494939ab4a3cc4e55c4cb739906fba114894a6d882f5e6d2a6f003f73060d8",
+      "after_sha256": "2bcecc9b6d363ddefc1e1f5f5ce05b4ba754eedaf21d31e20e4f8155336c0482",
+      "source_bytes": 2556,
+      "candidate_before_bytes": 2606
+    },
+    {
+      "path": "frontend/src/game/commentary/CommentaryTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\commentary\\CommentaryTypes.ts",
+      "before_sha256": "24800deb02cdbfa65d06ae432b5d2f0f18c3778565432376395075ac57bd5a5e",
+      "after_sha256": "f7dbd7d1cf220d275a6c9c6e15d4c983d6926b509dafd03acc4a47c890742f71",
+      "source_bytes": 876,
+      "candidate_before_bytes": 914
+    },
+    {
+      "path": "frontend/src/game/contestDuration.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\contestDuration.ts",
+      "before_sha256": "a2f18b61de020dc1dc887f0a59c477f957b682f5aacde40d00c8da5c55c31846",
+      "after_sha256": "0f34a2d37813925e0648c11e2e9cf69578dbf58e4f1e038938f9c28b502a04f6",
+      "source_bytes": 1582,
+      "candidate_before_bytes": 1623
+    },
+    {
+      "path": "frontend/src/game/difficulty.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\difficulty.ts",
+      "before_sha256": "c74d422cee0580cdb112f290df5cff1c4dfa68019e4d4d0f6f5fbebb86159bd7",
+      "after_sha256": "d1c617f20f05daf951ca32d566f2d8ac835823956114569403a60b2e260b1307",
+      "source_bytes": 514,
+      "candidate_before_bytes": 529
+    },
+    {
+      "path": "frontend/src/game/food/FoodProfiles.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\food\\FoodProfiles.ts",
+      "before_sha256": "c00c4e3bcd2c8d1bf17bc09dda9e4e5543e1484e2930d99a62efc09f6f05e1e0",
+      "after_sha256": "9680344d4d542984298f942071fd90d485d535ca0a25a949820fc9db1211a376",
+      "source_bytes": 6919,
+      "candidate_before_bytes": 6962
+    },
+    {
+      "path": "frontend/src/game/foodHeat.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\foodHeat.ts",
+      "before_sha256": "539fccecd796a27b9892d2f01b43f37f6f15a906785d082e9dfbba82ff0a81fe",
+      "after_sha256": "912f1910b5e1abac11f7c47428f7272d4986ad375945242b716f20770615849b",
+      "source_bytes": 2166,
+      "candidate_before_bytes": 2219
+    },
+    {
+      "path": "frontend/src/game/fx/gameFX.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\fx\\gameFX.ts",
+      "before_sha256": "1859d3ea7845b37ac5e41c559c706eabfa6bc524509dfbdcc4e7dc58d892fffe",
+      "after_sha256": "3ea338891b93bde3cba88e7891145e84d8956046b95a707e7ff7b93999b1cf6f",
+      "source_bytes": 1725,
+      "candidate_before_bytes": 1797
+    },
+    {
+      "path": "frontend/src/game/heartburn.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\heartburn.ts",
+      "before_sha256": "9f0d7452e856b14506eb0ecd54b6452c40d6cfaa392cc89289092a93c0b82c7e",
+      "after_sha256": "f6bddc6cde57f69dbdec0a9a3d9fadc6627cd7b34cd7bfecf22bb8dc15f1bcbe",
+      "source_bytes": 2860,
+      "candidate_before_bytes": 2934
+    },
+    {
+      "path": "frontend/src/game/inputContract.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\inputContract.ts",
+      "before_sha256": "3424ea6cc3d56091228b207c7aeca5d525d459ce9f95517f2385f3e440a0230e",
+      "after_sha256": "149d1b471cba7d1f9ebe7b658fa1062288339fe145fd5d499d9880116015c844",
+      "source_bytes": 754,
+      "candidate_before_bytes": 778
+    },
+    {
+      "path": "frontend/src/game/inputLog.d.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\inputLog.d.ts",
+      "before_sha256": "d2dd339d4ef05bd2ae33b6abafed7d5465eb7d7eb7904cb2823be441c2a93bd5",
+      "after_sha256": "d121176b6eeb9c1b9702f1886f5daf065320b25f6040c8547d7637190af8fdd1",
+      "source_bytes": 1777,
+      "candidate_before_bytes": 1811
+    },
+    {
+      "path": "frontend/src/game/inputLog.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\inputLog.js",
+      "before_sha256": "0f039ad522d43480548381473db6a0bc6afc73f5c2d2e3bd11974615bada9d73",
+      "after_sha256": "929569fff51f5ddebc2f0a5356af5c5c6cdcd3ac3f310bae8eea698fd2e597d3",
+      "source_bytes": 7170,
+      "candidate_before_bytes": 7336
+    },
+    {
+      "path": "frontend/src/game/matchModifiers.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\matchModifiers.ts",
+      "before_sha256": "53147206cffce7ac7010860dd5a2a2da5d293677c203fdeb5105d88abc26d7db",
+      "after_sha256": "8580a8cd058a2f39653ecd774378311e8e9cf4aaedfed6549f91662d8720742f",
+      "source_bytes": 4492,
+      "candidate_before_bytes": 4648
+    },
+    {
+      "path": "frontend/src/game/pendingResult.d.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\pendingResult.d.ts",
+      "before_sha256": "befcc0cfd6950824800d9c7cc4945466dcce97c99072b047ef76b2a702e00a3a",
+      "after_sha256": "aef1985067ef01d524678d23b4572d6258791c98f81a87340361db3eb2d300eb",
+      "source_bytes": 1866,
+      "candidate_before_bytes": 1876
+    },
+    {
+      "path": "frontend/src/game/pendingResult.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\pendingResult.js",
+      "before_sha256": "060e0b17ae3b71b2182751c9314d9426421110389c9dca91e9442e6d60f4b663",
+      "after_sha256": "46146029ecd755f455ca70e0f9cf48e6163640e309384ded11c6a40f01dcfb1a",
+      "source_bytes": 10968,
+      "candidate_before_bytes": 11024
+    },
+    {
+      "path": "frontend/src/game/resultFlow.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\resultFlow.ts",
+      "before_sha256": "4b4be359b018da48820129887b8ef269525779551c59189377a55c6f7118145f",
+      "after_sha256": "d0e9dcc5627285142b36e831a16c3441338eaee25f2d8ec06ffd53328d8964cb",
+      "source_bytes": 2571,
+      "candidate_before_bytes": 2639
+    },
+    {
+      "path": "frontend/src/game/resultSubmission.d.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\resultSubmission.d.ts",
+      "before_sha256": "99db1216cd8cf372a963151b98586d5da92755beffd92a7b7c0b5cd3f8b3f112",
+      "after_sha256": "d1d46a44913e3685f1baaacc019208066e2df65623431137c04cdbfc535444fb",
+      "source_bytes": 834,
+      "candidate_before_bytes": 845
+    },
+    {
+      "path": "frontend/src/game/resultSubmission.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\resultSubmission.js",
+      "before_sha256": "9bded82e06ed5d76ab9c66aae07e8319f87c7b4e6c48ff20b5952d03796cad46",
+      "after_sha256": "a3418b9f29f5958abad95104a54affd9c1a7118ac040e90f60e3476622741f47",
+      "source_bytes": 1337,
+      "candidate_before_bytes": 1368
+    },
+    {
+      "path": "frontend/src/game/resultVerification.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\resultVerification.ts",
+      "before_sha256": "0da24cfaf985c6b18b422c31e91257063889c7e768e74c3f24e4e71768264721",
+      "after_sha256": "f71bc40d8244ebf675f010336e2c7287091d48b5aca3b3fe70eefd82f640d512",
+      "source_bytes": 5024,
+      "candidate_before_bytes": 5156
+    },
+    {
+      "path": "frontend/src/game/ui/AntacidCoolingFeedback.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\AntacidCoolingFeedback.tsx",
+      "before_sha256": "4f3020665336844f05dd953cee9c7a05fc2a60e50474ef191a5f07742fbda6de",
+      "after_sha256": "37fe2ce6a6685b5a6ad989adde5e2b297222f9f88e6e67c5cb0d0969e846f3bd",
+      "source_bytes": 4382,
+      "candidate_before_bytes": 4426
+    },
+    {
+      "path": "frontend/src/game/ui/ArcadeBackground.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\ArcadeBackground.tsx",
+      "before_sha256": "5f088ebfac15b6f3cfe28b447e49ce85a239ea5c10b3cb8aefff912b5e933c30",
+      "after_sha256": "1f14df0d30df8fce4251fa2a6af30a1f7c3f667459fea167b2fc4104511185f5",
+      "source_bytes": 50,
+      "candidate_before_bytes": 51
+    },
+    {
+      "path": "frontend/src/game/ui/BurgerHeavyBiteOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\BurgerHeavyBiteOverlay.tsx",
+      "before_sha256": "51120cb91bbe01885916de857bad7e89074400aa42757fc8b6e66e38ff613470",
+      "after_sha256": "55c6fda96de4d6e66b7427dfe93531e6e9f59eabef3f86bf563dfc034c74f527",
+      "source_bytes": 5894,
+      "candidate_before_bytes": 6096
+    },
+    {
+      "path": "frontend/src/game/ui/CharacterPortrait.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\CharacterPortrait.tsx",
+      "before_sha256": "f21f4a4b626c43a702953378afa0d203dc712bc9a208ae348c3b6a41dbcaa713",
+      "after_sha256": "a027567e95e77f45b29c94b69284806225cad1888772acdd98dcb01fe07ad4e8",
+      "source_bytes": 10625,
+      "candidate_before_bytes": 10774
+    },
+    {
+      "path": "frontend/src/game/ui/CheesePullOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\CheesePullOverlay.tsx",
+      "before_sha256": "e468bdc0b584bf34b461d2b282819bb953707e1bb5e44994ad411379efc544b5",
+      "after_sha256": "9c144ea17fa0b9fd62c898fe5c3756c8392a712943da66cf8613319ca3220961",
+      "source_bytes": 3350,
+      "candidate_before_bytes": 3464
+    },
+    {
+      "path": "frontend/src/game/ui/CinematicCount.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\CinematicCount.tsx",
+      "before_sha256": "db09faf4340f660b90da4718ea44942c4c89da1fd876bd0f2342a4177588338e",
+      "after_sha256": "4984c8082138a18368d379c1166a7cb39e8154c72e9f496b0d0670ca4dd32b8c",
+      "source_bytes": 1328,
+      "candidate_before_bytes": 1351
+    },
+    {
+      "path": "frontend/src/game/ui/ComboBanner.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\ComboBanner.tsx",
+      "before_sha256": "1c49b1732dae5263e9b0ff202cab447c144993511aacbd7a702528e9fb30eb96",
+      "after_sha256": "c4c660539d553e037d3989915f43e15802883972e2c6533729d0288ad4485790",
+      "source_bytes": 1583,
+      "candidate_before_bytes": 1619
+    },
+    {
+      "path": "frontend/src/game/ui/CountdownOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\CountdownOverlay.tsx",
+      "before_sha256": "8da0cbcde63a2d3fce807c207c2fd167ef6518933586d213906cc89e92b54dbd",
+      "after_sha256": "983c429fa99ebe4d01b25962b177c24bfaaa4364865c2c0277cfbca46c7e3dd5",
+      "source_bytes": 13926,
+      "candidate_before_bytes": 13935
+    },
+    {
+      "path": "frontend/src/game/ui/EffectsLayer.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\EffectsLayer.tsx",
+      "before_sha256": "7bc6c7d617dab816a47249b48e567565df4cf2c2e3580c31ab1706bac4317bce",
+      "after_sha256": "0cb98b44315a69e448ddcd25bedf5a2de48d7f7d622b72f489abfaf4581c7afe",
+      "source_bytes": 1331,
+      "candidate_before_bytes": 1361
+    },
+    {
+      "path": "frontend/src/game/ui/FoodArena.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\FoodArena.tsx",
+      "before_sha256": "66df3e05275c66273ab0fc4b14c3a044c33928378af1025e435d51d999cdd869",
+      "after_sha256": "659294f43ac89f4466926df2715238062a4f15bd9ff2fd6a6bb5eea7fe857c35",
+      "source_bytes": 51469,
+      "candidate_before_bytes": 51554
+    },
+    {
+      "path": "frontend/src/game/ui/GameplayActionZone.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\GameplayActionZone.tsx",
+      "before_sha256": "9c77efc6f4dcc51f742da9cfc86eaa0e30c74a2e974eb0746ea19a534600ed3f",
+      "after_sha256": "51bd630ab2aa266b9a84bd300f0ba5412e6483ec8f9f24389cf0bbd98a9cf143",
+      "source_bytes": 2274,
+      "candidate_before_bytes": 2286
+    },
+    {
+      "path": "frontend/src/game/ui/GameplayHUD.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\GameplayHUD.tsx",
+      "before_sha256": "35492a9d647354313170660fe63d7726cc1255dd0ea0bb29a2cecf62492da6a0",
+      "after_sha256": "2546fbcd8415e5e13d00603aba6b1bf3c7ccbfff4f6d24c41bbdda74d8cf32ca",
+      "source_bytes": 1937,
+      "candidate_before_bytes": 1958
+    },
+    {
+      "path": "frontend/src/game/ui/HeartburnMeter.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HeartburnMeter.tsx",
+      "before_sha256": "b6ca0233ebfa664c1a97e312fb16e3cb7aab1f1d77536af0d4383ef3a7ef9d74",
+      "after_sha256": "8324867e2ce90597c395ce12900517ea0c90d5e7e01409e9250dfa471f3bf4fd",
+      "source_bytes": 9687,
+      "candidate_before_bytes": 9689
+    },
+    {
+      "path": "frontend/src/game/ui/HeatPresentationOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HeatPresentationOverlay.tsx",
+      "before_sha256": "9367bad0b3489e0ca73cb2c242f2dabbc5eaef28b573871bf58de8daf8eff022",
+      "after_sha256": "9dae4ab04e8da0e87095b677173d16602daf3c0d5fce83d53800d65e4d116627",
+      "source_bytes": 10989,
+      "candidate_before_bytes": 11017
+    },
+    {
+      "path": "frontend/src/game/ui/HeatRushOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HeatRushOverlay.tsx",
+      "before_sha256": "798ef3ac822044a4cb8eacdff7af4e50d271a60afd93278b88aed12bed836052",
+      "after_sha256": "d68072a22dbe8d912279abbec18c559f4ac32e0c51a3f2c77ea1747693b8809f",
+      "source_bytes": 9078,
+      "candidate_before_bytes": 9397
+    },
+    {
+      "path": "frontend/src/game/ui/HeatScreenOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HeatScreenOverlay.tsx",
+      "before_sha256": "0d13f78f540409eceb25a0b629783b02aba88ca7a4ae6a83097fcaaf82b36603",
+      "after_sha256": "c680126b96f69eb11ba317df84bb11fbb9e5790350e0af1ddb83c260650668c5",
+      "source_bytes": 4122,
+      "candidate_before_bytes": 4170
+    },
+    {
+      "path": "frontend/src/game/ui/HeatTierBanner.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HeatTierBanner.tsx",
+      "before_sha256": "497c8cda35e533f45801c9a1d871c0a753b78945d68a3ef6cd89668266e74bde",
+      "after_sha256": "30d420f0f106aba2a71e4b3e849dcb7d5daa7dca0265ffc28b7b933ec9f9063f",
+      "source_bytes": 2975,
+      "candidate_before_bytes": 3016
+    },
+    {
+      "path": "frontend/src/game/ui/HoldReleaseActionControl.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HoldReleaseActionControl.tsx",
+      "before_sha256": "c6af0dc472b817471937c80eadedebcf0a38fb8db5a3bbc546f789de41a6ecaa",
+      "after_sha256": "ab342076ef4adadcdd0bb32bf068432c0da171bb27aead96aed8ec942d940259",
+      "source_bytes": 10123,
+      "candidate_before_bytes": 10354
+    },
+    {
+      "path": "frontend/src/game/ui/HotDogSpeedSprintOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\HotDogSpeedSprintOverlay.tsx",
+      "before_sha256": "f57c78729c55e98f1c3730359df82caa0a97cc1abb1081ece0e52bf78556fd38",
+      "after_sha256": "9f7cb9570f7dad81010cd3a03228cb09123c4863fbacba54c4acddea54edfc8a",
+      "source_bytes": 6932,
+      "candidate_before_bytes": 7169
+    },
+    {
+      "path": "frontend/src/game/ui/ImpactEffect.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\ImpactEffect.tsx",
+      "before_sha256": "ca4ee84cff4be3eefef7295dfff1822c8080c42961c3ed8239992dd22d9c715c",
+      "after_sha256": "5f70698c80633b7fe4c81b3dca81b835a25459ddb740b881dc7018cc2fef92a4",
+      "source_bytes": 4123,
+      "candidate_before_bytes": 4217
+    },
+    {
+      "path": "frontend/src/game/ui/MatchHUD.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\MatchHUD.tsx",
+      "before_sha256": "75a4fa6af24c2f5f2c1dabcaec75b56942e730fe316d4749ed63909679c56eca",
+      "after_sha256": "4fae92eab911656feb3f8fe941c3cc1fcf58aab4a3f12c0d30ff5740d4f9e62a",
+      "source_bytes": 12859,
+      "candidate_before_bytes": 12877
+    },
+    {
+      "path": "frontend/src/game/ui/MatchIntroOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\MatchIntroOverlay.tsx",
+      "before_sha256": "0db99190a56f5a81157defbb31e8bc1c0b61c12463b10766e7c5d1b5f4669598",
+      "after_sha256": "46249dada64e0930ed03bebb7a64cd82fa3c2dcff3e76480ef99619bdedb774c",
+      "source_bytes": 9069,
+      "candidate_before_bytes": 9200
+    },
+    {
+      "path": "frontend/src/game/ui/NoodleSlurpOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\NoodleSlurpOverlay.tsx",
+      "before_sha256": "ca71be252164a9860cba25e9c2d8f4c678e8bdde10428d01cb7bc7cdf8e23078",
+      "after_sha256": "d0ca5136b96af128d726bf80b7343d0fe899d2103832080c4935bc9e5821c054",
+      "source_bytes": 3891,
+      "candidate_before_bytes": 4028
+    },
+    {
+      "path": "frontend/src/game/ui/OpponentCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\OpponentCard.tsx",
+      "before_sha256": "ef076c059ecbc85a87624674963be989edf49ddd1d165e689308be9e42308d9a",
+      "after_sha256": "a6b72f5565639d9eee22813daf8aaf40d7f6b86d3636705c05b634998f18ab70",
+      "source_bytes": 1413,
+      "candidate_before_bytes": 1492
+    },
+    {
+      "path": "frontend/src/game/ui/PlayerCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\PlayerCard.tsx",
+      "before_sha256": "5314f5fd99f6d61dc9f5db2cb4e3797168d9c36ea458cbff7ba082fd8c3ff7cd",
+      "after_sha256": "17f57e4312358c6df7651ea87bad6c4d3e30e9ba3006b64695a6b8ba8c7a6027",
+      "source_bytes": 2005,
+      "candidate_before_bytes": 2104
+    },
+    {
+      "path": "frontend/src/game/ui/RapidActionControl.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\RapidActionControl.tsx",
+      "before_sha256": "fb074850e8e10c136fcbe4607becbf23d8295f60558ea95ba8c2cddb8c68ddc0",
+      "after_sha256": "1d4a5f07198d43d27d3a5295ecb24426fa6f2d7899fb306f028083ef6a963de1",
+      "source_bytes": 3019,
+      "candidate_before_bytes": 3109
+    },
+    {
+      "path": "frontend/src/game/ui/RestaurantIdentity.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\RestaurantIdentity.tsx",
+      "before_sha256": "8ec084148557f8da974ab67968f625676d601fa92dc228bf5e3e71a517c63e1c",
+      "after_sha256": "8a9238ff152ee9d4bae2b530d7fc21499149a291498d85ab388f0ace4a9ff10c",
+      "source_bytes": 4548,
+      "candidate_before_bytes": 4623
+    },
+    {
+      "path": "frontend/src/game/ui/ResultBanner.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\ResultBanner.tsx",
+      "before_sha256": "e6e5bd7378b87fe7b1bccf3adb2adb8dd7c358383108804272b29700f19d98f1",
+      "after_sha256": "a985056a6f97b154250f7a9eb5e7daa06e5518996066253c4a5451950e4909f9",
+      "source_bytes": 4756,
+      "candidate_before_bytes": 4775
+    },
+    {
+      "path": "frontend/src/game/ui/SceneMotion.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\SceneMotion.tsx",
+      "before_sha256": "7381bcc5264cfa20d7703c8b79d42e68ea8250b8ddb94d364230e1f93103ec5e",
+      "after_sha256": "3759f3ba6bb8b79cba11bdea0542a338710d5c3f8a2f1e4b246468d0d9257902",
+      "source_bytes": 5009,
+      "candidate_before_bytes": 5130
+    },
+    {
+      "path": "frontend/src/game/ui/ScoreBar.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\ScoreBar.tsx",
+      "before_sha256": "763e78c6bd67d2bbefb15a175982a612eddd57a32d148e99afb6c46548c341d4",
+      "after_sha256": "2656d93901d91f53785258c398d3d648f98feb9e2aca6f3b302135f0babd55d1",
+      "source_bytes": 658,
+      "candidate_before_bytes": 674
+    },
+    {
+      "path": "frontend/src/game/ui/SponsorStrip.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\SponsorStrip.tsx",
+      "before_sha256": "655ae5eefd55a1514072388a0b8347d1a0e8ea896481c4e2391b3c232a5d62b8",
+      "after_sha256": "adbf9efb2927b06b3b127e5bd4f97f0e0600cd6cc57f167cf77fd4fa6a575e0e",
+      "source_bytes": 1443,
+      "candidate_before_bytes": 1471
+    },
+    {
+      "path": "frontend/src/game/ui/SwipeActionControl.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\SwipeActionControl.tsx",
+      "before_sha256": "2d421664ad0ed2c8e1a168842bbc5b946bef9f7637e76a929f9454bf084f6e62",
+      "after_sha256": "75e88be5a97994710fe5356513311a93f1a64b6ed37950266ce6d1b00963d72e",
+      "source_bytes": 12033,
+      "candidate_before_bytes": 12297
+    },
+    {
+      "path": "frontend/src/game/ui/TacoStabilityOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\TacoStabilityOverlay.tsx",
+      "before_sha256": "01c9880ab537bfac20eb806bd1422153db1e1568919335249fe6f43efa65ec51",
+      "after_sha256": "1a0cc322258f0c51143788e33716d1e5592c96f09ec1dfcabcef85faf8fe463e",
+      "source_bytes": 7485,
+      "candidate_before_bytes": 7721
+    },
+    {
+      "path": "frontend/src/game/ui/TapActionControl.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\TapActionControl.tsx",
+      "before_sha256": "4e1a6ac30014e1faa8b03c459add5ded9ae250528f3b8443f368a45d1e6b740d",
+      "after_sha256": "121808b37e8fe9e9035e8378634116429b0860643d643d1fb824a5fe87933300",
+      "source_bytes": 5784,
+      "candidate_before_bytes": 5913
+    },
+    {
+      "path": "frontend/src/game/ui/TournamentBanner.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\TournamentBanner.tsx",
+      "before_sha256": "1dfa4f20049b3b79b9c941764d47173eac0f48ab5a224ab5f900d475d1a62bcc",
+      "after_sha256": "c4a8c68d6021f8baa376a7e78dbecb5b26ab5fbd7f4908fed981644b35dbe877",
+      "source_bytes": 4633,
+      "candidate_before_bytes": 4734
+    },
+    {
+      "path": "frontend/src/game/ui/VictoryBurst.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\VictoryBurst.tsx",
+      "before_sha256": "6ddc280f2dc3c3129f4d90aaba9175085f8ddfa31c8548427fa863177afe6fd4",
+      "after_sha256": "4b483a15343577e1f10870a99307324d877c283ba6962930ed0b7e06f46569e0",
+      "source_bytes": 1447,
+      "candidate_before_bytes": 1470
+    },
+    {
+      "path": "frontend/src/game/ui/VictoryOverlay.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\VictoryOverlay.tsx",
+      "before_sha256": "ebc75c82361715d8ef8afc9f0396d1569c8582db70565a8e6bfe2111bfd10f31",
+      "after_sha256": "bb84d33be1ded18d53e330ed6762e0a888776ac3f3dafb86361480a9dc72e09a",
+      "source_bytes": 20074,
+      "candidate_before_bytes": 20101
+    },
+    {
+      "path": "frontend/src/game/ui/actionControlSelection.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\actionControlSelection.ts",
+      "before_sha256": "557696f059f29c4587b997905312360e63db00e67817850113973a9171ac5975",
+      "after_sha256": "1083e65a646621ace15e3bd67165145f47540d84f2dd7532b38a482f2f58bf52",
+      "source_bytes": 339,
+      "candidate_before_bytes": 347
+    },
+    {
+      "path": "frontend/src/game/ui/foodConsumptionPresentation.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\foodConsumptionPresentation.ts",
+      "before_sha256": "4a57b039561a24b45a3eee5e1f55e21736a8f5fd61245d40016df11dc7eed4f5",
+      "after_sha256": "9bf5ef2f77f8ab224ecb1b86ef6dbbe0d58c5a73366aebad263d64503fb5a728",
+      "source_bytes": 661,
+      "candidate_before_bytes": 671
+    },
+    {
+      "path": "frontend/src/game/ui/gameplayLayout.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\gameplayLayout.ts",
+      "before_sha256": "24e9d88bddf9458824e6596824ec212b5482c2012b8467363433ad3f0ea1705a",
+      "after_sha256": "0dd1bf448a851f461175853c84f99bc75755db39d08967f816b71d9ccd53cb6d",
+      "source_bytes": 297,
+      "candidate_before_bytes": 306
+    },
+    {
+      "path": "frontend/src/game/ui/heavyBiteValidation.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\heavyBiteValidation.ts",
+      "before_sha256": "d94d12cdcc2b428672ce448461190cb384babd148c9e245bfe25b240c4036d8d",
+      "after_sha256": "016915adc354596f0be83b9ca03d19845794c5a4d57aa78254051f0cb1f2e5af",
+      "source_bytes": 506,
+      "candidate_before_bytes": 522
+    },
+    {
+      "path": "frontend/src/game/ui/swipeValidation.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\swipeValidation.ts",
+      "before_sha256": "1966e0de83843cae3891530511e9cd46f8f0f80c84a430a18bdb38984a630872",
+      "after_sha256": "41333b14722759141528a18a4cbb61dc05d6993950580bf413d302ad0aa06a55",
+      "source_bytes": 2257,
+      "candidate_before_bytes": 2327
+    },
+    {
+      "path": "frontend/src/game/ui/useSwipeCompletion.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\ui\\useSwipeCompletion.ts",
+      "before_sha256": "5d23e3c9910103a15fb4dd6acb0be228f1ecbab53cea7929d83639e4b2466786",
+      "after_sha256": "e53e8e232547bfda8967225b86eab41e5239a16715c453f2e53544884ce5e337",
+      "source_bytes": 1408,
+      "candidate_before_bytes": 1449
+    },
+    {
+      "path": "frontend/src/game/useContestEntry.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\useContestEntry.ts",
+      "before_sha256": "1a0a35a813570a5ff1a1242941c320ff7a2b8f6e8a5b28adf4074ae13cd12165",
+      "after_sha256": "de8f1b1127f7835c10178523d19314187830447a1fab4b0a6f8c8df65910a6de",
+      "source_bytes": 3722,
+      "candidate_before_bytes": 3731
+    },
+    {
+      "path": "frontend/src/game/useGameLoop.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\game\\useGameLoop.ts",
+      "before_sha256": "64e0b66cc71c1af10ed771ad3fe7f7de683f9102e8d7530538bcf31fa505ecc1",
+      "after_sha256": "96fa8764398678afc0eb8ce0ac7a822a8833965c1fa68a4b1bb93c728e83aff2",
+      "source_bytes": 38453,
+      "candidate_before_bytes": 39377
+    },
+    {
+      "path": "frontend/src/guestAuthDiagnostics.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\guestAuthDiagnostics.ts",
+      "before_sha256": "575b1d33b70a5de6ae2bf1b44b98f0695c120e5aebc34274210ee252c2bae707",
+      "after_sha256": "6eccac8c34c3ac0bc252d468404460a2f90244d7ec9f9b065239c94b41d92393",
+      "source_bytes": 5519,
+      "candidate_before_bytes": 5664
+    },
+    {
+      "path": "frontend/src/guestAuthReset.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\guestAuthReset.ts",
+      "before_sha256": "977cc1dc1369aa4c3826611c145722d327a9258873e57c94bfcf7ba1b27ca400",
+      "after_sha256": "a1084ff8dbdc3329e0103d8e43f5d6bc8419e19644200955137ececa697d196f",
+      "source_bytes": 1192,
+      "candidate_before_bytes": 1228
+    },
+    {
+      "path": "frontend/src/guestAuthStartupPolicy.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\guestAuthStartupPolicy.ts",
+      "before_sha256": "69374b0874beb5c7f4f9d7a63fde6115a1c0354107f5273405803db2b5152f81",
+      "after_sha256": "03079ea94e63c286f4a43b4915d03f07a4b1f333e4143f07a6476a614d6c16ec",
+      "source_bytes": 555,
+      "candidate_before_bytes": 572
+    },
+    {
+      "path": "frontend/src/hooks/use-icon-fonts.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\hooks\\use-icon-fonts.ts",
+      "before_sha256": "0ac91b1b17f4aa9d4ae57d255daeea8cd42690b88fb9f52256fe17a728cc1122",
+      "after_sha256": "f9981d09b5f703973669d4e825de19b741970b3c9bef3746227dd9e4f9fd6050",
+      "source_bytes": 2094,
+      "candidate_before_bytes": 2146
+    },
+    {
+      "path": "frontend/src/legal/MarkdownDocument.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\legal\\MarkdownDocument.tsx",
+      "before_sha256": "d0e46ed5fbbb356082b5996cf1649ac30bb5768580521ea8f2fd31700b45f426",
+      "after_sha256": "e88fbb9e1c89c684d9925cf4dab1e5e955bb3028932bf57077e60624939f15fb",
+      "source_bytes": 3765,
+      "candidate_before_bytes": 3865
+    },
+    {
+      "path": "frontend/src/legal/generatedLegalDocuments.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\legal\\generatedLegalDocuments.ts",
+      "before_sha256": "92545e77273893529b4b864153cc220766df207ed9a2a221917dfa960065b55d",
+      "after_sha256": "68a13b581982e344c31f3ff63e9aa7abba02ea888f92616708a16aec796b01b7",
+      "source_bytes": 24327,
+      "candidate_before_bytes": 24337
+    },
+    {
+      "path": "frontend/src/missions/MissionGenerator.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\missions\\MissionGenerator.ts",
+      "before_sha256": "672801b65106c0b608623e13abfeaa960c9af5b86f59b8f48241725adcf7b0d0",
+      "after_sha256": "c65ef45b9d75209544de7734e5ca5c50c0f558c5d555a0cd57d1e9c42e248857",
+      "source_bytes": 2925,
+      "candidate_before_bytes": 3002
+    },
+    {
+      "path": "frontend/src/missions/MissionRewards.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\missions\\MissionRewards.ts",
+      "before_sha256": "e7182380bd7185a4b10c9ae4d8eebfa561696075fd2461542d30acbcd8874331",
+      "after_sha256": "d0d33d8d76b1240a75ce9ff64bb65ab12c0c9ce69b45acd6f156301ed3c74b62",
+      "source_bytes": 480,
+      "candidate_before_bytes": 492
+    },
+    {
+      "path": "frontend/src/missions/MissionTracker.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\missions\\MissionTracker.ts",
+      "before_sha256": "d79067ffccc4c14ad5a0ad514fc9e352c9a408ad34d0f2794ecce9438a0b135c",
+      "after_sha256": "80e338fecafd6d49e0729b28e1b1fef81eb634bd1781d7f2826c3f697e939d95",
+      "source_bytes": 4982,
+      "candidate_before_bytes": 5087
+    },
+    {
+      "path": "frontend/src/missions/MissionTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\missions\\MissionTypes.ts",
+      "before_sha256": "402598ff939defe880f975b2e9fe7d70b541241b06d3b589bc09721b910e3cd5",
+      "after_sha256": "ee56bd7361e48d20b4bcdad98eab0dd9204fd62957b170c64471dfd0f1df19a2",
+      "source_bytes": 1210,
+      "candidate_before_bytes": 1266
+    },
+    {
+      "path": "frontend/src/missions/useDailyMissions.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\missions\\useDailyMissions.ts",
+      "before_sha256": "c92e0e28fef44f7a1d08d84f81c450b11654fc3f426cc70ab5f0fbfa56438f18",
+      "after_sha256": "6025fdac8acc042a512e5f7a0b9fa52fd5683e40c946a1733dcd138d0fd41f2c",
+      "source_bytes": 1612,
+      "candidate_before_bytes": 1648
+    },
+    {
+      "path": "frontend/src/onboarding/FirstUseTip.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\onboarding\\FirstUseTip.tsx",
+      "before_sha256": "3506d3d1d505cd434e95541c352362675f9310b4b641dcd72876cb87cc18b0c3",
+      "after_sha256": "f1fd23c157bae946c5b456eb477d5397fa8b3f78be37f118b50d40dcb89f58f2",
+      "source_bytes": 1217,
+      "candidate_before_bytes": 1233
+    },
+    {
+      "path": "frontend/src/playerBalance.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\playerBalance.ts",
+      "before_sha256": "b396a5a46513ddcec442bd8c579167eb626a344adc6d150eab62f62b69038d15",
+      "after_sha256": "16e3887a1fe0587358b035a115df1344a43d3e19b9bde99f2845aea8b0fc8fe2",
+      "source_bytes": 1528,
+      "candidate_before_bytes": 1576
+    },
+    {
+      "path": "frontend/src/playerFacingErrors.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\playerFacingErrors.ts",
+      "before_sha256": "64fcab6ff4c6b212c95b6c5c2592167d5491d6f78b4f7d22f274799df2bd0d2e",
+      "after_sha256": "340040006d16944923879067ebf70019fde0ab4dc9ab8faa4c1a33ba6d47dc5e",
+      "source_bytes": 1806,
+      "candidate_before_bytes": 1838
+    },
+    {
+      "path": "frontend/src/profile/AvatarRenderer.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\profile\\AvatarRenderer.tsx",
+      "before_sha256": "e2ff1a93479317eb40fa0c936102bbe923347ba84a586b26c809dca00da6c4d4",
+      "after_sha256": "826d076d876993c0eef8e54fe8de19911bd92fcb83fbc901f5e1980d8ce17a19",
+      "source_bytes": 20550,
+      "candidate_before_bytes": 20667
+    },
+    {
+      "path": "frontend/src/profile/PlayerIdentity.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\profile\\PlayerIdentity.ts",
+      "before_sha256": "5364136ba7b43038a3886aac03490b5295516d6ee0daac2503adebb5992341fe",
+      "after_sha256": "e575c237f4a6e32f194480e3da20a5027e4d954dc188dfe44729c6b2cf08e98b",
+      "source_bytes": 10785,
+      "candidate_before_bytes": 10850
+    },
+    {
+      "path": "frontend/src/profile/PlayerIdentityContext.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\profile\\PlayerIdentityContext.tsx",
+      "before_sha256": "3f5b6541c6276825b7bb477b4d9a8f61a0db9dc1d05162ff05c72ded4db5c878",
+      "after_sha256": "bcbfe8e2cbf52f6b00f28ca2a185e65e6b631cc22f4a08f04a0f08d8ed9020f6",
+      "source_bytes": 2013,
+      "candidate_before_bytes": 2065
+    },
+    {
+      "path": "frontend/src/profile/PlayerProfileCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\profile\\PlayerProfileCard.tsx",
+      "before_sha256": "dc5e23440cf6ff4fd1fceade7f03f6ed225e6d6e3bb597eacd0fbd26c29e19d8",
+      "after_sha256": "f91bfa2aedfe26f613c2be7305d4835b1f19edd56cc50d2fd6cf50cba16403cb",
+      "source_bytes": 3621,
+      "candidate_before_bytes": 3624
+    },
+    {
+      "path": "frontend/src/profile/avatarGeometry.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\profile\\avatarGeometry.ts",
+      "before_sha256": "1470981017dec0af915ff75e49954b6a4351a59ad40920e1c0538eebab61bf70",
+      "after_sha256": "7b04f3c5fd4f9b3326691064cf0de8fc2ab6a84b9f485f0099a6e7e65944b07c",
+      "source_bytes": 1609,
+      "candidate_before_bytes": 1618
+    },
+    {
+      "path": "frontend/src/ranks.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\ranks.ts",
+      "before_sha256": "a72599d9fb6522eea23aad07a7da3db75de1e84a0e5b5cb33c80a3821ca72807",
+      "after_sha256": "654e02ce88e5115dafbce898c820cfe1837af63fce065f41c7ae1a22305ab148",
+      "source_bytes": 2389,
+      "candidate_before_bytes": 2442
+    },
+    {
+      "path": "frontend/src/requestDiagnostics.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\requestDiagnostics.ts",
+      "before_sha256": "fa21a2251305c32c6341f0bef34264393248e5ce7c667a30cc6a0baa97f9ba17",
+      "after_sha256": "129f17af8b22ac643ffae6ac90b07c72de3a079ba74eb64f8f7680eb19e5de89",
+      "source_bytes": 1071,
+      "candidate_before_bytes": 1113
+    },
+    {
+      "path": "frontend/src/restaurants/RestaurantCatalog.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\restaurants\\RestaurantCatalog.ts",
+      "before_sha256": "0afd10da67acc35125de93b5875b293fac75913f98aa4fbb5b21a66664e75237",
+      "after_sha256": "f290295dbf15b85fed3faa09588d076c0275b9761b99b415a792c5a2b4ec7891",
+      "source_bytes": 6464,
+      "candidate_before_bytes": 6529
+    },
+    {
+      "path": "frontend/src/restaurants/RestaurantProgress.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\restaurants\\RestaurantProgress.ts",
+      "before_sha256": "3f394383feff7182aae1724b7ff961ea26c426c2cc7aaefd694240b7e3149544",
+      "after_sha256": "c7703e1a59a8829af58f3ae0512c4777c77ad64249fa42fe7ac9b3ea207330a0",
+      "source_bytes": 3521,
+      "candidate_before_bytes": 3583
+    },
+    {
+      "path": "frontend/src/restaurants/RestaurantTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\restaurants\\RestaurantTypes.ts",
+      "before_sha256": "9cc8710a8f01442381abe311eda2957e9180dfa1db8651cc3ec32c792b53d353",
+      "after_sha256": "16e305201f2e5604d1b731beca176834cfb03695237ccf4f0d472fceff23930f",
+      "source_bytes": 2148,
+      "candidate_before_bytes": 2227
+    },
+    {
+      "path": "frontend/src/restaurants/components/RestaurantCollectionPanel.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\restaurants\\components\\RestaurantCollectionPanel.tsx",
+      "before_sha256": "88aa499ea622d96d563aa297e07733a27025185466436477d1cbe5203c041891",
+      "after_sha256": "f39f0a40529ef4b63cdb9d4bf4fe232d1b7f0572be0d0f17e798dfdcef4abc1c",
+      "source_bytes": 4748,
+      "candidate_before_bytes": 4814
+    },
+    {
+      "path": "frontend/src/restaurants/components/RestaurantUnlockBanner.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\restaurants\\components\\RestaurantUnlockBanner.tsx",
+      "before_sha256": "88d919777d779de0afab14c62b52df2fa62748bb3d63c16f9f001a660fe8a334",
+      "after_sha256": "40e0a34420a49949b8340d31440034e463178f79af101780521ecc30e268d0e1",
+      "source_bytes": 1467,
+      "candidate_before_bytes": 1490
+    },
+    {
+      "path": "frontend/src/restaurants/useRestaurantProgress.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\restaurants\\useRestaurantProgress.ts",
+      "before_sha256": "e9bb64bd620665562a4e1e0c5497932d8f21535a86ebfb12e8355f4ae26be07e",
+      "after_sha256": "a2c1d583d771431f6f44512c12604a16299c9482157d0c820fcfb87adbb88d36",
+      "source_bytes": 1421,
+      "candidate_before_bytes": 1446
+    },
+    {
+      "path": "frontend/src/retention/DailyRewards.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\retention\\DailyRewards.ts",
+      "before_sha256": "3f93603be2c44c203abd4bd4bcdcdfe22477975ad8ceee9039c497d5fd7fca14",
+      "after_sha256": "8d0d678fa00010d7b0c41d9aae1e1c60208276fe3f38c4903a81d50c26761e3b",
+      "source_bytes": 3979,
+      "candidate_before_bytes": 4051
+    },
+    {
+      "path": "frontend/src/social/PvpQuickChat.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\social\\PvpQuickChat.tsx",
+      "before_sha256": "3398efe8f872bdb967a44cbb56b9924005a88fc40c7b0313233724fab10b45a0",
+      "after_sha256": "5436714657cc8c8b29755e0a389410cff01a01d1f0ed30312c4e688ca36e8a65",
+      "source_bytes": 5395,
+      "candidate_before_bytes": 5442
+    },
+    {
+      "path": "frontend/src/social/SocialPlayerCard.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\social\\SocialPlayerCard.tsx",
+      "before_sha256": "60bc3264ffdf306d33b5d8435e6c85a8e9eb95c7e530e19e5d3084f284054f5e",
+      "after_sha256": "1b638115119e4e9d3ac07b0754fc46b6512b644a48729b75973e65a5b278b7ed",
+      "source_bytes": 2393,
+      "candidate_before_bytes": 2414
+    },
+    {
+      "path": "frontend/src/social/publicIdentitySync.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\social\\publicIdentitySync.ts",
+      "before_sha256": "86c5bd73dfa39c46c0d083999a910cf991ab13b2759a6cc7b8b3f74ab42cb591",
+      "after_sha256": "23e59dbe9afa92aebe81f4144066b5272c29ac8b9da71f102e6e9344daac9e5a",
+      "source_bytes": 1604,
+      "candidate_before_bytes": 1652
+    },
+    {
+      "path": "frontend/src/social/searchCoordinator.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\social\\searchCoordinator.ts",
+      "before_sha256": "6aa2403f558b236b39ec16f9dc9b7e99f58c2f2048fe81ce8ac7c65a4f459152",
+      "after_sha256": "86b3b49d29186253a634fbb293d36842938256af1a3aed3f5cb7d4c1b42c3de5",
+      "source_bytes": 673,
+      "candidate_before_bytes": 689
+    },
+    {
+      "path": "frontend/src/social/types.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\social\\types.ts",
+      "before_sha256": "049201ec389ecaf3eabae07c21a22244fad747ae98ee1f86dafca70ff0bbc2fa",
+      "after_sha256": "3d72eac66b024b24713c329bcb783447a44f09474a118c82429a9a3adffeb8f3",
+      "source_bytes": 2688,
+      "candidate_before_bytes": 2734
+    },
+    {
+      "path": "frontend/src/startupReliability.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\startupReliability.ts",
+      "before_sha256": "a47b843a44b1dc02ad9fae144739c68edc22eb274b5fb2f8593c869189f3ec55",
+      "after_sha256": "89487e4bb185f602d3c5fe04e5df25f59bee7b7bd76e98277ba0e55c20876a39",
+      "source_bytes": 7674,
+      "candidate_before_bytes": 7803
+    },
+    {
+      "path": "frontend/src/systemUi/useAndroidImmersiveMode.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\systemUi\\useAndroidImmersiveMode.ts",
+      "before_sha256": "7f96f5c9fe7ae9632b6c6322445089dbdde48c1aa48fa469bd8e99288bf72a82",
+      "after_sha256": "1834eae19495b2699bc1cc1d77794f5d8ed458cd75aea67a993798665bc2d464",
+      "source_bytes": 1199,
+      "candidate_before_bytes": 1234
+    },
+    {
+      "path": "frontend/src/theme.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\theme.ts",
+      "before_sha256": "98fba327dee693a7588c6d8f58d2f27f7fdede7fc9022069ce7b863787285884",
+      "after_sha256": "f6920ba1149a7228a303e97066c8b694d7af643466ee0f8300057790e8fcecc8",
+      "source_bytes": 1538,
+      "candidate_before_bytes": 1556
+    },
+    {
+      "path": "frontend/src/titles/TitleCatalog.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\titles\\TitleCatalog.ts",
+      "before_sha256": "4ab9f09fd42ccd7cefb2656c96cdd43579be1dde3fe18efc1040430195cda1a9",
+      "after_sha256": "770bd73a892af15b489fdfcf98f1037326f42053db923a865947554a7cc1b942",
+      "source_bytes": 7322,
+      "candidate_before_bytes": 7358
+    },
+    {
+      "path": "frontend/src/titles/TitleProgress.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\titles\\TitleProgress.ts",
+      "before_sha256": "f60e03686b211fb04e62e0901bdedda1eba721eb98912d54e1ff3c5ead9dadb0",
+      "after_sha256": "8ef7441c719337008c60c01147125da6a6723c1008e3c8bcf19da96d9c7913ae",
+      "source_bytes": 4610,
+      "candidate_before_bytes": 4690
+    },
+    {
+      "path": "frontend/src/titles/TitleTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\titles\\TitleTypes.ts",
+      "before_sha256": "7122c5e114a9683b7d727104ea3945b2d5d721499a359c096a480755945c5293",
+      "after_sha256": "0072af488add2b7bf1be793cb5b232ad543125ab11b3042f558f0a302d7fce3d",
+      "source_bytes": 1887,
+      "candidate_before_bytes": 1951
+    },
+    {
+      "path": "frontend/src/titles/components/TitleBrowserPanel.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\titles\\components\\TitleBrowserPanel.tsx",
+      "before_sha256": "d47722dbe1efff292132dd6abc41d5543c4d61a58eccd8f90120dc1b07518cc6",
+      "after_sha256": "af2b0023e9e0ef8d754aa87c1686ce53ab6ca3a17a27bcc6735ef7885d6017e0",
+      "source_bytes": 5077,
+      "candidate_before_bytes": 5136
+    },
+    {
+      "path": "frontend/src/titles/components/TitleUnlockBanner.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\titles\\components\\TitleUnlockBanner.tsx",
+      "before_sha256": "3a379da1288360882b51dab73f8322d1bf9f454660b24cde2e11933a3a98ed67",
+      "after_sha256": "91cb9c448785fd2db5f7f8273ec24120121b3533fe0ab6e207ee66c9c50489ed",
+      "source_bytes": 1472,
+      "candidate_before_bytes": 1495
+    },
+    {
+      "path": "frontend/src/titles/useTitleProgress.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\titles\\useTitleProgress.ts",
+      "before_sha256": "7a670515794322b626ef35c57454ebb749235542a9365bd1cdaded70ca4af34d",
+      "after_sha256": "0983f228f6a34680f9ada525cab890150c1d153ea3b815f6fc3a0b2f26f85499",
+      "source_bytes": 1583,
+      "candidate_before_bytes": 1613
+    },
+    {
+      "path": "frontend/src/tournaments/TournamentCatalog.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\tournaments\\TournamentCatalog.ts",
+      "before_sha256": "5639a3de04ee2d4b5cdc1b75599843367085faa5b729f7ce4bdcb06eeed7ee89",
+      "after_sha256": "f93c9cc748da5bf6d80299f6dcaf7baa22a1a60586be0e79b6bae3c128b10f77",
+      "source_bytes": 3044,
+      "candidate_before_bytes": 3062
+    },
+    {
+      "path": "frontend/src/tournaments/TournamentProgress.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\tournaments\\TournamentProgress.ts",
+      "before_sha256": "2838f23e435585f96d898155ad2b703474734fd97adafffdbcebb5aa8a5133ad",
+      "after_sha256": "0b7b2da91a3333d057990f6b5ba24831d5939a5d7c94bbf4ac0ce11e3e52c561",
+      "source_bytes": 4241,
+      "candidate_before_bytes": 4316
+    },
+    {
+      "path": "frontend/src/tournaments/TournamentRotation.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\tournaments\\TournamentRotation.ts",
+      "before_sha256": "b218bcd1ff41b1386949295902765236f4cf4d97808bfb00857b376f060e2278",
+      "after_sha256": "3b8f49531b6907fb808c2f0446868098ac89c22a8171f2ea619cc27ac53b8f85",
+      "source_bytes": 1469,
+      "candidate_before_bytes": 1496
+    },
+    {
+      "path": "frontend/src/tournaments/TournamentTypes.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\tournaments\\TournamentTypes.ts",
+      "before_sha256": "b3a9b481c0f8ff6bbbc40f747e3a2b0c68e0d2742e224b2d28b8c5ce7d3fa5b5",
+      "after_sha256": "6cec42cd28b21caed78a019dbadfd9296e59a4e168d4bf8a38b24318502c4780",
+      "source_bytes": 1650,
+      "candidate_before_bytes": 1715
+    },
+    {
+      "path": "frontend/src/tournaments/components/TournamentPanel.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\tournaments\\components\\TournamentPanel.tsx",
+      "before_sha256": "95658c5bc5b3b88f698591f90ca64b73f15ec15cefa10454ce36a6944e7033e2",
+      "after_sha256": "47abe94b197765307e9d4810ace6e44cd8436389545bad2ba684e29734457fb1",
+      "source_bytes": 6342,
+      "candidate_before_bytes": 6416
+    },
+    {
+      "path": "frontend/src/tournaments/useTournamentProgress.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\tournaments\\useTournamentProgress.ts",
+      "before_sha256": "c80276b49078409d7fc48a4b1c485fd6605dd9427bcc78405c5ef009235df4a8",
+      "after_sha256": "4ad8a3cce5b9237c867d12b703ee09776bec689c661b04585c58e624b037ab4c",
+      "source_bytes": 1813,
+      "candidate_before_bytes": 1853
+    },
+    {
+      "path": "frontend/src/utils/externalUrls.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\utils\\externalUrls.ts",
+      "before_sha256": "b140fb176cdf2397b1038bde24d21ed622c685bae39a2df4f8583cee421e139c",
+      "after_sha256": "59aace6ff8e35ffedae1e02083b23bfc7af7a8c6cea30285ae1ddcaaf95e9bd5",
+      "source_bytes": 811,
+      "candidate_before_bytes": 839
+    },
+    {
+      "path": "frontend/src/utils/storage/index.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\utils\\storage\\index.ts",
+      "before_sha256": "7617c94632224b09d23b999fbf1c846193180c4aa276caa837b7d6d2d1579fe0",
+      "after_sha256": "ae9c395392bc3f235684c590848417854fb3029eb69fdc3ff90bb3f2dd45fe6d",
+      "source_bytes": 3023,
+      "candidate_before_bytes": 3126
+    },
+    {
+      "path": "frontend/src/utils/storage/index.web.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\utils\\storage\\index.web.ts",
+      "before_sha256": "d1e203731c8b480a595bb4cf7c5ef528684f58edcbb229d08cd6501f9c622150",
+      "after_sha256": "7522682013d6b0ecbb049a025717e2931f3464296e779b174759c3d6f2e591c2",
+      "source_bytes": 2669,
+      "candidate_before_bytes": 2754
+    },
+    {
+      "path": "frontend/src/utils/storage/storage-base.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\src\\utils\\storage\\storage-base.ts",
+      "before_sha256": "fdcbdf4731b524727fdc4d1d388dc8eae2cd59b92b6be13e36eecd580c24cc56",
+      "after_sha256": "1edf576837aca890b066b92d530edfc01229aecf12ee0c333390c8735925a190",
+      "source_bytes": 2033,
+      "candidate_before_bytes": 2089
+    },
+    {
+      "path": "frontend/tests/all-mechanic-parity.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\all-mechanic-parity.test.js",
+      "before_sha256": "18b16440edde518760d1a0b55414e93c304db0e0f34338d3555261b4f47ad80a",
+      "after_sha256": "bb123c035a14bcf98c51eaa6c98aa69579ef8b6e45f92b55ac5ae7740d3b870b",
+      "source_bytes": 18173,
+      "candidate_before_bytes": 18309
+    },
+    {
+      "path": "frontend/tests/android-immersive.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\android-immersive.test.js",
+      "before_sha256": "d0908882d57498828c6d3f7cef8ae67b4b1e330472944685200fd5d259686ef4",
+      "after_sha256": "de1504b76caf10f338fa11d1bd773bec62facac25be7c24ca38edd06cd523693",
+      "source_bytes": 2113,
+      "candidate_before_bytes": 2159
+    },
+    {
+      "path": "frontend/tests/api-base.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\api-base.test.js",
+      "before_sha256": "d02058e8e538a876f0880281c592d6b6ff1d7c2ab0a5914acb49dea77bbd6c43",
+      "after_sha256": "3ef6894ec501ce9b268ecc3b83939dc6af84b42e804e21a3afd5844be200c696",
+      "source_bytes": 3295,
+      "candidate_before_bytes": 3396
+    },
+    {
+      "path": "frontend/tests/authoritative-opponent.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\authoritative-opponent.test.js",
+      "before_sha256": "ac0ad1b0ce1256ad44dbce230113d846391fd51d7c4624ddbb6d062f9ea47691",
+      "after_sha256": "11de76d3c8c888b6ead03d33a33cc60525b20f2757b820050f865372856eb094",
+      "source_bytes": 1761,
+      "candidate_before_bytes": 1813
+    },
+    {
+      "path": "frontend/tests/avatar-customization.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-customization.test.js",
+      "before_sha256": "6af24378c9ba848bd37e487e11752c5f301fe98a0672b4848f79586cab982ef9",
+      "after_sha256": "eaf99c13b36aa7afa81cea2e14ce729d17c65742459ac8afcb56fa060463e962",
+      "source_bytes": 2535,
+      "candidate_before_bytes": 2583
+    },
+    {
+      "path": "frontend/tests/avatar-overhaul-v4.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-overhaul-v4.test.js",
+      "before_sha256": "b4c9f20050bccca7e53a3e882954ebec3bd47ddd390b22af9e151ad69eba8d94",
+      "after_sha256": "b9e4da3a5471451021627a9025fc3b8cf69f1a27589a1c193812a155aa40538b",
+      "source_bytes": 3069,
+      "candidate_before_bytes": 3128
+    },
+    {
+      "path": "frontend/tests/avatar-v5-appearance-contract.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-appearance-contract.ts",
+      "before_sha256": "6ca33704fb03a60a06ac4329dc39547213678f27baf48bf676f33ed7400652c5",
+      "after_sha256": "641688dfc6f0f267b3f3f8d531cb9923eb435262c74a9c5203c2c7c1303e042e",
+      "source_bytes": 2777,
+      "candidate_before_bytes": 2824
+    },
+    {
+      "path": "frontend/tests/avatar-v5-appearance-draft.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-appearance-draft.test.js",
+      "before_sha256": "be16613ea2ea00bc111e75e7539b5e8789840611d3744baf86a023b43a4e63e9",
+      "after_sha256": "7c7330454bc62bc6954904eab6fde539398f846706ed8b8b6b255f162b923e3b",
+      "source_bytes": 9622,
+      "candidate_before_bytes": 9744
+    },
+    {
+      "path": "frontend/tests/avatar-v5-appearance-validation.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-appearance-validation.test.js",
+      "before_sha256": "377a4d3f5327b1d373460af1e6b8bca3eca0dc005b68c3c6361902bdc7b7af2a",
+      "after_sha256": "de58ecbe9224cdfe962df599cf90b446080d4b1985db7d3f84c81fa320ebc098",
+      "source_bytes": 9674,
+      "candidate_before_bytes": 9805
+    },
+    {
+      "path": "frontend/tests/avatar-v5-flattened-proof.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-flattened-proof.test.js",
+      "before_sha256": "09060391d7cd4de545de5a2fd3dad2d54601327834508c4c967e08d9075b5483",
+      "after_sha256": "1852cd29a8f28a0c791747dfc67a58963e4151bf8d243382bfd326e3c466041a",
+      "source_bytes": 7007,
+      "candidate_before_bytes": 7125
+    },
+    {
+      "path": "frontend/tests/avatar-v5-palette-resolution.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-palette-resolution.test.js",
+      "before_sha256": "5273227b4f167e5c9070d5f4c2bee28b15b174dccb1d9cfe97586a827e0de7ce",
+      "after_sha256": "70fe2765e07f3906ec01ae6c92beacd3636369821d591d03590f4a8331804d0f",
+      "source_bytes": 6164,
+      "candidate_before_bytes": 6246
+    },
+    {
+      "path": "frontend/tests/avatar-v5-preview.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-preview.test.js",
+      "before_sha256": "bd7d0e0c57116a8680b95b82b9bb6b4450691da9dbe7b27bb26d749c5aae4767",
+      "after_sha256": "dc344786a7892a533e82e3a27469b3f86e5f68a569dde16dba28bf74d6a66107",
+      "source_bytes": 7503,
+      "candidate_before_bytes": 7623
+    },
+    {
+      "path": "frontend/tests/avatar-v5-proof-tools.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-proof-tools.test.js",
+      "before_sha256": "4ed23aad7010787caaa4ebb8efeabec48457b087b3c1354a736d718739d49561",
+      "after_sha256": "57a3fe0edd43365b830b18fcb3e4abf5d53d9daf33bb5e62cc76233bfd6da614",
+      "source_bytes": 5882,
+      "candidate_before_bytes": 5971
+    },
+    {
+      "path": "frontend/tests/avatar-v5-render-contract.ts",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-render-contract.ts",
+      "before_sha256": "7ef07e1574eebbe0c477dd276596a9333478906de120ede4e20d29bb82981f47",
+      "after_sha256": "7922cbff410db1325afcd2e526d85e6b9f5b7b4ded6de4c6ba2e35d5d8f9f068",
+      "source_bytes": 1163,
+      "candidate_before_bytes": 1175
+    },
+    {
+      "path": "frontend/tests/avatar-v5-render-plan.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-render-plan.test.js",
+      "before_sha256": "03d304dcf53b95c958edc8294c365a93a9a64015323bbf4e7ff06afecd11d715",
+      "after_sha256": "8e10c822998cfa453de465187b198cdb079aa25e6237a832ba7eb06e55b9cf2c",
+      "source_bytes": 11667,
+      "candidate_before_bytes": 11842
+    },
+    {
+      "path": "frontend/tests/avatar-v5-renderer.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\avatar-v5-renderer.test.js",
+      "before_sha256": "792ca40d722dc276524b4bf3603a4f3f2f9e2ee6a82c6141429e52df0baf7c17",
+      "after_sha256": "0072e40d629e97fee396cddb9fdf09ced71df22cbd7727423e21cc82ba4fdfd8",
+      "source_bytes": 7742,
+      "candidate_before_bytes": 7865
+    },
+    {
+      "path": "frontend/tests/contest-leaderboards.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\contest-leaderboards.test.js",
+      "before_sha256": "64c053587995056da644f28bc6589fe0a87130ce2a0b85532a5e6df29b97f731",
+      "after_sha256": "59be6501d0d410f0f61c8af29d4693e66360ff6ef34b672b3e35f07c2e7413ec",
+      "source_bytes": 1987,
+      "candidate_before_bytes": 2028
+    },
+    {
+      "path": "frontend/tests/contest-navigation-safety.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\contest-navigation-safety.test.js",
+      "before_sha256": "a6a992e72040cc4a712586c546cf8e0b14a9385082020a04806328a8ce04545d",
+      "after_sha256": "df4f8d24ebd20f7e93d7aa38e5277d7dbef0e85dbce49d8e60a2e680ffcb51b5",
+      "source_bytes": 10896,
+      "candidate_before_bytes": 11048
+    },
+    {
+      "path": "frontend/tests/cruise-duck-promotion.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\cruise-duck-promotion.test.js",
+      "before_sha256": "2248837e60706ffd0cce79ebdb11e981c0898feac71d94dca0b87b303fea1e1b",
+      "after_sha256": "ee615d1cc3de98ece72cba828df6700812d4396fb8acab4563b466b7c2d60072",
+      "source_bytes": 1599,
+      "candidate_before_bytes": 1632
+    },
+    {
+      "path": "frontend/tests/daily-charcuterie.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\daily-charcuterie.test.js",
+      "before_sha256": "56d4713e26d6b1a152532c35a3de8035bf0e015e1bdfff6d51c77d3e86a8f4e9",
+      "after_sha256": "7b39c1e51ba4d62026ad694e4bd57de7b10dd383bbfecae57b2936827fbce934",
+      "source_bytes": 20173,
+      "candidate_before_bytes": 20456
+    },
+    {
+      "path": "frontend/tests/food-artwork-keys.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\food-artwork-keys.test.js",
+      "before_sha256": "be84dc5221ca64c09d56a833950e5c1844dbac1563b2b1e0d56246d8c84c69ef",
+      "after_sha256": "072d086e4941d6e13c482bd170ab8d734267c9bce97c5d24adf5a2ac5f731158",
+      "source_bytes": 3089,
+      "candidate_before_bytes": 3174
+    },
+    {
+      "path": "frontend/tests/food-mechanics.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\food-mechanics.test.js",
+      "before_sha256": "5799bb12698767f4a30e141dc814acf2dbc1180026a684bb258a3974e3610ed9",
+      "after_sha256": "6319aa15557920651f2df7b22ca470cc00af2fdc912e983b32208068a78c08cb",
+      "source_bytes": 6502,
+      "candidate_before_bytes": 6647
+    },
+    {
+      "path": "frontend/tests/gear-step5.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\gear-step5.test.js",
+      "before_sha256": "36fd48b08f3356bf78870b5014de6e9bbda93aaf4726faf5329ac2867e4d993a",
+      "after_sha256": "b8e59e6f715d4389471f899d549ef8cffba82827a49ca11d85bccf3ee9741278",
+      "source_bytes": 2294,
+      "candidate_before_bytes": 2343
+    },
+    {
+      "path": "frontend/tests/guest-auth-cold-start.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\guest-auth-cold-start.test.js",
+      "before_sha256": "255856eb572dd7beb1f8e7709c9b5dea594b5c1cdad29e84f99108f5406c383b",
+      "after_sha256": "b182fd55d700943db7f638baecab42b44962ae2abf9aa3b70ac43f7e21101054",
+      "source_bytes": 19107,
+      "candidate_before_bytes": 19474
+    },
+    {
+      "path": "frontend/tests/guest-auth-production-recovery.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\guest-auth-production-recovery.test.js",
+      "before_sha256": "168831b5f87468c0c0be137e2a6b974b06bfea1d4ac721d075f7f576e19bfa62",
+      "after_sha256": "ba136e10640f9d9c08d9bb9a2f21a70136f16b768fc6d96822ba1d1da6a88f7f",
+      "source_bytes": 14021,
+      "candidate_before_bytes": 14282
+    },
+    {
+      "path": "frontend/tests/guest-auth-startup-policy.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\guest-auth-startup-policy.test.js",
+      "before_sha256": "bdb9a1270bba06e6522832bbd5dec8793bb5cdd9b15bfdfe4abca0f53337c58f",
+      "after_sha256": "b52970a5b128f06550ad324a81446479785a1f6d6f25fd1a5cc5215cfa6e4200",
+      "source_bytes": 1255,
+      "candidate_before_bytes": 1277
+    },
+    {
+      "path": "frontend/tests/guest-bootstrap-recovery.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\guest-bootstrap-recovery.test.js",
+      "before_sha256": "d1afaf2709d3d4964602d1be26e996647dea8b84877dbb0832bfcefecf17dd42",
+      "after_sha256": "2143c69254e539d1980356bfbffd43ea652e8fcb1514e89fa16487be5771584e",
+      "source_bytes": 3422,
+      "candidate_before_bytes": 3491
+    },
+    {
+      "path": "frontend/tests/helpers/backend-replay.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\helpers\\backend-replay.js",
+      "before_sha256": "96e0bf89f2c960a68d793805a7cc55c448673100ae46ff038180fd662d1da532",
+      "after_sha256": "95f093dfea4a3baf3c5da7b002f8969b1eb2788f55d2d2b7039b92167e4902c8",
+      "source_bytes": 1451,
+      "candidate_before_bytes": 1493
+    },
+    {
+      "path": "frontend/tests/helpers/gameplay-harness.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\helpers\\gameplay-harness.js",
+      "before_sha256": "a1a09cd7ae9e1764d4487e801500c60ad1cc0518f9dfa0747794e27ad2e79541",
+      "after_sha256": "823a5f5375227ce0640e78ff40a29337d64f39e6551c4899bd7dbcfc655603bb",
+      "source_bytes": 6847,
+      "candidate_before_bytes": 6882
+    },
+    {
+      "path": "frontend/tests/helpers/mechanic-driver.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\helpers\\mechanic-driver.js",
+      "before_sha256": "123d206a7567f32d8d6181ed68d1a82fa1465b607004d1ecc6bf1a75a7037ca6",
+      "after_sha256": "31507ee5fe7a29b22ebc738e182f98474a0eff5284613aad280f6b6d35fc386e",
+      "source_bytes": 5061,
+      "candidate_before_bytes": 5166
+    },
+    {
+      "path": "frontend/tests/input-hitbox-contract.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\input-hitbox-contract.test.js",
+      "before_sha256": "d5f86a4bdfbedf8f21f08d7369636a8b293246cd02391b022dad7e19aab438ce",
+      "after_sha256": "8ce707ee5bc37d47c8578e512d3f8251249b266e991ef5b536359f61ffff4587",
+      "source_bytes": 4706,
+      "candidate_before_bytes": 4785
+    },
+    {
+      "path": "frontend/tests/legal-documents.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\legal-documents.test.js",
+      "before_sha256": "671f21399022ffb3d22573a9fc17c42304284fc7f219b3daedb07d5e7fbd94ff",
+      "after_sha256": "f1bf09660181ad1db894e4ce489ba4d06ab3d7124b2a8df06dfecfc17ee20fd2",
+      "source_bytes": 4034,
+      "candidate_before_bytes": 4120
+    },
+    {
+      "path": "frontend/tests/local-milestone-claims.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\local-milestone-claims.test.js",
+      "before_sha256": "f3ce5a827db89fa484bc7409efeaaedc69d20683d5dd453c6ab997edfd2f8ff0",
+      "after_sha256": "eaa38a1ede89d9e7599e1038529ba11825896ee2b188a26fbea7b831a72b0563",
+      "source_bytes": 8291,
+      "candidate_before_bytes": 8392
+    },
+    {
+      "path": "frontend/tests/local-release-validation.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\local-release-validation.test.js",
+      "before_sha256": "cd456cb974e9e9d03dd48bfa016b6a2d1ac37197eb8418af27984aec7838e4b3",
+      "after_sha256": "bc657c7bfa25855ea10a04b13a2d6e18727e5873411d0867892dfc2e75c9ab24",
+      "source_bytes": 12773,
+      "candidate_before_bytes": 12949
+    },
+    {
+      "path": "frontend/tests/match-completion-pipeline.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\match-completion-pipeline.test.js",
+      "before_sha256": "f2f0c6a4714a58a3da4dcf7c96de5e32315c48f2726b627fdf66192d1e795258",
+      "after_sha256": "83608ff4150d9fc19a7ee02beadafa2fda4194ae91ca33f58cc3d0dc13e90572",
+      "source_bytes": 6363,
+      "candidate_before_bytes": 6471
+    },
+    {
+      "path": "frontend/tests/match-input-log.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\match-input-log.test.js",
+      "before_sha256": "540dac7897a33debf792a1541b44f7359824c933e2495cb2fe30c70e5f729623",
+      "after_sha256": "f64e404e933743c2e2741f0cc6ab27ca68d63c9be61d0a6f700ddf52611f8f6d",
+      "source_bytes": 15178,
+      "candidate_before_bytes": 15462
+    },
+    {
+      "path": "frontend/tests/match-modifiers.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\match-modifiers.test.js",
+      "before_sha256": "366d4880ff2945167931bc9b3a00bcdf4a014c0d39f3f8ee1563d6002282fa7a",
+      "after_sha256": "0062dab6caf03026b2edb993243908df1d54f2f4d22b582eb994469a50e64bd6",
+      "source_bytes": 4770,
+      "candidate_before_bytes": 4882
+    },
+    {
+      "path": "frontend/tests/match-recovery.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\match-recovery.test.js",
+      "before_sha256": "f5d6cae73ed7b112b97e3f2b90831deb87e180241ffb8b266bb2ff6139c52943",
+      "after_sha256": "ed285d6b55e24e5895052cafd9a00ba2004cea533715f6215396584dd2f657e6",
+      "source_bytes": 20794,
+      "candidate_before_bytes": 20798
+    },
+    {
+      "path": "frontend/tests/maximum-update-depth-regression.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\maximum-update-depth-regression.test.js",
+      "before_sha256": "fc62f326b04471391e95404caebf35eafb8b2deb6001c5c7c88f5e62a464b03a",
+      "after_sha256": "3b89763c31862023de0a3970a7078fc61dd4858129d92dd984c1752e3727d3f1",
+      "source_bytes": 4038,
+      "candidate_before_bytes": 4119
+    },
+    {
+      "path": "frontend/tests/player-identity-propagation.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\player-identity-propagation.test.js",
+      "before_sha256": "abdaecb10c8bea48bd18c0e6ac7ae680c9d2225eb7932465793b63d201adfbd0",
+      "after_sha256": "c09d415477a2234905de15d94d11f09493f6a71a4822a65dd9dd1d5f04dc74b6",
+      "source_bytes": 2477,
+      "candidate_before_bytes": 2528
+    },
+    {
+      "path": "frontend/tests/player-progress-presentation.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\player-progress-presentation.test.js",
+      "before_sha256": "56973c4ef674ae268230612fd166d3dc6f84e8a6cea2decfa1d32e8d5fcd1962",
+      "after_sha256": "bc85da9f108558961b5909da6e270cf95673aaa7a1a2bdd1cef5595d51d39e50",
+      "source_bytes": 3839,
+      "candidate_before_bytes": 3899
+    },
+    {
+      "path": "frontend/tests/png-integrity.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\png-integrity.test.js",
+      "before_sha256": "f546a6f95b638a979fa661ac0e692b8db1fb6761ae8c213708541044cd32690b",
+      "after_sha256": "a7012c20f2ac60ee0f4421b2fe7a65a07da9a16c5f19bca1fd946042cfc658a7",
+      "source_bytes": 1822,
+      "candidate_before_bytes": 1868
+    },
+    {
+      "path": "frontend/tests/profile-action-layout.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\profile-action-layout.test.js",
+      "before_sha256": "543351318b81aa9b054433dcab0a00019ff6dba280dc4190fbab119f92bc2afa",
+      "after_sha256": "3346e58d7db1e20f3d5e3158252c918990f7ae1cb49e2a3f6a29f359708acdcd",
+      "source_bytes": 1467,
+      "candidate_before_bytes": 1493
+    },
+    {
+      "path": "frontend/tests/pvp-phase3.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\pvp-phase3.test.js",
+      "before_sha256": "bf58d6912355866fb921d5011bb8fb9d43d1a028cf3bcfbcd6a9bea8d0dded72",
+      "after_sha256": "8d21474a490d77743fd76b30ab96281c14a9144908806a6990247c295261be88",
+      "source_bytes": 3749,
+      "candidate_before_bytes": 3824
+    },
+    {
+      "path": "frontend/tests/pvp-step4.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\pvp-step4.test.js",
+      "before_sha256": "9734ea396baa34c92333d7e19332ec76554152c697985497c28307ce6993d406",
+      "after_sha256": "bd131423329db32392e01cbe92e590f812a594a5984a89dea72a2a0bb886b2b5",
+      "source_bytes": 3257,
+      "candidate_before_bytes": 3313
+    },
+    {
+      "path": "frontend/tests/rapid-tap-burnout.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\rapid-tap-burnout.test.js",
+      "before_sha256": "1c199c6f9e3544e724be0286c601dbe7bb7cc76a43055b524620ce2225881b5b",
+      "after_sha256": "30648166fa3e454b5da5b0199f2c84fe5670e676a7707b04a0f260445a723b1b",
+      "source_bytes": 6892,
+      "candidate_before_bytes": 6993
+    },
+    {
+      "path": "frontend/tests/request-observability.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\request-observability.test.js",
+      "before_sha256": "a8dc708db9fb3a3f9a8533986465b6a7fc07ebbd6a6a8dfee4e5418655235245",
+      "after_sha256": "3772d8e9ea7011d5b80a5b1b66dcbaba038d6022a74c5f2729b6ef7c64eed078",
+      "source_bytes": 2495,
+      "candidate_before_bytes": 2552
+    },
+    {
+      "path": "frontend/tests/social-phase1.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\social-phase1.test.js",
+      "before_sha256": "ba541fee8cea5de97a32708e7cb25ba913bf9d6091c146abfaa72bfc348e6071",
+      "after_sha256": "97aa17a45658baf6a1019619d662560f51bbcd310983d878e8fdfaaae1ace939",
+      "source_bytes": 5535,
+      "candidate_before_bytes": 5631
+    },
+    {
+      "path": "frontend/tests/startup-reliability.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\startup-reliability.test.js",
+      "before_sha256": "b9dd2e79329da58df60ada4b018e9ae1acd7ff5173b0e500341bb7e2e78baa14",
+      "after_sha256": "c5912af5fd860e264432fba1db630c5a0d06a1170aee1093005f7d2460dada91",
+      "source_bytes": 5442,
+      "candidate_before_bytes": 5536
+    },
+    {
+      "path": "frontend/tests/step6-polish.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\step6-polish.test.js",
+      "before_sha256": "5aabf70bb49f4eca6daa668721a18036c3f2053ffc098b50ce75cf4efd995fae",
+      "after_sha256": "6e9b89d608e980ea526715abc61a47651d768b753ed1c862f6e6dacab2deedf9",
+      "source_bytes": 3021,
+      "candidate_before_bytes": 3076
+    },
+    {
+      "path": "frontend/tests/swipe-validation.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\swipe-validation.test.js",
+      "before_sha256": "f4e6e30995e92a0a2012108cf3e04558c36750103573fb18f854e526e836ee6e",
+      "after_sha256": "753b14873e246c2c979be641b48c605ed473e03b7109058d9712e27fee079bbb",
+      "source_bytes": 2505,
+      "candidate_before_bytes": 2557
+    },
+    {
+      "path": "frontend/tests/v10-stabilization.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\v10-stabilization.test.js",
+      "before_sha256": "ca1e8f93632d00a721b5a40e03f38c1b5a23eaa444ea872d54ca12cf5876808a",
+      "after_sha256": "aacadba66da8a909a158b24e9a96d3f67f5bcbe2bee17ccf7808f4139cd763d1",
+      "source_bytes": 3551,
+      "candidate_before_bytes": 3606
+    },
+    {
+      "path": "frontend/tests/v6-stabilization.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\v6-stabilization.test.js",
+      "before_sha256": "a6c203ad51626c22c029c342b3ea1cd016f8e4990db28272851ea30840c7d363",
+      "after_sha256": "5f6ae74c00c305313ac1a0d04b07338e4ff9fa7bc2bdc80a44bff0451a6d15a8",
+      "source_bytes": 3858,
+      "candidate_before_bytes": 3930
+    },
+    {
+      "path": "frontend/tests/v8-stabilization.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\v8-stabilization.test.js",
+      "before_sha256": "bd9444d455cb7b62a3b77d77780be508a87943fa9ae97ff3dcff003b9193ff34",
+      "after_sha256": "9717a515c268233911e8af5fd1226c8b34124b74351bfebe4d750d73d6c31757",
+      "source_bytes": 5744,
+      "candidate_before_bytes": 5841
+    },
+    {
+      "path": "frontend/tests/validation-gates.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\validation-gates.test.js",
+      "before_sha256": "1f02523fca66d2dd6d9ee6e7d6fa16f989af5c036765107c27f4789dc5559fce",
+      "after_sha256": "58a1c7ebdb136d7fbef667dfc4190620a0318f70cfa02a772dc2ae0af39d2007",
+      "source_bytes": 1008,
+      "candidate_before_bytes": 1033
+    },
+    {
+      "path": "frontend/tests/visual-polish-v9.test.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tests\\visual-polish-v9.test.js",
+      "before_sha256": "61486efdf88093a0605b3d01c7b83b3ecb4476bc1d805bf2d061e7ac18ed7e29",
+      "after_sha256": "f095a92584da2b73973bf6d1e8c56df12ff70f3080fa1927b510a681ae44b4ec",
+      "source_bytes": 2513,
+      "candidate_before_bytes": 2557
+    },
+    {
+      "path": "frontend/tools/avatar-v5-preview/Preview.tsx",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tools\\avatar-v5-preview\\Preview.tsx",
+      "before_sha256": "3c0ad9c8d8994c1a68bc19f842be4f9d7900efd40492aa2ce814911b790f9df2",
+      "after_sha256": "e445c4305ddeef857e193e97ff4924f0084c03d3d5ac12368a7cf8f999fd7b20",
+      "source_bytes": 2610,
+      "candidate_before_bytes": 2650
+    },
+    {
+      "path": "frontend/tools/avatar-v5-preview/README.md",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tools\\avatar-v5-preview\\README.md",
+      "before_sha256": "9168603bae4aa8823cd0bfe7e5fa111490491b6d55a1b882c2b95b1fb4cc4465",
+      "after_sha256": "a0ea2928e8a941799ef7613be6038a7ab16098417aa56e01333b5960d2d509e6",
+      "source_bytes": 3215,
+      "candidate_before_bytes": 3264
+    },
+    {
+      "path": "frontend/tools/avatar-v5-preview/app.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tools\\avatar-v5-preview\\app.json",
+      "before_sha256": "2d66be64ea8c7a7602b754d8003adbebc47d2a291ac3073e90e23c25f283ab5a",
+      "after_sha256": "199df002782e8e4930741dc89a9b95ab56a7e17dc9dd460ed3e6acc289b7d3ba",
+      "source_bytes": 315,
+      "candidate_before_bytes": 325
+    },
+    {
+      "path": "frontend/tools/avatar-v5-preview/index.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tools\\avatar-v5-preview\\index.js",
+      "before_sha256": "21a48c726a67351c21a6e3ab5b168694f91316b6d7aa276c9da4c3ded4a93570",
+      "after_sha256": "b4fe6bcf519b4d5613ae99219508ef013a4734cc3430ddceef8639eb14188ea0",
+      "source_bytes": 112,
+      "candidate_before_bytes": 116
+    },
+    {
+      "path": "frontend/tools/avatar-v5-preview/metro.config.js",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tools\\avatar-v5-preview\\metro.config.js",
+      "before_sha256": "4fca1cf9ee555412d64a7600fefa23c8800e17f4dd24904b0476a4f36ec746b1",
+      "after_sha256": "10155290a1d4e5784324d00d8111e0cdfd1ea28c1b084a7f8db961ab1ddc5023",
+      "source_bytes": 384,
+      "candidate_before_bytes": 392
+    },
+    {
+      "path": "frontend/tools/avatar-v5-preview/package.json",
+      "source": "C:\\FireFeast-Recovery\\Frontend-Preservation-20261005\\tools\\avatar-v5-preview\\package.json",
+      "before_sha256": "e539d309e3140bce6f6eeb7c30e4b4b0d6a1698f0570b747e7fc98af43e1a78e",
+      "after_sha256": "5d1349266118c2e570b54c466dde865dc922613d65cfd6f9bd6d0b332b81d0ae",
+      "source_bytes": 108,
+      "candidate_before_bytes": 114
+    }
+  ]
+}

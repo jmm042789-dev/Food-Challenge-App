@@ -2,17 +2,15 @@ import { useCallback, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter, type Href } from "expo-router";
 
-import { api } from "../api";
+import { api, parseContests, type Contest } from "../api";
 
 type ContestEntryOptions = {
   tournamentOccurrenceId?: string;
 };
 
-const playRoute = (contestId: string, tournamentOccurrenceId?: string): Href => {
-  const route = `/play/${encodeURIComponent(contestId)}`;
-  return (tournamentOccurrenceId
-    ? `${route}?tournament=${encodeURIComponent(tournamentOccurrenceId)}`
-    : route) as Href;
+const playRoute = (contestId: string, tournamentOccurrenceId?: string, resumeMatchId?: string): Href => {
+  const query = [tournamentOccurrenceId ? `tournament=${encodeURIComponent(tournamentOccurrenceId)}` : "", resumeMatchId ? `resumeMatchId=${encodeURIComponent(resumeMatchId)}` : ""].filter(Boolean).join("&");
+  return `/play/${encodeURIComponent(contestId)}${query ? `?${query}` : ""}` as Href;
 };
 
 export function useContestEntry() {
@@ -24,6 +22,23 @@ export function useContestEntry() {
     checking.current = true;
 
     try {
+      try {
+        if (await api.pendingResult()) { router.push("/match-recovery" as Href); return; }
+      } catch { router.push("/match-recovery" as Href); return; }
+      // Resolve entry against the server catalog, never the local tournament rotation.
+      let contests: Contest[];
+      try {
+        contests = parseContests(await api.listContests());
+      } catch {
+        Alert.alert("Unable to Check Contests", "Check your connection and try again.");
+        return;
+      }
+      const isAvailable = (id: string) => contests.some((contest) => contest.id === id);
+      const showUnavailable = () => Alert.alert("Contest Unavailable", "This contest is not currently available. Choose an available contest from Contests.");
+      if (!isAvailable(contestId)) {
+        showUnavailable();
+        return;
+      }
       const activeMatch = await api.activeMatch();
       if (
         activeMatch.status !== "resumable"
@@ -35,7 +50,7 @@ export function useContestEntry() {
       }
 
       if (activeMatch.contest_id === contestId) {
-        router.push(playRoute(activeMatch.contest_id, options.tournamentOccurrenceId));
+        router.push(playRoute(activeMatch.contest_id, options.tournamentOccurrenceId, activeMatch.match_id ?? "missing"));
         return;
       }
 
@@ -46,7 +61,8 @@ export function useContestEntry() {
           {
             text: "Resume Current Match",
             onPress: () => {
-              router.push(playRoute(activeMatch.contest_id!));
+              if (isAvailable(activeMatch.contest_id!)) router.push(playRoute(activeMatch.contest_id!, undefined, activeMatch.match_id ?? "missing"));
+              else showUnavailable();
             },
           },
           {

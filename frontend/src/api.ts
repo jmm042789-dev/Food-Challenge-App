@@ -21,6 +21,10 @@ import {
   requestIdForError,
 } from "./requestDiagnostics";
 import { storage } from "./utils/storage";
+import { createPendingResultStore, isOfficialResult, validateReceipt, type ResultReceipt } from "./game/pendingResult";
+import type { CompletedMatchPayload } from "./game/resultSubmission";
+import { validateResumeResponse, type ResumeResponse } from "./game/safeMatchEntry";
+const pendingResults = createPendingResultStore(AsyncStorage);
 
 export { ApiRequestError, readResponseRequestId } from "./requestDiagnostics";
 
@@ -34,6 +38,9 @@ const classicManifest = Constants.manifest as ExpoDevelopmentMetadata | null;
 const BASE = resolveApiBase({
   explicitUrl: process.env.EXPO_PUBLIC_BACKEND_URL,
   isDevelopment: __DEV__,
+  isStaging: process.env.EXPO_PUBLIC_APP_ENV === "staging"
+    || Constants.expoConfig?.extra?.releaseEnvironment === "staging"
+    || Constants.expoConfig?.android?.package === "com.firefeast.app.staging",
   expoHostUris: [
     Constants.expoConfig?.hostUri,
     expoGoConfig?.debuggerHost,
@@ -46,6 +53,7 @@ const BASE = resolveApiBase({
 const API = joinApiPath(BASE, "/api");
 const REQUEST_TIMEOUT_MS = 8000;
 export const GUEST_BOOTSTRAP_TIMEOUT_MS = 20000;
+export const FRESH_GUEST_BOOTSTRAP_TIMEOUT_MS = 90000;
 export const PLAYER_BOOTSTRAP_TIMEOUT_MS = 18000;
 export const STARTUP_RECOVERY_TIMEOUT_MS = 12000;
 export const AUTH_IMPLEMENTATION_VERSION = "guest-auth-state-v6";
@@ -260,6 +268,17 @@ export function peekBootstrapPlayer(): unknown | undefined {
 }
 
 async function clearLocalGuestData(): Promise<void> {
+  const previousCredentialPromise = credentialsPromise;
+  const previousRecoveryPromise = recoveryPromise;
+  authStateGeneration += 1;
+  credentialsCache = null;
+  credentialsPromise = null;
+  recoveryPromise = null;
+  // Invalidate first, then drain writes before removing their persisted data.
+  await Promise.allSettled([
+    previousCredentialPromise,
+    previousRecoveryPromise,
+  ].filter((value): value is Promise<GuestCredentials> => value !== null));
   await Promise.all([
     storage.secureRemove(CREDENTIALS_KEY),
     AsyncStorage.multiRemove([
@@ -492,6 +511,7 @@ async function storeCredentials(
     throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Guest credentials could not be stored securely.");
   }
   await AsyncStorage.multiRemove([PLAYER_ID_KEY, AUTH_TOKEN_KEY]);
+  assertCurrentAuthGeneration(generation);
   credentialsCache = credentials;
 }
 
@@ -606,6 +626,11 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
     AsyncStorage.getItem(BOOTSTRAP_RECOVERY_NONCE_KEY),
   ]);
   const existingRecoveryToken = await readPendingRecoveryToken();
+  const recoveryTokenMaterial = await storage.secureRead<string>(BOOTSTRAP_RECOVERY_TOKEN_KEY);
+  if (recoveryTokenMaterial.status === "unavailable") {
+    throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Protected guest recovery storage is unavailable.");
+  }
+  const completionPending = await AsyncStorage.getItem(BOOTSTRAP_COMPLETION_PENDING_KEY);
   const storageState = classifyGuestAuthStorage({
     credentialsPresent: false,
     installationPresent: Boolean(existingInstallationId),
@@ -621,6 +646,9 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
     );
   }
 
+  // Snapshot freshness before creating any recovery material. A partial pending
+  // recovery also keeps the existing short deadline.
+  const isFreshBootstrap = !existingRecoveryNonce && !recoveryTokenMaterial.value && !completionPending;
   const installationId = await getInstallationId();
   const hadPendingRecovery = shouldProbePendingRecovery({
     recoveryNoncePresent: Boolean(existingRecoveryNonce),
@@ -638,8 +666,7 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
   }
   try {
     markAuthStage("AUTH_STAGE_BOOTSTRAP_SENT");
-    const response = await req(
-      "/auth/guest",
+    const response = await requestGuestBootstrap(
       {
         method: "POST",
         body: JSON.stringify({
@@ -647,9 +674,8 @@ async function loadOrBootstrapCredentials(generation: number): Promise<GuestCred
           recovery_nonce: recovery.nonce,
         }),
       },
-      false,
-      false,
-      GUEST_BOOTSTRAP_TIMEOUT_MS,
+      isFreshBootstrap ? FRESH_GUEST_BOOTSTRAP_TIMEOUT_MS : GUEST_BOOTSTRAP_TIMEOUT_MS,
+      generation,
     ) as GuestBootstrapResponse;
     if (
       !response?.player_id
@@ -769,6 +795,36 @@ async function ensureGuestCredentials(): Promise<GuestCredentials> {
   });
   credentialsPromise = pending;
   return pending;
+}
+
+// Only the bootstrap transport owns this deadline. Persistence begins after
+// successful settlement; an expired transport can never reach that continuation.
+function requestGuestBootstrap(opts: RequestInit, timeoutMs: number, generation: number) {
+  return new Promise<unknown>((resolve, reject) => {
+    let active = true;
+    const controller = new AbortController();
+    const assertActive = () => {
+      if (!active) throw new RequestTimeoutError(timeoutMs);
+      assertCurrentAuthGeneration(generation);
+    };
+    const timer = setTimeout(() => {
+      active = false;
+      reject(new RequestTimeoutError(timeoutMs));
+      controller.abort();
+    }, timeoutMs);
+    void req("/auth/guest", { ...opts, signal: controller.signal }, false, false, timeoutMs, assertActive)
+      .then((response) => {
+        assertActive();
+        active = false;
+        clearTimeout(timer);
+        resolve(response);
+      }).catch((error: unknown) => {
+        if (!active) return;
+        active = false;
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
 }
 
 export async function getDeviceId(): Promise<string> {
@@ -895,7 +951,14 @@ async function recoverCredentialsAfterUnauthorized(
         );
       }
       const recovered = { playerId, authToken: rejected.authToken };
+      assertCurrentAuthGeneration(generation);
+      if (
+        !credentialsCache
+        || credentialsCache.playerId !== rejected.playerId
+        || credentialsCache.authToken !== rejected.authToken
+      ) throw new AuthOperationSupersededError();
       await storeCredentials(recovered, generation);
+      assertCurrentAuthGeneration(generation);
       if (data.player) cacheBootstrapPlayer(data.player);
       if (__DEV__) {
         console.info("Fire Feast authentication session repaired", {
@@ -932,7 +995,10 @@ async function req(
   authenticated = true,
   allowAuthenticationRecovery = true,
   requestTimeoutMs = REQUEST_TIMEOUT_MS,
+  assertBootstrapActive?: () => void,
+  expectedPlayerId?: string,
 ) {
+  const generation = authStateGeneration;
   const sequence = ++requestSequence;
   const method = (opts.method ?? "GET").toUpperCase();
   const isMutation = authenticated && method !== "GET";
@@ -944,13 +1010,26 @@ async function req(
   if (externalSignal?.aborted) controller.abort();
   else externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
   const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+  const assertRequestActive = () => {
+    if (authenticated) assertCurrentAuthGeneration(generation);
+    if (controller.signal.aborted) {
+      const error = new Error("The request was aborted.");
+      error.name = "AbortError";
+      throw error;
+    }
+  };
   let url = `${API}${path}`;
   let requestPath = path;
   let status: number | "not received" = "not received";
   let requestId: string | null = null;
 
   try {
+    assertRequestActive();
     const credentials = authenticated ? await ensureGuestCredentials() : null;
+    assertRequestActive();
+    if (expectedPlayerId && credentials?.playerId !== expectedPlayerId) {
+      throw new Error("The authenticated player changed. Restore the original account to recover this match.");
+    }
     const aligned = credentials
       ? alignRequestWithCredentials(path, opts, credentials)
       : { path, opts };
@@ -970,10 +1049,13 @@ async function req(
       signal: controller.signal,
     });
 
+    assertBootstrapActive?.();
     status = res.status;
     if (__DEV__ && requestPath === "/match/result") console.info("Result response received", { status });
     requestId = readResponseRequestId(res);
     const text = await res.text();
+    assertRequestActive();
+    assertBootstrapActive?.();
     let data;
 
     try {
@@ -1002,14 +1084,17 @@ async function req(
         }
         const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();
         if (!recoveredDeletion && authenticated && credentials && allowAuthenticationRecovery) {
+          assertRequestActive();
           const recovered = await recoverCredentialsAfterUnauthorized(credentials);
+          assertRequestActive();
+          if (expectedPlayerId && recovered.playerId !== expectedPlayerId) throw new Error("The recovered player does not own this pending match.");
           const rewritten = rewriteRequestForRecoveredPlayer(
             requestPath,
             aligned.opts,
             credentials.playerId,
             recovered.playerId,
           );
-          return req(rewritten.path, rewritten.opts, true, false, requestTimeoutMs);
+          return req(rewritten.path, rewritten.opts, true, false, requestTimeoutMs, undefined, expectedPlayerId);
         }
         throw new AuthenticationError(
           recoveredDeletion
@@ -1410,12 +1495,66 @@ export const api = {
   // =========================
   listContests: () => req(`/contests`, {}, false),
 
-  startMatch: async (contest_id: string) => {
+  startMatch: async (contest_id: string, expectedPlayerId?: string) => {
     const id = await getDeviceId();
-    return req(`/match/start`, {
+    if (expectedPlayerId && id !== expectedPlayerId) throw new Error("Player identity changed before match creation.");
+    return pendingResults.withoutPending(id, () => req(`/match/start`, {
       method: "POST",
       body: JSON.stringify({ device_id: id, contest_id }),
-    });
+    }, true, true, REQUEST_TIMEOUT_MS, undefined, id));
+  },
+
+  pendingResult: async () => pendingResults.read(await getDeviceId()),
+
+  resumeMatch: async (match_id: string, contest_id: string, playerId: string): Promise<ResumeResponse> => {
+    const response = await req(`/match/resume`, {
+      method: "POST", body: JSON.stringify({ match_id, contest_id }),
+    }, true, true, REQUEST_TIMEOUT_MS, undefined, playerId);
+    return validateResumeResponse(response, match_id, contest_id);
+  },
+
+  submitDurableResult: async (payload: CompletedMatchPayload, playerId: string, signal?: AbortSignal) => {
+    if (await getDeviceId() !== playerId) throw new Error("The current player does not own this result.");
+    const record = await pendingResults.save(playerId, payload);
+    if (signal?.aborted) throw new Error("Result attempt cancelled. Saved result retained.");
+    const response = await api.submitResult(record.payload, signal, playerId);
+    if (!isOfficialResult(response)) throw new Error("Invalid official result response. Saved result retained.");
+    await pendingResults.clearSettled(record);
+    return response;
+  },
+
+  recoverPendingResult: async (signal?: AbortSignal, retrySubmission = false): Promise<ResultReceipt | null> => {
+    const playerId = await getDeviceId();
+    const pending = retrySubmission ? await pendingResults.readForRetry(playerId) : await pendingResults.read(playerId);
+    if (!pending) return null;
+    const record = await pendingResults.save(playerId, pending.payload);
+    const checkIdentity = async () => {
+      if (signal?.aborted) throw new Error("Recovery cancelled; saved evidence retained.");
+      if (await getDeviceId() !== playerId) throw new Error("Player identity changed; saved evidence retained.");
+    };
+    const lookup = async () => {
+      await checkIdentity();
+      const value = await req(`/match/receipt`, {
+        method:"POST", signal, body:JSON.stringify({match_id:record.match_id,contest_id:record.contest_id}),
+      }, true, true, REQUEST_TIMEOUT_MS, undefined, playerId);
+      await checkIdentity();
+      return validateReceipt(value, record);
+    };
+    let receipt = await lookup();
+    if (receipt.status === "UNRESOLVED" && retrySubmission) {
+      // Explicit exact-payload retry only. Receipt verification owns recovery clearing.
+      await checkIdentity();
+      await api.submitResult(record.payload, signal, playerId);
+      receipt = await lookup();
+    }
+    await checkIdentity();
+    return pendingResults.resolveReceipt(record, receipt);
+  },
+
+  retryPendingResult: async (signal?: AbortSignal) => {
+    const record = await pendingResults.readForRetry(await getDeviceId());
+    if (!record) throw new Error("No saved completed result is available.");
+    return api.submitDurableResult(record.payload, record.player_id, signal);
   },
 
   submitResult: async (payload: {
@@ -1433,7 +1572,7 @@ export const api = {
     is_tournament?: boolean;
     validation_version: 3;
     input_events: readonly import("./game/inputLog").MatchInputEvent[];
-  }, signal?: AbortSignal) => {
+  }, signal?: AbortSignal, expectedPlayerId?: string) => {
     const id = await getDeviceId();
     return req(`/match/result`, {
       method: "POST",
@@ -1443,7 +1582,7 @@ export const api = {
         is_tournament: false,
         ...payload,
       }),
-    }, true, true, 20_000);
+    }, true, true, 20_000, undefined, expectedPlayerId);
   },
 
   activeMatch: () => req(`/match/active`) as Promise<{
@@ -1462,9 +1601,10 @@ export const api = {
     server_time?: string;
   }>,
 
-  abandonMatch: () => req(`/match/abandon`, { method: "POST" }) as Promise<{
-    status: "cancelled" | "expired" | "rejected" | "settled" | "absent";
-  }>,
+  abandonMatch: async (): Promise<{ status: "cancelled" | "expired" | "rejected" | "settled" | "absent" }> => {
+    const id = await getDeviceId();
+    return pendingResults.withoutPending(id, () => req(`/match/abandon`, { method: "POST" }, true, true, REQUEST_TIMEOUT_MS, undefined, id));
+  },
 
   leaderboard: () => req(`/leaderboard`, {}, true),
   leaderboardContests: () => req(`/leaderboard/contests`, {}, true),

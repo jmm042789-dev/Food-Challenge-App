@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Image, type ImageSourcePropType, StyleSheet, Text, View } from "react-native";
 import type { OpponentMood } from "../ai/OpponentMood";
+import AvatarRenderer from "../../profile/AvatarRenderer";
+import type { AvatarConfiguration } from "../../profile/PlayerIdentity";
 
 export type CharacterReaction = "idle" | "combo" | "leading" | "behind" | "scoring" | "hit" | "victory" | "defeat";
 
 type Props = {
   image?: ImageSourcePropType;
+  avatarConfiguration?: AvatarConfiguration;
   fallback?: string;
   name: string;
   subtitle?: string;
@@ -26,7 +29,7 @@ const MOOD_VISUALS: Record<OpponentMood, { color: string; icon: string; breathMs
   VICTORIOUS: { color: "#FFD45E", icon: "W", breathMs: 1250 },
 };
 
-export default function CharacterPortrait({ image, fallback, name, subtitle, side = "player", size = "standard", reaction = "idle", reactionKey = reaction, reactionStrength = 0, mood }: Props) {
+export default function CharacterPortrait({ image, avatarConfiguration, fallback, name, subtitle, side = "player", size = "standard", reaction = "idle", reactionKey = reaction, reactionStrength = 0, mood }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
   const tilt = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(0)).current;
@@ -115,7 +118,7 @@ export default function CharacterPortrait({ image, fallback, name, subtitle, sid
       <View style={[styles.frame, compact && styles.compactFrame, side === "opponent" && styles.opponentFrame]}>
         {side === "opponent" && mood ? <View pointerEvents="none" style={[styles.moodAura, { backgroundColor: moodVisual.color, borderColor: moodVisual.color }]} /> : null}
         <Animated.View pointerEvents="none" style={[styles.reactionGlow, { opacity: glow }]} />
-        {image ? <Image source={image} resizeMode="contain" style={[styles.image, compact && styles.compactImage]} /> : <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.fallback, compact && styles.compactFallback]}>{fallbackText}</Text>}
+        {avatarConfiguration ? <AvatarRenderer configuration={avatarConfiguration} size={compact ? 39 : 62} /> : image ? <Image source={image} resizeMode="contain" style={[styles.image, compact && styles.compactImage]} /> : <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.fallback, compact && styles.compactFallback]}>{fallbackText}</Text>}
         {side === "opponent" ? <Animated.View pointerEvents="none" style={[styles.blink, { opacity: blink, transform: [{ scaleY: blink.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] }) }] }]} /> : null}
         {side === "opponent" && mood ? <Text pointerEvents="none" style={[styles.moodIcon, { color: moodVisual.color }]}>{moodVisual.icon}</Text> : null}
         {side === "opponent" && (mood === "PRESSURED" || mood === "PANICKING") ? <Text pointerEvents="none" style={styles.stressEffect}>{mood === "PANICKING" ? "///" : "'"}</Text> : null}

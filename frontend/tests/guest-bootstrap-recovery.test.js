@@ -23,7 +23,7 @@ test("recovery nonce and replacement bearer are durable before bootstrap starts"
   const bootstrap = functionBody("loadOrBootstrapCredentials", "ensureGuestCredentials");
   assert.ok(
     bootstrap.indexOf("getOrCreateBootstrapRecovery()")
-      < bootstrap.indexOf('"/auth/guest",'),
+      < bootstrap.indexOf('requestGuestBootstrap('),
     "durable recovery state must exist before the first network request",
   );
 });
@@ -38,7 +38,7 @@ test("only pre-existing pending recovery is checked for a lost response", () => 
   const bootstrap = functionBody("loadOrBootstrapCredentials", "ensureGuestCredentials");
   assert.ok(
     bootstrap.indexOf("if (hadPendingRecovery)")
-      < bootstrap.indexOf('"/auth/guest"'),
+      < bootstrap.indexOf('requestGuestBootstrap('),
     "a restart may test whether a prior recovery succeeded before replaying it",
   );
   assert.match(bootstrap, /shouldProbePendingRecovery/);

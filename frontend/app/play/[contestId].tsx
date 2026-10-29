@@ -5,7 +5,9 @@ import { useIsFocused } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { api, type Contest, parseContests } from "../../src/api";
+import { api, getDeviceId, type Contest, parseContests } from "../../src/api";
+import { resolveMatchEntry } from "../../src/game/safeMatchEntry";
+import { resultRecoveryMessage } from "../../src/game/pendingResult";
 import ArcadeBackground from "../../src/game/ui/ArcadeBackground";
 import CountdownOverlay from "../../src/game/ui/CountdownOverlay";
 import EffectsLayer from "../../src/game/ui/EffectsLayer";
@@ -14,7 +16,7 @@ import GameplayHUD from "../../src/game/ui/GameplayHUD";
 import HeartburnMeter from "../../src/game/ui/HeartburnMeter";
 import VictoryOverlay, { type VictoryTournamentPresentation } from "../../src/game/ui/VictoryOverlay";
 import SceneMotion, { type SceneMotionPhase } from "../../src/game/ui/SceneMotion";
-import { useGameLoop } from "../../src/game/useGameLoop";
+import { burnoutTimelineDiagnosticsEnabled, useGameLoop } from "../../src/game/useGameLoop";
 import { resolveContestDurationSeconds } from "../../src/game/contestDuration";
 import FireScreenEntrance from "../../src/components/fire/FireScreenEntrance";
 import FireButton from "../../src/components/fire/FireButton";
@@ -72,13 +74,14 @@ export default function ContestScreen() {
   const { identity, hydrated: identityHydrated } = usePlayerIdentity();
   const presentationIdentity = identity ?? DEFAULT_IDENTITY;
   const router = useRouter();
-  const { contestId, replay: replayParam, tournament: tournamentParam, pvpMatch: pvpMatchParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[]; tournament?: string | string[]; pvpMatch?: string | string[] }>();
+  const { contestId, replay: replayParam, tournament: tournamentParam, pvpMatch: pvpMatchParam, resumeMatchId: resumeMatchParam } = useLocalSearchParams<{ contestId?: string | string[]; replay?: string | string[]; tournament?: string | string[]; pvpMatch?: string | string[]; resumeMatchId?: string | string[] }>();
+  const expectedResumeMatchId = Array.isArray(resumeMatchParam) ? resumeMatchParam[0] : resumeMatchParam;
   const selectedContestId = Array.isArray(contestId) ? contestId[0] : contestId ?? "";
   const replayToken = Array.isArray(replayParam) ? replayParam[0] : replayParam ?? "";
   const tournamentOccurrenceId = Array.isArray(tournamentParam) ? tournamentParam[0] : tournamentParam ?? "";
   const pvpMatchId = Array.isArray(pvpMatchParam) ? pvpMatchParam[0] : pvpMatchParam ?? "";
   const isPvp = Boolean(pvpMatchId);
-  const matchRouteKey = `${selectedContestId}:${replayToken}:${tournamentOccurrenceId}:${pvpMatchId}`;
+  const matchRouteKey = `${selectedContestId}:${replayToken}:${tournamentOccurrenceId}:${pvpMatchId}:${expectedResumeMatchId ?? ""}`;
   const [contest, setContest] = useState<Contest | null>(null);
   const [contestLoaded, setContestLoaded] = useState(false);
   const [matchStartError, setMatchStartError] = useState(false);
@@ -106,6 +109,8 @@ export default function ContestScreen() {
   startGame,
   startMatchIntro,
   tap,
+  getBurnoutDiagnostics,
+  getReplayBurnoutGate,
   heartburn,
   heatTier,
   heatMultiplier,
@@ -120,6 +125,7 @@ export default function ContestScreen() {
   matchStats,
   captureRecoveryState,
   resumeGame,
+  synchronizeMatchClock,
 } = useGameLoop({
   duration: matchDurationSeconds,
   matchKey: matchRouteKey,
@@ -180,6 +186,8 @@ export default function ContestScreen() {
   const started = useRef(false);
   const matchStartedAt = useRef<number | null>(null);
   const scoreFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTarget = useRef(expectedResumeMatchId);
+  const serverPlayerId = useRef<string | null>(null);
   const serverOpponentId = useRef<string | null>(null);
   const serverMatchId = useRef<string | null>(null);
   const pvpAttemptId = useRef<string | null>(null);
@@ -189,7 +197,7 @@ export default function ContestScreen() {
   const submittedResultKey = useRef<string | null>(null);
   const resultAttemptGeneration = useRef(0);
   const resultAbortController = useRef<AbortController | null>(null);
-  const resultSubmission = useRef(createResultSubmissionCoordinator((payload, signal) => isPvp
+  const resultSubmission = useRef(createResultSubmissionCoordinator<unknown>((payload, signal) => isPvp
     ? api.submitPvpResult({
       match_id: pvpMatchId,
       attempt_id: pvpAttemptId.current ?? "missing",
@@ -204,7 +212,7 @@ export default function ContestScreen() {
       validation_version: 3,
       input_events: payload.input_events,
     }, signal)
-    : api.submitResult(payload, signal))).current;
+    : api.submitDurableResult(payload, serverPlayerId.current ?? "", signal))).current;
   const inputLog = useRef(createInputLogBuffer()).current;
   const inputLogPersistence = useRef(createActiveMatchInputLogPersistence(AsyncStorage)).current;
   const pendingGameplayRecovery = useRef<{ state: GameplayRecoveryState; elapsedMs: number } | null>(null);
@@ -252,7 +260,9 @@ export default function ContestScreen() {
     const pending = pendingGameplayRecovery.current;
     pendingGameplayRecovery.current = null;
     if (pending) {
-      if (!resumeGame(pending.state, pending.elapsedMs)) {
+      const recoveryElapsedMs = Math.max(pending.elapsedMs,
+        matchStartedAt.current === null ? pending.elapsedMs : Date.now() - matchStartedAt.current);
+      if (!resumeGame(pending.state, recoveryElapsedMs)) {
         setMatchStartFailureMessage("This recovered match could not be resumed safely.");
         setMatchStartError(true);
       }
@@ -363,6 +373,8 @@ export default function ContestScreen() {
     perfectChainCommented.current = false;
     highScoreCommented.current = false;
     activeResultKey.current = matchRouteKey;
+    resumeTarget.current = expectedResumeMatchId;
+    serverPlayerId.current = null;
     serverOpponentId.current = null;
     serverMatchId.current = null;
     pvpAttemptId.current = null;
@@ -568,13 +580,18 @@ export default function ContestScreen() {
   }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
 
   useEffect(() => {
+    let mounted = true;
+    let lifecycleGeneration = 0;
     const subscription = AppState.addEventListener("change", (nextState) => {
+      const generation = ++lifecycleGeneration;
       if (nextState !== "active" && (state.status === "COUNTDOWN" || state.status === "PLAYING")) {
         void inputLogPersistence.flush(inputLog, captureRecoveryState(inputLog.elapsed()));
         return;
       }
       if (nextState !== "active" || (state.status !== "COUNTDOWN" && state.status !== "PLAYING")) return;
+      synchronizeMatchClock();
       void api.activeMatch().then((recovery) => {
+        if (!mounted || generation !== lifecycleGeneration) return;
         if (
           recovery.status !== "resumable"
           || recovery.match_id !== serverMatchId.current
@@ -585,8 +602,8 @@ export default function ContestScreen() {
         // A transient resume check must not interrupt an otherwise active round.
       });
     });
-    return () => subscription.remove();
-  }, [captureRecoveryState, inputLog, inputLogPersistence, state.status]);
+    return () => { mounted = false; subscription.remove(); };
+  }, [captureRecoveryState, inputLog, inputLogPersistence, state.status, synchronizeMatchClock]);
 
   useEffect(() => {
     if (state.status !== "PLAYING") return;
@@ -814,6 +831,17 @@ export default function ContestScreen() {
         if (!selectedContestId || !/^[A-Za-z0-9._:-]{1,128}$/.test(selectedContestId)) {
           throw new Error("Invalid contest route");
         }
+        if (!isPvp) {
+          try {
+            if (await api.pendingResult()) {
+              if (active) router.replace("/match-recovery" as never);
+              return;
+            }
+          } catch {
+            if (active) router.replace("/match-recovery" as never);
+            return;
+          }
+        }
         const [contestResult, playerResult, titleResult] = await Promise.allSettled([
           api.listContests(),
           api.getPlayer(),
@@ -827,26 +855,23 @@ export default function ContestScreen() {
           throw new Error("Player balance was unavailable");
         }
         const player = playerResult.value as {
+          player_id?: string;
+          device_id?: string;
           antacid?: number;
           username?: string;
           xp?: number;
           best_score?: number;
           coins?: number;
         };
-        if (!isPvp && Number(player.coins ?? 0) < selectedContest.entry_fee) {
-          throw new Error("Not enough coins for this contest");
-        }
-        const activeMatch = isPvp ? { status: "absent" as const } : await api.activeMatch();
-        if (
-          activeMatch.status === "resumable"
-          && activeMatch.contest_id
-          && activeMatch.contest_id !== selectedContestId
-        ) {
-          throw new Error("A different contest is already active.");
-        }
-        // startMatch is idempotent for the same contest and returns the original
-        // opponent/start payload needed to resume without creating a new match.
-        const match = isPvp ? await api.startPvpAttempt(pvpMatchId) : await api.startMatch(selectedContestId);
+        const playerId = await getDeviceId();
+        if (!isPvp && (player.player_id ?? player.device_id) !== playerId) throw new Error("Player identity changed during match recovery.");
+        const entry = isPvp ? null : await resolveMatchEntry({
+          api, playerId, contestId: selectedContestId, coins: player.coins, entryFee: selectedContest.entry_fee, expectedMatchId: resumeTarget.current, onResumeIdentified: id => { resumeTarget.current = id; },
+        });
+        const match = isPvp ? await api.startPvpAttempt(pvpMatchId) : entry!.match;
+        const activeMatch = entry?.resumed ? { status: "resumable" as const, started_at: match.server_started_at, server_time: entry.serverTime } : { status: "absent" as const };
+        if (!isPvp && await getDeviceId() !== playerId) throw new Error("Player identity changed during match recovery.");
+        if (active) serverPlayerId.current = playerId;
         const parsedOpponent = isPvp ? {
           opponent: {
             id: match.opponent.public_id, name: match.opponent.display_name, avatar: "VS", level: match.opponent.level,
@@ -938,66 +963,136 @@ export default function ContestScreen() {
     return () => {
       active = false;
     };
-  }, [inputLog, inputLogPersistence, isPvp, matchRouteKey, matchStartAttempt, pvpMatchId, selectedContestId]);
+  }, [expectedResumeMatchId, inputLog, inputLogPersistence, isPvp, matchRouteKey, matchStartAttempt, pvpMatchId, router, selectedContestId]);
 
   const handleTap = useCallback((evidence: GameplayInputEvidence) => {
     const actionNow = Date.now();
     const { commentate: commentateLatest, combo, playAudioEvent: playAudioEventLatest, status, tap: tapLatest } = arenaCallbacksRef.current;
-    if (status !== "PLAYING") return null;
-    const elapsedMs = matchStartedAt.current === null ? 0 : actionNow - matchStartedAt.current;
-    if (matchStartedAt.current !== null && elapsedMs > matchDurationSeconds * 1000) return null;
-    inputLog.start(matchDurationSeconds * 1000, matchStartedAt.current ?? actionNow);
-    if (!inputLog.canRecord()) return null;
-    const mechanic = String(contest?.bite_mechanic ?? "").toLowerCase();
-    const actionType: MatchInputType = mechanic === "slice" || mechanic === "swipe" ? "SLICE" : "BITE";
-    if (!hasValidInputEvidence({ type: actionType, ...evidence })) return null;
-    const acceptedActionSequence = tapLatest(actionNow);
-    if (acceptedActionSequence === null) return null;
-    if (!inputLog.record(actionType, evidence, actionNow)) return null;
-    inputLogPersistence.schedule(inputLog, () => captureRecoveryState(inputLog.elapsed()));
-    cameraRef.current?.bitePunch();
-    void playAudioEventLatest("CORRECT_BITE");
-    if (!firstBiteCommented.current) {
-      firstBiteCommented.current = true;
-      commentateLatest({ type: "FIRST_BITE" });
-    }
+    // Explicitly enabled observations; never included in evidence or result payloads.
+    const diagnostics = burnoutTimelineDiagnosticsEnabled ? {
+      actionNow,
+      matchStartedAt: matchStartedAt.current,
+      matchElapsedMs: matchStartedAt.current === null ? null : actionNow - matchStartedAt.current,
+      renderedStatus: status,
+      actionType: ["slice", "swipe"].includes(String(contest?.bite_mechanic ?? "").toLowerCase()) ? "SLICE" : "BITE",
+      before: getBurnoutDiagnostics(actionNow),
+      inputLog: inputLog.getDiagnostics(actionNow),
+      canRecord: null as boolean | null,
+      tapTimestamp: null as number | null,
+      recordTimestamp: null as number | null,
+      acceptedLocally: false,
+      acceptedActionIndex: null as number | null,
+      recordSucceeded: null as boolean | null,
+      rejectionReason: "NOT_PLAYING" as string | null,
+      replayGate: null as ReturnType<typeof getReplayBurnoutGate> | null,
+      recordedEventTime: null as number | null,
+    } : null;
+    try {
+      if (status !== "PLAYING") return null;
+      if (diagnostics) diagnostics.rejectionReason = "MATCH_ENDED";
+      const elapsedMs = matchStartedAt.current === null ? 0 : actionNow - matchStartedAt.current;
+      if (matchStartedAt.current !== null && elapsedMs > matchDurationSeconds * 1000) return null;
+      inputLog.start(matchDurationSeconds * 1000, matchStartedAt.current ?? actionNow);
+      const canRecord = inputLog.canRecord();
+      if (diagnostics) {
+        diagnostics.inputLog = inputLog.getDiagnostics(actionNow);
+        diagnostics.canRecord = canRecord;
+        diagnostics.rejectionReason = "INPUT_LOG_UNAVAILABLE";
+      }
+      if (!canRecord) return null;
+      const mechanic = String(contest?.bite_mechanic ?? "").toLowerCase();
+      const actionType: MatchInputType = mechanic === "slice" || mechanic === "swipe" ? "SLICE" : "BITE";
+      if (diagnostics) diagnostics.rejectionReason = "INVALID_EVIDENCE";
+      if (!hasValidInputEvidence({ ...evidence, type: actionType }, mechanic, selectedContestId)) return null;
+      const eventTime = inputLog.eventTimeFor(actionNow);
+      const replayGate = getReplayBurnoutGate(inputLog.events(), eventTime);
+      if (diagnostics) {
+        diagnostics.replayGate = replayGate;
+        diagnostics.rejectionReason = "REPLAY_BURNOUT_REJECTED";
+      }
+      if (!replayGate.canAccept) return null;
+      if (diagnostics) {
+        diagnostics.tapTimestamp = actionNow;
+        diagnostics.rejectionReason = "SCORING_GATE_REJECTED";
+      }
+      const acceptedActionSequence = tapLatest(actionNow);
+      if (diagnostics) {
+        diagnostics.acceptedLocally = acceptedActionSequence !== null;
+        diagnostics.acceptedActionIndex = acceptedActionSequence;
+      }
+      if (acceptedActionSequence === null) return null;
+      if (diagnostics) {
+        diagnostics.recordTimestamp = eventTime;
+        diagnostics.rejectionReason = "INPUT_LOG_RECORD_FAILED";
+      }
+      const recorded = inputLog.recordAtElapsed(actionType, evidence, eventTime);
+      if (diagnostics && recorded) diagnostics.recordedEventTime = eventTime;
+      if (diagnostics) diagnostics.recordSucceeded = recorded;
+      if (!recorded) return null;
+      if (diagnostics) diagnostics.rejectionReason = null;
+      inputLogPersistence.schedule(inputLog, () => captureRecoveryState(inputLog.elapsed()));
+      cameraRef.current?.bitePunch();
+      void playAudioEventLatest("CORRECT_BITE");
+      if (!firstBiteCommented.current) {
+        firstBiteCommented.current = true;
+        commentateLatest({ type: "FIRST_BITE" });
+      }
 
-    const nextCombo = combo + 1;
-    if (nextCombo >= 100) {
-      setFeedbackText("+200");
-      setComboLabel("EPIC COMBO!");
-    } else if (nextCombo >= 50) {
-      setFeedbackText("+150");
-      setComboLabel("MEGA COMBO");
-    } else if (nextCombo >= 25) {
-      setFeedbackText("+100");
-      setComboLabel("FIRE COMBO");
-    } else if (nextCombo >= 10) {
-      setFeedbackText("+25");
-      setComboLabel("HOT STREAK");
-    } else if (nextCombo >= 5) {
-      setFeedbackText("+10");
-      setComboLabel("COMBO");
-    } else {
-      setFeedbackText("+5");
-      setComboLabel("COMBO");
-    }
+      const nextCombo = combo + 1;
+      if (nextCombo >= 100) {
+        setFeedbackText("+200");
+        setComboLabel("EPIC COMBO!");
+      } else if (nextCombo >= 50) {
+        setFeedbackText("+150");
+        setComboLabel("MEGA COMBO");
+      } else if (nextCombo >= 25) {
+        setFeedbackText("+100");
+        setComboLabel("FIRE COMBO");
+      } else if (nextCombo >= 10) {
+        setFeedbackText("+25");
+        setComboLabel("HOT STREAK");
+      } else if (nextCombo >= 5) {
+        setFeedbackText("+10");
+        setComboLabel("COMBO");
+      } else {
+        setFeedbackText("+5");
+        setComboLabel("COMBO");
+      }
 
-    setShowScore(true);
-    if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
-    scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
-    return acceptedActionSequence;
-  }, [captureRecoveryState, contest?.bite_mechanic, inputLog, inputLogPersistence, matchDurationSeconds]);
+      setShowScore(true);
+      if (scoreFeedbackTimer.current) clearTimeout(scoreFeedbackTimer.current);
+      scoreFeedbackTimer.current = setTimeout(() => setShowScore(false), 520);
+      return acceptedActionSequence;
+    } finally {
+      if (diagnostics) {
+        // A diagnostic sink failure must not affect the action's return/throw.
+        try {
+          const after = getBurnoutDiagnostics(actionNow);
+          console.info("Fire Feast burnout timeline", JSON.stringify({
+            ...diagnostics,
+            after,
+            localGate: diagnostics.tapTimestamp === null ? null : after.lastScoringGate,
+            eventIndex: diagnostics.inputLog.nextSequence - 1,
+            sameActionTimestamp: diagnostics.recordTimestamp === null ? null
+              : diagnostics.replayGate?.t_ms === diagnostics.recordTimestamp
+                && diagnostics.inputLog.event_t_ms === diagnostics.recordTimestamp,
+          }));
+        } catch { /* Diagnostics are non-authoritative. */ }
+      }
+    }
+  }, [captureRecoveryState, contest?.bite_mechanic, getBurnoutDiagnostics, getReplayBurnoutGate, inputLog, inputLogPersistence, matchDurationSeconds, selectedContestId]);
 
   const handleUseAntacid = useCallback((): boolean => {
     const actionNow = Date.now();
     if (matchStartedAt.current !== null && actionNow - matchStartedAt.current > matchDurationSeconds * 1000) return false;
     inputLog.start(matchDurationSeconds * 1000, matchStartedAt.current ?? actionNow);
     if (!inputLog.canRecord()) return false;
+    const eventTime = inputLog.eventTimeFor(actionNow);
+    if (!getReplayBurnoutGate(inputLog.events(), eventTime).canAccept) return false;
     const heatReduction = antacidHeatReduction(heartburn);
     const used = applyAntacid(actionNow);
     if (!used) return false;
-    if (!inputLog.record("ANTACID", undefined, actionNow)) return false;
+    if (!inputLog.recordAtElapsed("ANTACID", undefined, eventTime)) return false;
     inputLogPersistence.schedule(inputLog, () => captureRecoveryState(inputLog.elapsed()));
 
     setCoolingTrigger((value) => value + 1);
@@ -1017,7 +1112,7 @@ export default function ContestScreen() {
     }
     setFeedbackText(`-${heatReduction} HEAT`);
     return true;
-  }, [applyAntacid, captureRecoveryState, heartburn, hapticsEnabled, inputLog, inputLogPersistence, matchDurationSeconds, playAudioEvent, reducedMotion]);
+  }, [applyAntacid, captureRecoveryState, getReplayBurnoutGate, heartburn, hapticsEnabled, inputLog, inputLogPersistence, matchDurationSeconds, playAudioEvent, reducedMotion]);
   const abandonAndReturn = () => {
     if (abandonRequestInFlight.current) return;
     abandonRequestInFlight.current = true;
@@ -1072,7 +1167,7 @@ export default function ContestScreen() {
         <FireEmptyState
           icon="!"
           title="Result Not Verified"
-          message={`${resultFlow.error instanceof ResultVerificationTimeoutError ? resultFlow.error.message : playerFacingErrorMessage(resultFlow.error)} No rewards were applied.`}
+          message={isPvp ? playerFacingErrorMessage(resultFlow.error) : resultRecoveryMessage(resultFlow.error)}
           buttonLabel="RETRY RESULT"
           onPress={() => {
             if (resultRequestInFlight.current) return;

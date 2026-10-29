@@ -11,7 +11,6 @@ import {
   Animated,
   Easing,
   Image,
-  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -23,6 +22,7 @@ import { foodConsumptionPresentation, PRESENTATION_BITES_PER_ITEM } from "./food
 import type { BiteMechanic } from "../../api";
 import type { FoodBiteReaction, FoodProfile } from "../food/FoodProfiles";
 import type { HeatTier } from "../heartburn";
+import type { GameplayInputEvidence } from "../inputContract";
 import type { FoodMechanicType } from "../../achievements/AchievementTypes";
 import BurgerHeavyBiteOverlay from "./BurgerHeavyBiteOverlay";
 import CheesePullOverlay from "./CheesePullOverlay";
@@ -44,7 +44,7 @@ type Props = {
   biteMechanic?: BiteMechanic;
   heatTier: HeatTier;
   overheatWarningActive: boolean;
-  onAcceptedAction: () => number | null;
+  onAcceptedAction: (evidence: GameplayInputEvidence) => number | null;
   onMechanicCompleted?: (mechanicType: FoodMechanicType) => void;
 };
 
@@ -187,13 +187,11 @@ function FoodArena({
     ? foodRegionHeight
     : height * 0.4;
   const size = Math.min(
-    Math.max(132, width * 0.68),
-    Math.max(120, height * 0.34),
-    Math.max(104, availableFoodHeight - 30),
-    304,
+    Math.max(140, width * 0.72),
+    Math.max(128, height * 0.37),
+    Math.max(112, availableFoodHeight - 20),
+    320,
   );
-  const foodHitSlop = Math.round(clamp(size * 0.1, 18, 28));
-
   const foodArtwork = getFoodArtwork(contestId);
 
   const impactScaleX = useRef(new Animated.Value(1)).current;
@@ -234,7 +232,7 @@ function FoodArena({
   const completionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const biteCounter = useRef(0);
-  const performBiteRef = useRef<() => number | null>(() => null);
+  const performBiteRef = useRef<(evidence: GameplayInputEvidence) => number | null>(() => null);
   const heavyBiteActiveRef = useRef(false);
   const cheesePullActiveRef = useRef(false);
   const noodleSlurpActiveRef = useRef(false);
@@ -657,11 +655,11 @@ function FoodArena({
     if (result === "SUCCESS") onMechanicCompleted?.("noodle_slurp");
   }, [onMechanicCompleted]);
 
-  const completeHeavyBite = useCallback(() => {
+  const completeHeavyBite = useCallback((evidence: GameplayInputEvidence) => {
     if (!heavyBiteActiveRef.current) return;
     heavyBiteActiveRef.current = false;
     setHeavyBiteActive(false);
-    performBiteRef.current();
+    performBiteRef.current(evidence);
     onMechanicCompleted?.("heavy_bite");
   }, [onMechanicCompleted]);
 
@@ -683,8 +681,8 @@ function FoodArena({
     }).start();
   }, [holdPresentationScale, reducedMotion]);
 
-  const performBite = () => {
-    const acceptedSequence = onAcceptedAction();
+  const performBite = (evidence: GameplayInputEvidence) => {
+    const acceptedSequence = onAcceptedAction(evidence);
     if (acceptedSequence === null) return null;
     const previousBiteCount = biteCounter.current;
     const nextBiteCount = acceptedSequence;
@@ -894,7 +892,7 @@ function FoodArena({
 
   performBiteRef.current = performBite;
 
-  const tap = () => {
+  const tap = (evidence: GameplayInputEvidence) => {
     if (
       !active ||
       heavyBiteActiveRef.current ||
@@ -911,7 +909,7 @@ function FoodArena({
       return null;
     }
 
-    return performBite();
+    return performBite(evidence);
   };
 
   const haloOpacity = useMemo(
@@ -1113,16 +1111,13 @@ function FoodArena({
         ]}
       />
 
-        <Pressable
-        accessibilityElementsHidden
-        accessible={false}
-        disabled={!active}
-        hitSlop={foodHitSlop}
-        importantForAccessibility="no-hide-descendants"
-        onPressIn={tap}
-        pressRetentionOffset={foodHitSlop}
-        style={styles.foodPressable}
-      >
+        <View
+          accessibilityElementsHidden
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          pointerEvents="none"
+          style={styles.foodSurface}
+        >
         <Animated.View
           style={[
             styles.idleStage,
@@ -1419,7 +1414,7 @@ function FoodArena({
             />
           </Animated.View>
         </Animated.View>
-        </Pressable>
+        </View>
 
       <Animated.View
         pointerEvents="none"
@@ -1488,9 +1483,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 0,
     overflow: "visible",
-    paddingBottom: 6,
+    paddingBottom: 2,
     paddingHorizontal: 20,
-    paddingTop: 4,
+    paddingTop: 0,
     width: "100%",
   },
 
@@ -1528,7 +1523,7 @@ const styles = StyleSheet.create({
     top: "11%",
   },
 
-  foodPressable: {
+  foodSurface: {
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,

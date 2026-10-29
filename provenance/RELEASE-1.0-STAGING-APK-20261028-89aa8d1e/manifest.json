@@ -1,0 +1,62 @@
+{
+  "additions": [
+    {
+      "bytes": 254,
+      "git_state": "preserved-parent-qualification-control",
+      "path": "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/SHA256SUMS.txt",
+      "sha256": "32758689114370675ea0a602e98bab73c2a8a9bb019d030fbe1cae2efd5948ea"
+    },
+    {
+      "bytes": 122695,
+      "git_state": "preserved-parent-qualification-control",
+      "path": "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/manifest.json",
+      "sha256": "c8e6899f9e0828e66875921c577c1d9fc5240f378fe361e7ebd1ad4be1026ffc"
+    },
+    {
+      "bytes": 1194,
+      "git_state": "preserved-parent-qualification-control",
+      "path": "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/verification.json",
+      "sha256": "62361234b5877eca56113312d989039b421eec683d8b654ab4f3184600feba86"
+    },
+    {
+      "bytes": 463,
+      "git_state": "new-derivative-evidence",
+      "path": "provenance/RELEASE-1.0-STAGING-APK-20261028-89aa8d1e/approved-eas.patch",
+      "sha256": "67462ebb333c35608a529bcbc2a167e270a3efd2838c63db40cdf08095395cd8"
+    },
+    {
+      "bytes": 2494,
+      "git_state": "new-derivative-evidence",
+      "path": "provenance/RELEASE-1.0-STAGING-APK-20261028-89aa8d1e/change-record.json",
+      "sha256": "4b6b2e480e4bf8dbc0f54c88dc552077ccfc591824b68ad48f386a030a8fef2d"
+    }
+  ],
+  "canonical_inventory_format": "UTF-8/LF; ordinal relative-POSIX-path sorting; each line SHA256 SPACE decimal-byte-size SPACE relative-path LF.",
+  "evidence_controls": [
+    "provenance/RELEASE-1.0-STAGING-APK-20261028-89aa8d1e/manifest.json",
+    "provenance/RELEASE-1.0-STAGING-APK-20261028-89aa8d1e/SHA256SUMS.txt",
+    "provenance/RELEASE-1.0-STAGING-APK-20261028-89aa8d1e/verification.json"
+  ],
+  "kind": "additive-source-manifest-derivative",
+  "parent_manifest": "provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/manifest.json",
+  "parent_manifest_sha256": "c8e6899f9e0828e66875921c577c1d9fc5240f378fe361e7ebd1ad4be1026ffc",
+  "parent_source_inventory_sha256": "2a3369b793343025c02f1b0f01dccaeab8cee0edd4a137b937a956cbd118017d",
+  "policy": "Inherit parent policy and exclusions unchanged. All parent evidence control files are now hashed additions. Only this derivative manifest/checksum/report are circularity controls.",
+  "qualification": "Unsigned exact-source derivative; not a build, device, live-service or launch approval.",
+  "qualification_id": "RELEASE-1.0-STAGING-APK-20261028-89aa8d1e",
+  "removals": [],
+  "replacements": [
+    {
+      "bytes": 1306,
+      "git_state": "approved-staging-apk-derivative",
+      "path": "frontend/eas.json",
+      "sha256": "bdc98db0b78b5c9af935a15948ce1f49f4e995227e233bca67c3311b1cbf49e3"
+    }
+  ],
+  "resolution": "Start with parent manifest files, replace exactly listed entries, add exactly listed evidence entries, no removals; verify full resolved inventory and source membership. Parent evidence is never rewritten.",
+  "resolved_file_count": 568,
+  "resolved_total_bytes": 93323100,
+  "schema_version": 1,
+  "source_inventory_sha256": "d8490427bd9bb9fc900b079b1bfe23669b1f242d6a39492e788ce009b6172bb7",
+  "source_root": "C:\\FireFeast-ReleaseCandidate"
+}

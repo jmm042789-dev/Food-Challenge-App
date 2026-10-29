@@ -1,0 +1,144 @@
+diff --git a/frontend/src/api.ts b/frontend/src/api.ts
+index 9080fd0..926b647 100644
+--- a/frontend/src/api.ts
++++ b/frontend/src/api.ts
+@@ -265,6 +265,17 @@ export function peekBootstrapPlayer(): unknown | undefined {
+ }
+ 
+ async function clearLocalGuestData(): Promise<void> {
++  const previousCredentialPromise = credentialsPromise;
++  const previousRecoveryPromise = recoveryPromise;
++  authStateGeneration += 1;
++  credentialsCache = null;
++  credentialsPromise = null;
++  recoveryPromise = null;
++  // Invalidate first, then drain writes before removing their persisted data.
++  await Promise.allSettled([
++    previousCredentialPromise,
++    previousRecoveryPromise,
++  ].filter((value): value is Promise<GuestCredentials> => value !== null));
+   await Promise.all([
+     storage.secureRemove(CREDENTIALS_KEY),
+     AsyncStorage.multiRemove([
+@@ -497,6 +508,7 @@ async function storeCredentials(
+     throw authenticationError("AUTH_SECURESTORE_UNAVAILABLE", "Guest credentials could not be stored securely.");
+   }
+   await AsyncStorage.multiRemove([PLAYER_ID_KEY, AUTH_TOKEN_KEY]);
++  assertCurrentAuthGeneration(generation);
+   credentialsCache = credentials;
+ }
+ 
+@@ -936,7 +948,14 @@ async function recoverCredentialsAfterUnauthorized(
+         );
+       }
+       const recovered = { playerId, authToken: rejected.authToken };
++      assertCurrentAuthGeneration(generation);
++      if (
++        !credentialsCache
++        || credentialsCache.playerId !== rejected.playerId
++        || credentialsCache.authToken !== rejected.authToken
++      ) throw new AuthOperationSupersededError();
+       await storeCredentials(recovered, generation);
++      assertCurrentAuthGeneration(generation);
+       if (data.player) cacheBootstrapPlayer(data.player);
+       if (__DEV__) {
+         console.info("Fire Feast authentication session repaired", {
+@@ -976,6 +995,7 @@ async function req(
+   assertBootstrapActive?: () => void,
+   expectedPlayerId?: string,
+ ) {
++  const generation = authStateGeneration;
+   const sequence = ++requestSequence;
+   const method = (opts.method ?? "GET").toUpperCase();
+   const isMutation = authenticated && method !== "GET";
+@@ -987,13 +1007,23 @@ async function req(
+   if (externalSignal?.aborted) controller.abort();
+   else externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
+   const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
++  const assertRequestActive = () => {
++    if (authenticated) assertCurrentAuthGeneration(generation);
++    if (controller.signal.aborted) {
++      const error = new Error("The request was aborted.");
++      error.name = "AbortError";
++      throw error;
++    }
++  };
+   let url = `${API}${path}`;
+   let requestPath = path;
+   let status: number | "not received" = "not received";
+   let requestId: string | null = null;
+ 
+   try {
++    assertRequestActive();
+     const credentials = authenticated ? await ensureGuestCredentials() : null;
++    assertRequestActive();
+     if (expectedPlayerId && credentials?.playerId !== expectedPlayerId) {
+       throw new Error("The authenticated player changed. Restore the original account to recover this match.");
+     }
+@@ -1021,6 +1051,7 @@ async function req(
+     if (__DEV__ && requestPath === "/match/result") console.info("Result response received", { status });
+     requestId = readResponseRequestId(res);
+     const text = await res.text();
++    assertRequestActive();
+     assertBootstrapActive?.();
+     let data;
+ 
+@@ -1050,7 +1081,9 @@ async function req(
+         }
+         const recoveredDeletion = await recoverPendingDeletionAfterUnauthorized();
+         if (!recoveredDeletion && authenticated && credentials && allowAuthenticationRecovery) {
++          assertRequestActive();
+           const recovered = await recoverCredentialsAfterUnauthorized(credentials);
++          assertRequestActive();
+           if (expectedPlayerId && recovered.playerId !== expectedPlayerId) throw new Error("The recovered player does not own this pending match.");
+           const rewritten = rewriteRequestForRecoveredPlayer(
+             requestPath,
+diff --git a/frontend/tests/api-base.test.js b/frontend/tests/api-base.test.js
+index be99c4b..dab76ec 100644
+--- a/frontend/tests/api-base.test.js
++++ b/frontend/tests/api-base.test.js
+@@ -79,21 +79,41 @@ test("EAS profiles all target the canonical production backend", () => {
+   }
+ });
+ 
+-test("production routing files do not contain the stale Render hostname", () => {
++function staleBackendReferences(readFile, hasEnvironmentTemplate) {
+   const guardedFiles = [
+     "eas.json",
+     "src/apiBase.ts",
+     "src/api.ts",
+-    ".env.example",
+     "DEPLOYMENT.md",
+     "app.config.js",
+     "app.json",
+     "package.json",
+   ];
+-  const offenders = guardedFiles.filter((relativePath) => readProjectFile(relativePath).includes(FORBIDDEN_BACKEND_HOST));
++  if (hasEnvironmentTemplate) guardedFiles.push(".env.example");
++  return guardedFiles.filter((relativePath) => readFile(relativePath).includes(FORBIDDEN_BACKEND_HOST));
++}
++
++test("production routing files do not contain the stale Render hostname", () => {
++  const offenders = staleBackendReferences(
++    readProjectFile,
++    fs.existsSync(path.join(projectRoot, ".env.example")),
++  );
+   assert.deepEqual(offenders, [], `stale production backend host found in: ${offenders.join(", ")}`);
+ });
+ 
++test("optional environment template is scanned when present and not required when absent", () => {
++  const read = (relativePath) => {
++    if (relativePath === ".env.example") return FORBIDDEN_BACKEND_HOST;
++    return "https://example.invalid";
++  };
++  assert.deepEqual(staleBackendReferences(read, false), []);
++  assert.deepEqual(staleBackendReferences(read, true), [".env.example"]);
++});
++
++test("missing required routing files still fail the stale-hostname guard", () => {
++  assert.throws(() => staleBackendReferences(() => { throw new Error("required routing file missing"); }, false), /required routing file missing/);
++});
++
+ test("API path joining preserves one separator", () => {
+   assert.equal(
+     joinApiPath(`${REQUIRED_PRODUCTION_API_BASE}/`, "/api/contests"),

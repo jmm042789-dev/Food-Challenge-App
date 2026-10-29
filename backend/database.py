@@ -519,12 +519,31 @@ def transition_player_match(
     }
     if rejection_reason:
         lifecycle["rejection_reason"] = rejection_reason
+    if status not in {"rejected", "expired"}:
+        # Cancellation keeps its existing stored format; receipt additions are
+        # limited to the authorized settlement/rejection/expiry outcomes.
+        return _players().find_one_and_update(
+            query,
+            {"$set": {"last_match_lifecycle": lifecycle}, "$unset": {"active_match": ""}},
+            return_document=ReturnDocument.AFTER,
+        )
     return _players().find_one_and_update(
         query,
-        {
-            "$set": {"last_match_lifecycle": lifecycle},
-            "$unset": {"active_match": ""},
-        },
+        [{"$set": {
+            "last_match_lifecycle": {
+                **{key: {"$literal": value} for key, value in lifecycle.items()},
+                "receipt": {
+                    "schema_version": 1,
+                    "player_id": "$device_id",
+                    "match_id": "$active_match.id",
+                    "contest_id": "$active_match.contest_id",
+                    "outcome": {"$literal": status},
+                    "rewards_granted": False,
+                    "settlement_final": True,
+                },
+            },
+            "active_match": "$$REMOVE",
+        }}],
         return_document=ReturnDocument.AFTER,
     )
 

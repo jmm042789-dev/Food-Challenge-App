@@ -5,6 +5,7 @@ import MatchHUD from "./MatchHUD";
 import type { OpponentMood } from "../ai/OpponentMood";
 import { useReducedMotionPreference } from "../../components/fire/FireProgressBar";
 import { resolveMatchHudLayout } from "./gameplayLayout";
+import type { AvatarConfiguration } from "../../profile/PlayerIdentity";
 
 type Props = {
   level: number;
@@ -13,6 +14,8 @@ type Props = {
   coins: number;
   timeRemaining: number;
   playerScore: number;
+  playerName: string;
+  playerAvatar: AvatarConfiguration;
   opponentScore: number;
   combo: number;
   opponentName?: string;
@@ -35,6 +38,8 @@ export default function GameplayHUD(props: Props) {
       <MatchHUD
         timeRemaining={props.timeRemaining}
         playerScore={props.playerScore}
+        playerName={props.playerName}
+        playerAvatar={props.playerAvatar}
         opponentScore={props.opponentScore}
         opponentName={props.opponentName}
         opponentAvatar={props.opponentAvatar}
@@ -52,5 +57,5 @@ export default function GameplayHUD(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: 6, width: "100%", zIndex: 20 },
+  container: { paddingTop: 3, width: "100%", zIndex: 20 },
 });

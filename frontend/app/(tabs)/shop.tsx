@@ -3,6 +3,7 @@ import { Alert, Image, SectionList, StyleSheet, Text, View } from "react-native"
 import { useFocusEffect } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
 import { api } from "../../src/api";
 import FireBadge from "../../src/components/fire/FireBadge";
@@ -14,6 +15,9 @@ import { usePlayerBalance } from "../../src/playerBalance";
 import { classifyPlayerError, playerFacingErrorMessage } from "../../src/playerFacingErrors";
 import { equipmentStatus } from "../../src/equipmentState";
 import CompactScreenHeader from "../../src/components/fire/CompactScreenHeader";
+import { playSound } from "../../src/audio/AdaptiveAudioManager";
+import { useAppPreferences } from "../../src/preferences/AppPreferences";
+import FirstUseTip from "../../src/onboarding/FirstUseTip";
 
 const COIN = require("../../src/assets/icons/coin.png");
 const ANTACID = require("../../src/assets/icons/antacid.png");
@@ -29,7 +33,13 @@ type ShopItem = {
   rarity?: string;
   perk?: string;
   description?: string;
+  effect_description?: string;
+  slot?: "Hat" | "Apron" | "Outfit";
+  unlock_level?: number;
+  set_id?: string | null;
+  visual?: { color: string; shape: string };
 };
+type GearSet = { id: string; name: string; note: string; pieces: string[]; bundle_discount: number; bonus_description: string };
 
 type Player = {
   coins: number;
@@ -37,6 +47,7 @@ type Player = {
   xp: number;
   owned_gear: string[];
   equipped_gear?: string | null;
+  equipped_gear_slots?: Record<string, string>;
   equipped_cosmetic?: string | null;
   closed_beta_welcome_pack_claimed: boolean;
 };
@@ -77,9 +88,13 @@ function Price({ item }: { item: ShopItem }) {
 
 export default function ShopScreen() {
   const isFocused = useIsFocused();
+  const { preferences } = useAppPreferences();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [player, setPlayer] = useState<Player>(EMPTY_PLAYER);
   const [loading, setLoading] = useState(true);
+  const [sets, setSets] = useState<GearSet[]>([]);
+  const [filter, setFilter] = useState<"All" | "Hats" | "Aprons" | "Outfits" | "Sets">("All");
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const actionInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +103,7 @@ export default function ShopScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [shopResult, playerResult] = await Promise.allSettled([api.shop(), api.getPlayer()]);
+    const [shopResult, playerResult, gearResult] = await Promise.allSettled([api.shop(), api.getPlayer(), api.gear()]);
     if (shopResult.status === "fulfilled" && Array.isArray(shopResult.value?.items)) {
       setItems(shopResult.value.items);
     } else {
@@ -98,6 +113,7 @@ export default function ShopScreen() {
     if (playerResult.status === "fulfilled" && playerResult.value) {
       setPlayer({ ...EMPTY_PLAYER, ...(playerResult.value as Partial<Player>) });
     }
+    if (gearResult.status === "fulfilled") setSets(Array.isArray(gearResult.value?.sets) ? gearResult.value.sets : []);
     setLoading(false);
   }, []);
 
@@ -106,12 +122,14 @@ export default function ShopScreen() {
   const featured = items[0];
   const sections = useMemo(() => {
     const groups = new Map<string, ShopItem[]>();
-    items.slice(1).forEach((item) => {
+    items.slice(1).filter((item) => filter === "All" || (filter !== "Sets" && item.slot === filter.slice(0, -1))).forEach((item) => {
       const key = item.category || item.type || "Shop Items";
       groups.set(key, [...(groups.get(key) || []), item]);
     });
     return Array.from(groups, ([title, data]) => ({ title, data }));
-  }, [items]);
+  }, [filter, items]);
+
+  const buySet = useCallback(async (set: GearSet) => { if (actionInFlight.current) return; actionInFlight.current = true; setPendingId(set.id); try { await api.purchaseGearSet(set.id); void playSound("PURCHASE"); if (preferences.hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); await load(); } catch (purchaseError) { Alert.alert("Set purchase failed", playerFacingErrorMessage(purchaseError)); } finally { actionInFlight.current = false; setPendingId(null); } }, [load, preferences.hapticsEnabled]);
 
   const actOnItem = useCallback(async (item: ShopItem) => {
     if (actionInFlight.current) return;
@@ -124,6 +142,8 @@ export default function ShopScreen() {
     try {
       if (owned && item.type === "gear") {
         await api.equipGear(item.id);
+        void playSound("EQUIP");
+        if (preferences.hapticsEnabled) Haptics.selectionAsync().catch(() => {});
       } else if (owned && item.type === "cosmetic") {
         await api.equipCosmetic(item.id);
       } else {
@@ -132,6 +152,8 @@ export default function ShopScreen() {
           new_tums?: number;
           new_xp?: number;
         };
+        void playSound("PURCHASE");
+        if (preferences.hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setPlayer((current) => ({
           ...current,
           coins: purchase.new_coins ?? current.coins,
@@ -158,12 +180,12 @@ export default function ShopScreen() {
       actionInFlight.current = false;
       setPendingId(null);
     }
-  }, [load, player.equipped_cosmetic, player.equipped_gear, player.owned_gear]);
+  }, [load, player, preferences.hapticsEnabled]);
 
   const statusFor = useCallback((item: ShopItem) => {
     if (item.type === "welcome_pack" && player.closed_beta_welcome_pack_claimed) return "redeemed";
     return equipmentStatus(item, player);
-  }, [player.closed_beta_welcome_pack_claimed, player.equipped_cosmetic, player.equipped_gear, player.owned_gear]);
+  }, [player]);
 
   const renderItem = ({ item }: { item: ShopItem }) => {
     const status = statusFor(item);
@@ -171,13 +193,15 @@ export default function ShopScreen() {
     return (
       <View style={[styles.itemRow, unaffordable && status === "available" && styles.subdued]}>
         <View style={styles.itemArt}><Text style={styles.itemEmoji}>{item.icon || "🔥"}</Text></View>
+        {item.type === "gear" ? <View pointerEvents="none" style={[styles.gearArtOverlay, { backgroundColor: item.visual?.color ?? "#B9692D" }]}><Text style={styles.gearMonogram}>{item.slot?.slice(0, 1)}</Text></View> : null}
         <View style={styles.itemInfo}>
           <View style={styles.itemTitleRow}>
             <Text numberOfLines={2} style={styles.itemName}>{item.name}</Text>
             {status !== "available" ? <FireBadge label={status.toUpperCase()} variant={status === "equipped" ? "success" : "gold"} /> : null}
           </View>
           <Text numberOfLines={2} style={styles.itemMeta}>{[item.rarity, item.perk].filter(Boolean).join(" · ")}</Text>
-          <Text numberOfLines={3} style={styles.itemDescription}>{item.description}</Text>
+          <Text numberOfLines={detailsId === item.id ? undefined : 2} style={styles.itemDescription}>{detailsId === item.id ? `WHAT THIS GEAR DOES IN GAME\n${item.effect_description || item.description}\n${item.set_id ? `SET · ${item.set_id.replaceAll("_", " ").toUpperCase()}` : "NO SET"} · UNLOCK LV ${item.unlock_level ?? 1}` : item.description}</Text>
+          {item.type === "gear" ? <FireButton title={detailsId === item.id ? "HIDE EFFECTS" : "DETAILS / EFFECTS"} size="compact" variant="ghost" onPress={() => setDetailsId((value) => value === item.id ? null : item.id)} /> : null}
         </View>
         <View style={styles.itemAction}>
           <Price item={item} />
@@ -201,8 +225,11 @@ export default function ShopScreen() {
           <CurrencyCounter icon={COIN} label="COINS" value={coins} />
           <CurrencyCounter icon={ANTACID} label="ANTACID" value={player.antacid} />
         </View>} />
+      <FirstUseTip tipKey="gear" title="BUILD YOUR LOADOUT">Equip one Hat, Apron, and Outfit. Open Details to compare modest server-authoritative effects; matching sets activate only at 3/3 and gear uses earned coins.</FirstUseTip>
+      <View style={styles.filters}>{(["All", "Hats", "Aprons", "Outfits", "Sets"] as const).map((value) => <FireButton key={value} title={value.toUpperCase()} size="compact" variant={filter === value ? "gold" : "secondary"} onPress={() => setFilter(value)} />)}</View>
+      {filter === "Sets" ? sets.map((set) => { const owned = set.pieces.filter((id) => player.owned_gear.includes(id)).length; const remaining = set.pieces.map((id) => items.find((item) => item.id === id)).filter((item): item is ShopItem => Boolean(item) && !player.owned_gear.includes(item!.id)); const price = Math.floor(remaining.reduce((sum, item) => sum + item.price, 0) * (1 - set.bundle_discount)); return <View key={set.id} style={styles.setCard}><Text style={styles.setName}>{set.name.toUpperCase()}</Text><Text style={styles.setNote}>{set.note} · 3 PIECE SET · {owned}/3 {owned === 3 ? "COMPLETE" : ""}</Text>{set.pieces.map((id) => <Text key={id} style={styles.setPiece}>{player.owned_gear.includes(id) ? "OWNED" : "NOT OWNED"} · {items.find((item) => item.id === id)?.name}</Text>)}<Text style={styles.setBonus}>{set.bonus_description}</Text><FireButton disabled={pendingId !== null || owned === 3 || price > coins} loading={pendingId === set.id} title={owned === 3 ? "SET COMPLETE" : `BUY COMPLETE SET — ${price.toLocaleString()} COINS`} variant="gold" onPress={() => { void buySet(set); }} /></View>; }) : null}
 
-      {featured ? (
+      {featured && filter === "All" ? (
         <FireScreenEntrance duration="fast" distance={8}>
           <View style={styles.featured}>
             <View style={styles.featuredHighlight} pointerEvents="none" />
@@ -295,6 +322,8 @@ const styles = StyleSheet.create({
   subdued: { opacity: 0.58 },
   itemArt: { alignItems: "center", backgroundColor: "rgba(46,20,14,0.76)", borderColor: "rgba(211,120,36,0.4)", borderRadius: 8, borderWidth: 1, height: 70, justifyContent: "center", marginRight: 8, width: 70 },
   itemEmoji: { fontSize: 38 },
+  gearArtOverlay: { alignItems: "center", borderRadius: 14, height: 52, justifyContent: "center", left: 16, position: "absolute", transform: [{ rotate: "45deg" }], width: 52, zIndex: 3 },
+  gearMonogram: { color: "#FFF4DE", fontSize: 22, fontWeight: "900", transform: [{ rotate: "-45deg" }] },
   itemInfo: { flex: 1, minWidth: 0, paddingRight: 6 },
   itemTitleRow: { alignItems: "center", flexDirection: "row" },
   itemName: { color: "#FFF0D8", flex: 1, fontSize: 13, fontWeight: "900" },
@@ -306,4 +335,10 @@ const styles = StyleSheet.create({
   message: { color: "#E7B5A7", fontSize: 9, fontWeight: "900", letterSpacing: 0.8, textAlign: "center" },
   loading: { color: "#E8AD55", fontSize: 8, fontWeight: "900", letterSpacing: 1, paddingVertical: 13, textAlign: "center" },
   footerSpace: { height: 18 },
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 7 },
+  setCard: { backgroundColor: "rgba(18,10,10,0.97)", borderColor: "#D7923E", borderRadius: 14, borderWidth: 1, gap: 6, marginBottom: 9, padding: 12 },
+  setName: { color: "#FFD06A", fontSize: 17, fontWeight: "900" },
+  setNote: { color: "#B89B80", fontSize: 9, fontWeight: "800" },
+  setPiece: { color: "#FFF0D8", fontSize: 10, fontWeight: "800" },
+  setBonus: { color: "#E5A650", fontSize: 10, lineHeight: 14 },
 });

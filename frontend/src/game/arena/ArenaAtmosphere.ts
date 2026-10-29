@@ -57,15 +57,22 @@ export function useArenaAtmosphere(theme: ArenaTheme, resetKey: string) {
   const excitement = useRef(0);
   const lastReactionAt = useRef(Date.now());
   const lastCalloutAt = useRef(0);
+  const themeRef = useRef(theme);
+  const resetKeyRef = useRef(resetKey);
+  themeRef.current = theme;
 
   const reset = useCallback(() => {
     excitement.current = 0;
     lastReactionAt.current = Date.now();
     lastCalloutAt.current = 0;
-    setState({ excitement: 0, lastReaction: null, callout: null, calloutKey: 0, reactionKey: 0, theme });
-  }, [theme]);
+    setState({ excitement: 0, lastReaction: null, callout: null, calloutKey: 0, reactionKey: 0, theme: themeRef.current });
+  }, []);
 
-  useEffect(() => { reset(); }, [reset, resetKey]);
+  useEffect(() => {
+    if (resetKeyRef.current === resetKey) return;
+    resetKeyRef.current = resetKey;
+    reset();
+  }, [reset, resetKey]);
 
   const react = useCallback((reaction: ArenaReaction) => {
     const now = reaction.occurredAt ?? Date.now();

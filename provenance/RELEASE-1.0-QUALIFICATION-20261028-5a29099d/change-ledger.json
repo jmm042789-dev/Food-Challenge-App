@@ -1,0 +1,461 @@
+{
+  "approval": "Current user turn approves additive evidence for reviewed URL migration, isolated staging configuration, staging detection, API tests and reviewed existing runtime/build changes.",
+  "base_commit": "7973669816bb8243850562edddde8ee0a8310ccd",
+  "branch_observed": "release-candidate-1",
+  "changes": [
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 339,
+      "current_sha256": "8960415e97795796749fa9200946f8eb2a83057bb04a52ef7dae3b043b8bf711",
+      "git_status": "??",
+      "path": ".gitignore",
+      "review": "Dependency, credentials, environment, cache and local-evidence exclusions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 7596,
+      "current_sha256": "96437b7190c523fc28789ed7054d6837881ea8f41d899d92e88f6e45449353bd",
+      "git_status": "??",
+      "path": "README.md",
+      "review": "Authoritative source layout, preservation and guarded validation/deployment procedures."
+    },
+    {
+      "base_git_object_bytes": 4030,
+      "base_git_object_sha256": "68d60eee4c3cfdd84e5ddfa0a8fb4222684ae2a9c36163f53d341481bcd7fe51",
+      "current_bytes": 9752,
+      "current_sha256": "f4a116db464f614e79281df67b112cad57643bdc05c529b634ed38a5e99b2506",
+      "git_status": " M",
+      "path": "backend/DEPLOYMENT.md",
+      "review": "Dedicated staging settings, operational requirements and live acceptance documentation."
+    },
+    {
+      "base_git_object_bytes": 4939,
+      "base_git_object_sha256": "89dd8789bcf0dab6877454c1f0f505389d967757dd950e18d70cae7f354f966a",
+      "current_bytes": 6964,
+      "current_sha256": "637399db9936f7aab3654780b641acb047610a4b9c6976b1c5e2a84e10a044b2",
+      "git_status": " M",
+      "path": "backend/config.py",
+      "review": "Dedicated staging database/SRV/TLS inputs, production-mode requirements and no staging dotenv; non-staging path retained."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 3381,
+      "current_sha256": "0522325eec6ab8f707e75e2628da0b8afb1aadbc60eae9fbc6723d4264bfe705",
+      "git_status": "??",
+      "path": "backend/tests/test_staging_configuration.py",
+      "review": "Synthetic reserved-domain staging input, TLS, fail-closed and dotenv regressions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 4755,
+      "current_sha256": "7d0aa584da39808289f26b479d49fffe388655ad840ffb68a897cf6444b92ba0",
+      "git_status": "??",
+      "path": "frontend/ANDROID-LIFECYCLE-ACCEPTANCE.md",
+      "review": "Outstanding physical Android acceptance checklist."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 4884,
+      "current_sha256": "b2466472fc4d06d69fbcef2f5ac1bc915b4b7a50499aa5f009346fb7aaa0bff9",
+      "git_status": "??",
+      "path": "frontend/CURRENT-RELEASE-INTEGRITY.md",
+      "review": "Existing scoped integrity policy retained unchanged."
+    },
+    {
+      "base_git_object_bytes": 12194,
+      "base_git_object_sha256": "6385b3f0da9d91e04f9418b6334691c58f0435195204f0f01cb65f2288b9fca6",
+      "current_bytes": 13517,
+      "current_sha256": "f263fa863c44df46616f05500b79b242407a398803662cd92997cced5314c188",
+      "git_status": " M",
+      "path": "frontend/DEPLOYMENT.md",
+      "review": "Canonical production endpoint and isolated staging release documentation."
+    },
+    {
+      "base_git_object_bytes": 8146,
+      "base_git_object_sha256": "e1683a1f1358700c4c92f0a8600a77001b2897f8da0f4c40b2fc0ed1fa6a32a4",
+      "current_bytes": 3882,
+      "current_sha256": "5f24189c6b65165231110a4b3b4d7d12e23ffab3a187a268219707e266679d17",
+      "git_status": " M",
+      "path": "frontend/RELEASE-VALIDATION.md",
+      "review": "Repository-local validation/evidence contract and remaining qualification limits."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 2950,
+      "current_sha256": "113384105204baa76192ea3416e6d3e00e245d82be2958d92c41c2e3ed9df401",
+      "git_status": "??",
+      "path": "frontend/WARNING-BURNOUT-RECOVERY.md",
+      "review": "Reviewed phase-clock recovery behavior and regression evidence."
+    },
+    {
+      "base_git_object_bytes": 690,
+      "base_git_object_sha256": "1926bf8de665fe106c5ebaa042590696b66635a14bc792dd54f07d81ee84e5c8",
+      "current_bytes": 1959,
+      "current_sha256": "92b523e593373083dcc0898e9c1eac69653cebe0f55cec2ac84e75af2b08d664",
+      "git_status": " M",
+      "path": "frontend/app.config.js",
+      "review": "Staging app identity, HTTPS non-production URL guard and disabled staging OTA; production path retained."
+    },
+    {
+      "base_git_object_bytes": 71237,
+      "base_git_object_sha256": "c4cd93478f47389b28639081012a748b6e9f2cdc00043f4de6c3b33265920059",
+      "current_bytes": 72452,
+      "current_sha256": "a8933ffd480dcc5452a3043661c4f314d151724e7636a5bdbc9c1dc01e2d9912",
+      "git_status": " M",
+      "path": "frontend/app/play/[contestId].tsx",
+      "review": "Previously pinned hydration elapsed-time and foreground/stale-response lifecycle overlays."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 12688,
+      "current_sha256": "eed078e8ce78afdf2bef46443a1f4ad5bc8e1e2a336bfb58eeb010f9c2ed612f",
+      "git_status": "??",
+      "path": "frontend/current-release-gameplay-reviewed.patch",
+      "review": "Existing independently pinned gameplay artifact retained byte-for-byte."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 6993,
+      "current_sha256": "a774755b396672dfa6986c3bf775f31cb7a4f72f26ebe4c16d868ac61154b3d7",
+      "git_status": "??",
+      "path": "frontend/current-release-lifecycle-reviewed.patch",
+      "review": "Existing independently pinned lifecycle artifact retained byte-for-byte."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 6165,
+      "current_sha256": "de90f60cb7e8017f1e5f3756730f706997c12083e5bccdce63edabd62467b6cb",
+      "git_status": "??",
+      "path": "frontend/current-release-reviewed.patch",
+      "review": "Existing independently pinned authentication/test artifact retained byte-for-byte."
+    },
+    {
+      "base_git_object_bytes": 951,
+      "base_git_object_sha256": "1d6d8aaacc1e000511f45316c2f60f1b63d6f53b11080cd9b4d50b1471990017",
+      "current_bytes": 1236,
+      "current_sha256": "358eafe73d73fc3956f7bfeb6cf0ccc56bd0b333f2cc6ddbad71835449b7dfed",
+      "git_status": " M",
+      "path": "frontend/eas.json",
+      "review": "Approved three-profile canonical URL migration and isolated unconfigured staging APK profile; production AAB/credential/version defaults retained."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 9828,
+      "current_sha256": "6d66f4446223bb67f2390f113e5ae1cddbb82dc28b989d127fab7943fd5cd661",
+      "git_status": "??",
+      "path": "frontend/scripts/check-current-release-integrity.js",
+      "review": "Existing scoped checker; all historical pinned expectations remain unchanged."
+    },
+    {
+      "base_git_object_bytes": 10865,
+      "base_git_object_sha256": "b6ceed5d96427f0fae5ef2aa0c77ec66117ad6efe7caa2a46de3ce99adda22f3",
+      "current_bytes": 11676,
+      "current_sha256": "4b432f527fdd1da80ed55179d6e17932980aab19b10917c2b517d2abe5ce6457",
+      "git_status": " M",
+      "path": "frontend/scripts/validate-local-release.js",
+      "review": "Repository-local backend/provenance, sanitized absolute executable PATH, staging validation and broader mutation snapshots."
+    },
+    {
+      "base_git_object_bytes": 8448,
+      "base_git_object_sha256": "103f5ea6b50f383c48900c1d114cf032105f8c21bf78fafc303137e52f88da5c",
+      "current_bytes": 13797,
+      "current_sha256": "15aa54bf43354df48f13d7ff9435a41d53342fe695b3d370314ff26c1ad2d1ba",
+      "git_status": " M",
+      "path": "frontend/scripts/validation/api-contracts.js",
+      "review": "Conservative AST wrapper/forwarding analysis, resume/receipt routes and unresolved dynamic contract preservation."
+    },
+    {
+      "base_git_object_bytes": 4270,
+      "base_git_object_sha256": "5a6ed3ae11f23ef69df7d1d8082c804d10ed506d12d3f96e2e3f906c38260a20",
+      "current_bytes": 4471,
+      "current_sha256": "2dc27b23894ee0beee0ab3b87f1a86a2f6eb265c758aaa9d05780f8e82bd2f25",
+      "git_status": " M",
+      "path": "frontend/scripts/validation/backend-local.py",
+      "review": "Bytecode/plugin suppression and authoritative repository backend path; existing network audit guard retained."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 3375,
+      "current_sha256": "ca5054977e91b9a4a81679594d8497d26985e8f5e0fbeea4d837a0653514d325",
+      "git_status": "??",
+      "path": "frontend/scripts/validation/deployment.js",
+      "review": "Offline staging descriptor, Python-pin and tracked artifact validation; no provider requests."
+    },
+    {
+      "base_git_object_bytes": 60555,
+      "base_git_object_sha256": "4b6bb8f3c8518a23e8a73bf986c94aa64fb0f7eb99fc877344459bd9b108d962",
+      "current_bytes": 62050,
+      "current_sha256": "a0f46c0b3c16895ad709a3a0c682fc04292705ad95f056564c9b6b4f8931fa77",
+      "git_status": " M",
+      "path": "frontend/src/api.ts",
+      "review": "Previously reviewed auth-generation and abort fences plus approved three-line staging identity detection."
+    },
+    {
+      "base_git_object_bytes": 2240,
+      "base_git_object_sha256": "a71dec31bd14aed6debb94a019dd1fba15e219db19db4ff8b9a3045e262fcb8f",
+      "current_bytes": 2934,
+      "current_sha256": "a78b8f9f584d50defd66945a3efdd7f0cf30d024c6a396035abd23d8e869a14a",
+      "git_status": " M",
+      "path": "frontend/src/apiBase.ts",
+      "review": "Approved canonical production endpoint migration and explicit HTTPS staging origin validation."
+    },
+    {
+      "base_git_object_bytes": 38453,
+      "base_git_object_sha256": "96fa8764398678afc0eb8ce0ac7a822a8833965c1fa68a4b1bb93c728e83aff2",
+      "current_bytes": 43000,
+      "current_sha256": "580e92beaf6fd3372830f579ab96a54ad670e8d5446d140243aa40821c616c1b",
+      "git_status": " M",
+      "path": "frontend/src/game/useGameLoop.ts",
+      "review": "Previously pinned snapshot-v2 warning/burnout replay and fixed fresh/recovered deadlines with foreground synchronization."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 14785,
+      "current_sha256": "f77b8504fc527b1d4a5bf90d10bc90abde0c0ddf1345df71c76d7bf826e6d3b7",
+      "git_status": "??",
+      "path": "frontend/tests/android-lifecycle-recovery.test.js",
+      "review": "Mocked lifecycle/deadline/stale-response regressions, not device proof."
+    },
+    {
+      "base_git_object_bytes": 3295,
+      "base_git_object_sha256": "3ef6894ec501ce9b268ecc3b83939dc6af84b42e804e21a3afd5844be200c696",
+      "current_bytes": 4479,
+      "current_sha256": "3aab556bfade0b38dff1010bd9f712ecd7d66e99569d2a56a1ac07dca17107d7",
+      "git_status": " M",
+      "path": "frontend/tests/api-base.test.js",
+      "review": "Approved canonical URL/test expectations, optional template handling and intentional denylist-literal exclusions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 10418,
+      "current_sha256": "b4941312bd99b7f3800176b7813bcd2a7c52df64f777f4e1fc89d8b10c7f22b5",
+      "git_status": "??",
+      "path": "frontend/tests/api-contracts-forwarding.test.js",
+      "review": "Conservative forwarded/dynamic request analysis regressions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 20868,
+      "current_sha256": "47bf92474dd922e0cc6e827c170c6a350ef6a3a6a7d180a078af96e4a48adc2a",
+      "git_status": "??",
+      "path": "frontend/tests/authentication-recovery-retry.test.js",
+      "review": "Mocked stale credential, cancellation and request-generation regressions."
+    },
+    {
+      "base_git_object_bytes": 27323,
+      "base_git_object_sha256": "f4f142974760ee6d55b7bebc78d911d6d9fc1be30653d0aecc4dce8a12dde443",
+      "current_bytes": 27850,
+      "current_sha256": "5a9e9376a1255ffe4fa1f34d0f00eb5e4475944a08f2154727a8d1b1bb86ca30",
+      "git_status": " M",
+      "path": "frontend/tests/burnout-timeline-diagnostics.test.js",
+      "review": "Authoritative repository-local backend replay path; regression coverage retained."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 3063,
+      "current_sha256": "4e9bd858ce61f8e2b5617739089ee1ad56c552404f7df5dfd5f68fe0208936a6",
+      "git_status": "??",
+      "path": "frontend/tests/current-release-integrity.test.js",
+      "review": "Immutable-anchor and exact reviewed-patch regressions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 1342,
+      "current_sha256": "6d39ef3220552f82a82257c92bf9ddc6621fceb752abfdb9efc55bedeaed1f4f",
+      "git_status": "??",
+      "path": "frontend/tests/deployment-config.test.js",
+      "review": "Static deployment/profile/artifact configuration regressions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 18877,
+      "current_sha256": "f6b63a91bff2a1ce259db38f8ac61b5d3c6a801a2beacd4b67ec4467332b48db",
+      "git_status": "??",
+      "path": "frontend/tests/gameplay-recovery-replay.test.js",
+      "review": "Offline frontend recovery/backend scoring parity regressions."
+    },
+    {
+      "base_git_object_bytes": 1451,
+      "base_git_object_sha256": "95f093dfea4a3baf3c5da7b002f8969b1eb2788f55d2d2b7039b92167e4902c8",
+      "current_bytes": 1434,
+      "current_sha256": "4e34dec2f2dc4805e894ca0a55c17a3c766d3a58368708554ae3d1f8403db71e",
+      "git_status": " M",
+      "path": "frontend/tests/helpers/backend-replay.js",
+      "review": "Repository-local pure backend scoring replay; no database service."
+    },
+    {
+      "base_git_object_bytes": 12772,
+      "base_git_object_sha256": "ba93ebf5dbaf39c59ee0ae12b6224962690aacdb1a8d36cd4c6713700a10099d",
+      "current_bytes": 12902,
+      "current_sha256": "c912d7b30ee7c29d51d8bef35f9689e1b265471c19a0da28cad4948234aea375",
+      "git_status": " M",
+      "path": "frontend/tests/local-release-validation.test.js",
+      "review": "Fixtures for repository-local validation and broader source snapshots."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 5374,
+      "current_sha256": "900ce99cb024554158db047bd56c514e11f28b1a344a3dc1abb0a4ff5b14a167",
+      "git_status": "??",
+      "path": "frontend/tests/staging-config.test.js",
+      "review": "Synthetic staging identity and HTTPS/backend isolation regressions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 11618,
+      "current_sha256": "a3ded2aab11f0984269e6afc6d31a860da19065efd07a14342319c1245779609",
+      "git_status": "??",
+      "path": "frontend/tests/warning-burnout-recovery.test.js",
+      "review": "Offline warning/penalty recovery and phase-boundary regressions."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 20292,
+      "current_sha256": "7d9df4e9f31a5c33a8d77b09f7bd9e7ef5d103db62d528989ab3001f1197a1d1",
+      "git_status": "??",
+      "path": "provenance/BACKEND-STAGING-CANDIDATE-20261026T214939Z-8dd48aff.manifest.json",
+      "review": "Prior staging source evidence retained unchanged, not current live-deployment proof."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 8011,
+      "current_sha256": "abfbc5826974474a3c20cee50b9fa0d886fa754fd6b08249dc3910d72cf34fab",
+      "git_status": "??",
+      "path": "provenance/BACKEND-STAGING-CANDIDATE-20261026T214939Z-8dd48aff.report.md",
+      "review": "Prior staging review and limitations retained unchanged."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 929,
+      "current_sha256": "dfb1df4928651b809bda5511f3abd6e952a6202aa2c195a7af34bda0754373b8",
+      "git_status": "??",
+      "path": "render.yaml",
+      "review": "Previously authored staging descriptor retained; no infrastructure action."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 1769,
+      "current_sha256": "9e317ec7be8449b3e49ab645e3a0f82425c27a7a18f331ee0234b5f229b92980",
+      "git_status": "??",
+      "path": "scripts/validate-integration.ps1",
+      "review": "Explicit opt-in read-only authenticated staging smoke wrapper, not invoked; caller target input is not provider-isolation proof."
+    },
+    {
+      "base_git_object_bytes": 1830,
+      "base_git_object_sha256": "6e1cdc0b7759222fd86e6cffd24a66c2b606b181e364055bc2111a400cb21dcd",
+      "current_bytes": 3453,
+      "current_sha256": "730f066fa942e40b0fcc735daa4919aed21cb9f4b8f42bafd1ece76f342e69c1",
+      "git_status": " M",
+      "path": "scripts/validate.ps1",
+      "review": "Repository-local deterministic validation, sanitized database/proxy inputs, cache suppression, backend-only option and safe diff checks."
+    },
+    {
+      "base_git_object_bytes": null,
+      "base_git_object_sha256": null,
+      "current_bytes": 771,
+      "current_sha256": "646299d9916c9709b1e0bd05167968412d72290105181f9bd53effedb2fad227",
+      "git_status": "??",
+      "path": "scripts/validation-common.ps1",
+      "review": "Exit-status and sanitized exception-class stage reporting."
+    }
+  ],
+  "index_sha256_before": "ce332c43baab4e51d20622467def8747afc6defec404dc413acdb7131d2b53f8",
+  "known_scoped_checker_mismatches": [
+    "frontend/eas.json",
+    "frontend/src/api.ts",
+    "frontend/src/apiBase.ts",
+    "frontend/tests/api-base.test.js"
+  ],
+  "overlay_format": "Review-only Git binary/unified tracked diff plus unified additions for all 24 intended untracked files. Text diffs may normalize line endings; manifest binds exact working bytes. Overlay was not applied.",
+  "preserved_anchors": [
+    {
+      "path": "frontend/current-release-gameplay-reviewed.patch",
+      "sha256": "eed078e8ce78afdf2bef46443a1f4ad5bc8e1e2a336bfb58eeb010f9c2ed612f"
+    },
+    {
+      "path": "frontend/current-release-lifecycle-reviewed.patch",
+      "sha256": "a774755b396672dfa6986c3bf775f31cb7a4f72f26ebe4c16d868ac61154b3d7"
+    },
+    {
+      "path": "frontend/current-release-reviewed.patch",
+      "sha256": "de90f60cb7e8017f1e5f3756730f706997c12083e5bccdce63edabd62467b6cb"
+    },
+    {
+      "path": "frontend/release-integrity-baseline.json",
+      "sha256": "f9ae2ca3e42ede0fd52e289f7642331ccd2650a7894badc449b4cd08d6bf0b76"
+    },
+    {
+      "path": "provenance/SHA256SUMS.txt",
+      "sha256": "13afb7f49bc4cc2cbd839b69a963b558ecc9b73e9d5b0d8fe30e366cbdbecc4d"
+    },
+    {
+      "path": "validation-results/historical-integrity.json",
+      "sha256": "86f00999393c97a7adee5372c4cefd0b7531d11ee80e8a1b846e22a406b46613"
+    }
+  ],
+  "production_invariants": {
+    "appVersionSource": "local",
+    "backend": "https://firefeast-backend.onrender.com",
+    "buildType": "app-bundle",
+    "credentials": "remote default unchanged; provider certificate not verified",
+    "name": "Fire Feast",
+    "package": "com.firefeast.app",
+    "projectId": "3c106538-aa48-4dc2-8100-72fce495be7b",
+    "scheme": "firefeast",
+    "version": "1.0.0",
+    "versionCode": 23
+  },
+  "qualification_id": "RELEASE-1.0-QUALIFICATION-20261028-5a29099d",
+  "remaining_launch_gates": [
+    "Physical Android staging lifecycle and Build 19 upgrade acceptance",
+    "Live resume/receipt and duplicate-settlement acceptance",
+    "Production revision/API compatibility",
+    "Production signing continuity and unused versionCode confirmation",
+    "Play compliance and public legal/support verification",
+    "Approved publication of exact source before cloud build"
+  ],
+  "review_findings": {
+    "fixture_exception": "Credential URI literals allowed only in tests/validation using reserved .invalid domains or obvious placeholder credentials; no real secret copied.",
+    "known_limits": [
+      "Original scoped checker and its historical failures remain unchanged.",
+      "Static dynamic-route analysis remains PARTIAL.",
+      "Consumable purchases lack a request idempotency key; repeated successful requests can charge again.",
+      "Explicit integration target inputs are not independent provider identity proof.",
+      "This is unsigned local evidence, with no external trust anchor."
+    ],
+    "potential_real_secret_patterns": [],
+    "unexpected_changes": []
+  },
+  "schema_version": 1,
+  "staging_invariants": {
+    "backend": "intentionally empty; requires separately approved explicit HTTPS origin",
+    "buildType": "apk",
+    "name": "Fire Feast Staging",
+    "ota_enabled": false,
+    "package": "com.firefeast.app.staging",
+    "scheme": "firefeast-staging"
+  }
+}

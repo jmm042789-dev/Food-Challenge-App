@@ -1,0 +1,342 @@
+{
+  "format": "fire-feast-release-integrity-v1",
+  "hash": "sha256",
+  "repeatedReads": 3,
+  "files": [
+    {
+      "path": "app.json",
+      "size": 2045,
+      "sha256": "08fadb4608ae1a6583532bae0af5f4f5c2cb8558f37dd723497a0e233e844da0"
+    },
+    {
+      "path": "app/play/[contestId].tsx",
+      "size": 67275,
+      "sha256": "4e674cd299e35819b975f9583fee72b02a3aa3e34cb958dcf5b67ae665908834"
+    },
+    {
+      "path": "assets/images/favicon.png",
+      "size": 255372,
+      "sha256": "38240320cf730bf9164ef0744cf2a428c827c0312c0c42a057ac3a4b7de0aafd"
+    },
+    {
+      "path": "eas.json",
+      "size": 803,
+      "sha256": "0e1fa8f2906e94c66f038ba3a9c0bec31b93f9fefd3f52fed27392258752390c"
+    },
+    {
+      "path": "package-lock.json",
+      "size": 481733,
+      "sha256": "3ee6a2528c1a56d96c9ae6861a186b60cb8d37e47708995aa52c0907fd15b002"
+    },
+    {
+      "path": "package.json",
+      "size": 2464,
+      "sha256": "c0eff0502be14c3b3c503c1ff8e0750ae62d7c90ced2947bdca20d9a79e0a18a"
+    },
+    {
+      "path": "src/api.ts",
+      "size": 55309,
+      "sha256": "e5e93429a9237499c961ebde791e319a47ccbb2c172a6ab1fe448cfe332fff20"
+    },
+    {
+      "path": "src/apiBase.ts",
+      "size": 2240,
+      "sha256": "a71dec31bd14aed6debb94a019dd1fba15e219db19db4ff8b9a3045e262fcb8f"
+    },
+    {
+      "path": "src/assets/backgrounds/arena.png",
+      "size": 3298622,
+      "sha256": "73d6b9fbf675a50f47c05541526461dfceac2d1792b1715f07c034e5d7490314"
+    },
+    {
+      "path": "src/assets/backgrounds/splash-screen.png",
+      "size": 3285830,
+      "sha256": "c7019c34fa8d9733110287b4c742e4a0da199f9b32599ae08ca55388e3fa740c"
+    },
+    {
+      "path": "src/assets/characters/blaze.png",
+      "size": 1195613,
+      "sha256": "673fddee2d1e0a4c903ad9a15e2fe3404c873b39dbbc85c07673cb4e0320db5a"
+    },
+    {
+      "path": "src/assets/daily-rewards/background/restaurant-table.png",
+      "size": 2938572,
+      "sha256": "cf130bf750974ab6f633a3dfb4d3ecb7c70b08776ec6435b80222e30a8fc1d06"
+    },
+    {
+      "path": "src/assets/daily-rewards/effects/winner-glow.png",
+      "size": 215184,
+      "sha256": "965fe811c0dd353dc916ea76c5a24fa456d3645af3b32a46861d0f6edbf695a4"
+    },
+    {
+      "path": "src/assets/daily-rewards/hub/fire-feast-hub.png",
+      "size": 330582,
+      "sha256": "47878ba55ce420a3fdf1f23ef80c96a730246f6123df28444963d6c8ace63be8"
+    },
+    {
+      "path": "src/assets/daily-rewards/pointer/chef-knife-pointer.png",
+      "size": 48959,
+      "sha256": "f005017e57fa1c332db7a894dfe9b09f87f76bb30ed6c3ab89a8c5b55ca49ba1"
+    },
+    {
+      "path": "src/assets/daily-rewards/wheel/charcuterie-wheel.png",
+      "size": 2550534,
+      "sha256": "e2a38bc0c0b8930c15169a6e3b973e23bb646b20a41bcd4b36b42343fe677d44"
+    },
+    {
+      "path": "src/assets/food/burger-deluxe.png",
+      "size": 2449604,
+      "sha256": "78edb47aa5484652b4749f67ae33f51da96a587fc40d3522fb469ff42677ea01"
+    },
+    {
+      "path": "src/assets/food/dessert.png",
+      "size": 2055295,
+      "sha256": "eea0cdc198646d0018b84447a7f4d55609b96c716da82379a3c4281685177803"
+    },
+    {
+      "path": "src/assets/food/hot-dog.png",
+      "size": 1444782,
+      "sha256": "3ee4e05e2fae1e33d509bde32717ab9deb41bda6be64970f82c2f3b036729ee3"
+    },
+    {
+      "path": "src/assets/food/pastrami-sandwich.png",
+      "size": 2208169,
+      "sha256": "2941d6c63224ff20f539b69a707f3bbfe90fe72df513091933c350af0311b692"
+    },
+    {
+      "path": "src/assets/food/pizza-pepperoni.png",
+      "size": 2701173,
+      "sha256": "199f684781a435ea0f9373cc605fb3b0765adc3236e60c98cf3990dc742fbdbe"
+    },
+    {
+      "path": "src/assets/food/wings.png",
+      "size": 2037017,
+      "sha256": "7519b9a131d5c6bbc0f300cbd1df352308fcf68c8af3b5c9af21859b13ff5630"
+    },
+    {
+      "path": "src/assets/icons/antacid.png",
+      "size": 2466082,
+      "sha256": "1d8ef41d03e3f91ddd278d8546b23f42bf77e70714613d8dc958a230a0a4e166"
+    },
+    {
+      "path": "src/assets/icons/coin.png",
+      "size": 2971451,
+      "sha256": "950d3badc2606a708d49dd5176e93ce087c978edfcb88c25681baa315ce965cf"
+    },
+    {
+      "path": "src/assets/icons/rank-badge.png",
+      "size": 2950426,
+      "sha256": "203b27c5a1ee7b9cf03de7389b670c161b41b7f97d42d1ff5ed9bb5438a59ae0"
+    },
+    {
+      "path": "src/assets/icons/trophy.png",
+      "size": 2590770,
+      "sha256": "b13baf3612cd3dbe9c93284601dfe67c47c6515de275d79088612e674c6bcf67"
+    },
+    {
+      "path": "src/assets/icons/win-streak.png",
+      "size": 1627080,
+      "sha256": "15a8ebc050946e4147184d219016272a0743dd13e438f2aa922e1772bae953b5"
+    },
+    {
+      "path": "src/assets/icons/xp-crystal.png",
+      "size": 2497283,
+      "sha256": "a89ffff3f93c6ac5ee14c4ae93a29bfbdd590ca7bcec130e128b4e922032b995"
+    },
+    {
+      "path": "src/assets/logo/app-icon.png",
+      "size": 2363433,
+      "sha256": "2d538af83fd1dabee2b0383f580d02da90d23d021c979826f9c6d5ae97afd758"
+    },
+    {
+      "path": "src/assets/logo/fire-feast-logo-compact.png",
+      "size": 2329269,
+      "sha256": "6c5c0b013afbb9da05d04c15581f2396b702fd0ed0137f120780b593d9ead260"
+    },
+    {
+      "path": "src/assets/logo/fire-feast-logo-horizontal.png",
+      "size": 643931,
+      "sha256": "51a207f5edf0c13785d94323f74e1fef1dac6e61c7278066e372ac50cf1d5747"
+    },
+    {
+      "path": "src/assets/logo/fire-feast-logo-primary.png",
+      "size": 3137546,
+      "sha256": "be4005ea0ef4f78269d1303ee9569d06dc6c000ace710b4d75060b86b89d7fa2"
+    },
+    {
+      "path": "src/assets/ui/animations/button-click-ring.png",
+      "size": 2240348,
+      "sha256": "66ea37151a3716de67f3ef767a5d14b8a0bf0e963eb87d8f44003f9f18ef7ba5"
+    },
+    {
+      "path": "src/assets/ui/coin-bar-v2.png",
+      "size": 1008280,
+      "sha256": "dbb40aa7ce3e3f8178d90080f999af2b6ebc55dddca5c4510388ba49e62858b5"
+    },
+    {
+      "path": "src/assets/ui/effects/coin-burst.png",
+      "size": 2831857,
+      "sha256": "bcca4ed586237103c8a72a1c1c03d7ed7181439b09e368553204b3e00870bc11"
+    },
+    {
+      "path": "src/assets/ui/effects/combo-explosion.png",
+      "size": 3043137,
+      "sha256": "75aa0ad61cdf426442bf363ab592ed524d8381f503335e3941dd92ed7fb95471"
+    },
+    {
+      "path": "src/assets/ui/effects/confetti.png",
+      "size": 1940632,
+      "sha256": "68fbf52b47495a907f14fb689085e896ea02761ff0778736ba23a9728767832e"
+    },
+    {
+      "path": "src/assets/ui/effects/embers-particle.png",
+      "size": 1561646,
+      "sha256": "c2143a7e07ea6a5a0f9e979cf558a20cde71be1c9d8f832577d3d47e1406dfb4"
+    },
+    {
+      "path": "src/assets/ui/effects/fire-burst.png",
+      "size": 2970990,
+      "sha256": "7c5839d389ac0b0e0c543bec32c2c24f0f3b438c67e5fb268ba38990a276da1d"
+    },
+    {
+      "path": "src/assets/ui/effects/screen-flash.png",
+      "size": 1731151,
+      "sha256": "0eda6b26bbfd1e0b8abfba2be145d44bf3fd648d8a833d4a48086f34a2cb22ba"
+    },
+    {
+      "path": "src/assets/ui/effects/smoke-puff.png",
+      "size": 1574417,
+      "sha256": "6b20979c6e66e8729155e683a0075ebedc0c0350c529aa443e2ecca0d77ed59d"
+    },
+    {
+      "path": "src/assets/ui/effects/sparkle.png",
+      "size": 2112525,
+      "sha256": "2ae989bcba3eded7393f18af7a508e014d46f977fdcb13ad866da62845950cd9"
+    },
+    {
+      "path": "src/assets/ui/effects/speed-lines.png",
+      "size": 2934243,
+      "sha256": "f228b53fe3587ef2dd744b08fa36be7e5e3f12bac09aba353a79e1d400ea8023"
+    },
+    {
+      "path": "src/assets/ui/effects/xp-burst.png",
+      "size": 2659213,
+      "sha256": "25e4783f76229ed8893cbf2ccc7886510f20d0003362773f1666e0eb95e4100b"
+    },
+    {
+      "path": "src/assets/ui/hud/heartburn-meter.png",
+      "size": 1958969,
+      "sha256": "931050d04d14befd1cb3993fc111da8fe6d1f2874dc40e2a4adcd4f0f62fb725"
+    },
+    {
+      "path": "src/assets/ui/xp-bar-v2.png",
+      "size": 1813252,
+      "sha256": "c4a8a3a692b30ee1b49c968539a4cdcbd52492fe80f24caf17c3c4c4d9462364"
+    },
+    {
+      "path": "src/game/activeMatchInputLog.d.ts",
+      "size": 1298,
+      "sha256": "e2a11db23bfcda166a5398c269bf84021ed20adf92613fa5117f86ce82599fb7"
+    },
+    {
+      "path": "src/game/activeMatchInputLog.js",
+      "size": 4379,
+      "sha256": "5a40446e66459fe8058b935bfe8614fbcbbe122b43837c62d9e177de228853df"
+    },
+    {
+      "path": "src/game/burnoutPolicy.d.ts",
+      "size": 257,
+      "sha256": "5a2b95012e815a744ce2201cc9f03ba1abd728c54c21f43b0b210ce817734205"
+    },
+    {
+      "path": "src/game/burnoutPolicy.js",
+      "size": 772,
+      "sha256": "18d10aae43c9c42f944737feb524c3b7d17057f76b6443b30587685245499d8d"
+    },
+    {
+      "path": "src/game/heartburn.ts",
+      "size": 2860,
+      "sha256": "f6bddc6cde57f69dbdec0a9a3d9fadc6627cd7b34cd7bfecf22bb8dc15f1bcbe"
+    },
+    {
+      "path": "src/game/inputContract.ts",
+      "size": 754,
+      "sha256": "149d1b471cba7d1f9ebe7b658fa1062288339fe145fd5d499d9880116015c844"
+    },
+    {
+      "path": "src/game/inputLog.d.ts",
+      "size": 1294,
+      "sha256": "232c5f4441364db41986f9127ae0bf677d76f0d975139115956a05edfcfb4c95"
+    },
+    {
+      "path": "src/game/inputLog.js",
+      "size": 4834,
+      "sha256": "8727c8c326ed4b5380aa62c7fc30be5f671cae50b31ae2889c45bd5d8c11b82b"
+    },
+    {
+      "path": "src/game/resultSubmission.d.ts",
+      "size": 834,
+      "sha256": "d1d46a44913e3685f1baaacc019208066e2df65623431137c04cdbfc535444fb"
+    },
+    {
+      "path": "src/game/resultSubmission.js",
+      "size": 871,
+      "sha256": "9ed5ada824d4a385dffaad2a1369b01a2a3dd1879d15b0ae3bbf5387156fe9c6"
+    },
+    {
+      "path": "src/game/resultVerification.ts",
+      "size": 5024,
+      "sha256": "f71bc40d8244ebf675f010336e2c7287091d48b5aca3b3fe70eefd82f640d512"
+    },
+    {
+      "path": "src/game/ui/FoodArena.tsx",
+      "size": 51613,
+      "sha256": "71792f315043712e4cc9fa9d432db8aabedb3795724302b7c3935398e0d62d1b"
+    },
+    {
+      "path": "src/game/ui/GameplayActionZone.tsx",
+      "size": 2274,
+      "sha256": "51bd630ab2aa266b9a84bd300f0ba5412e6483ec8f9f24389cf0bbd98a9cf143"
+    },
+    {
+      "path": "src/game/ui/RapidActionControl.tsx",
+      "size": 3019,
+      "sha256": "1d4a5f07198d43d27d3a5295ecb24426fa6f2d7899fb306f028083ef6a963de1"
+    },
+    {
+      "path": "src/game/ui/TapActionControl.tsx",
+      "size": 5784,
+      "sha256": "121808b37e8fe9e9035e8378634116429b0860643d643d1fb824a5fe87933300"
+    },
+    {
+      "path": "src/game/useGameLoop.ts",
+      "size": 36854,
+      "sha256": "481fb9256e9bc4e6c16b7904a51a20dccb7dafe78fc5c2bae5bd51f88996b21d"
+    },
+    {
+      "path": "tests/api-base.test.js",
+      "size": 3295,
+      "sha256": "3ef6894ec501ce9b268ecc3b83939dc6af84b42e804e21a3afd5844be200c696"
+    },
+    {
+      "path": "tests/input-hitbox-contract.test.js",
+      "size": 4690,
+      "sha256": "2753d2857aa01dd0a25e6f7d11c54283c61acae462219eb77cac4ab61265db76"
+    },
+    {
+      "path": "tests/match-completion-pipeline.test.js",
+      "size": 6334,
+      "sha256": "fd2249878bd57e2a7fbaf2151dff2a68f9d7a3f184ef5f9ad32ebe32139462ea"
+    },
+    {
+      "path": "tests/match-input-log.test.js",
+      "size": 14688,
+      "sha256": "309412edd24efabeff584088a87c83b6e4466fe5b09037013fd41c169a7c400f"
+    },
+    {
+      "path": "tests/rapid-tap-burnout.test.js",
+      "size": 6865,
+      "sha256": "579d8551fa4b46a3152b86034c93f26f1bbbce77135daa24eadce8423960baf7"
+    }
+  ]
+}

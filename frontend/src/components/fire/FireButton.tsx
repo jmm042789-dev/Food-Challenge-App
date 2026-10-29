@@ -15,6 +15,7 @@ type Props = {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   haptic?: boolean;
+  singleLineTitle?: boolean;
 };
 
 const tones: Record<Variant, { base: string; trim: string }> = {
@@ -24,7 +25,7 @@ const tones: Record<Variant, { base: string; trim: string }> = {
 };
 const sizing: Record<Size, { minHeight: number; font: number; px: number }> = { compact: { minHeight: 44, font: 12, px: 13 }, small: { minHeight: 50, font: 14, px: 18 }, medium: { minHeight: 60, font: 16, px: 22 }, large: { minHeight: 72, font: 19, px: 28 } };
 
-export default function FireButton({ title = "START CHALLENGE", onPress, disabled = false, loading = false, size = "medium", variant = "primary", leftIcon, rightIcon, subtitle, fullWidth = false, style, accessibilityLabel, accessibilityHint, haptic = true }: Props) {
+export default function FireButton({ title = "START CHALLENGE", onPress, disabled = false, loading = false, size = "medium", variant = "primary", leftIcon, rightIcon, subtitle, fullWidth = false, style, accessibilityLabel, accessibilityHint, haptic = true, singleLineTitle = false }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
   const ringOpacity = useRef(new Animated.Value(0)).current;
   const ringScale = useRef(new Animated.Value(0.55)).current;
@@ -78,20 +79,20 @@ export default function FireButton({ title = "START CHALLENGE", onPress, disable
     return () => animation.stop();
   }, [inactive, reducedMotion, shimmer]);
   return <View style={[styles.wrapper, fullWidth && styles.fullWidth, style]}>
-    <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={handlePress} onPressIn={() => { setPressed(true); animate(0.93); if (haptic && preferences.hapticsEnabled && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }} onPressOut={release}>
-      <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
+    <Pressable accessibilityHint={accessibilityHint} accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={handlePress} onPressIn={() => { setPressed(true); animate(0.93); if (haptic && preferences.hapticsEnabled && !reducedMotion) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }} onPressOut={release} style={singleLineTitle ? styles.singleLineWidth : undefined}>
+      <Animated.View style={[styles.button, { backgroundColor: tone.base, borderColor: tone.trim, minHeight: measure.minHeight, paddingHorizontal: measure.px, opacity: inactive ? 0.48 : 1, transform: [{ scale }] }, (fullWidth || singleLineTitle) && styles.fullWidth]}>
         <LinearGradient colors={["rgba(255,255,255,0.12)", "transparent", "rgba(0,0,0,0.12)"]} pointerEvents="none" style={StyleSheet.absoluteFill} />
         <Animated.View pointerEvents="none" style={[styles.shimmer, { opacity: shimmer.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.42, 0] }), transform: [{ translateX: shimmer.interpolate({ inputRange: [0, 1], outputRange: [-90, 220] }) }, { rotate: "-18deg" }] }]} />
         <Animated.View pointerEvents="none" style={[styles.ring, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]}><Image source={require("../../assets/ui/animations/button-click-ring.png")} style={styles.ringImage} /></Animated.View>
         <View pointerEvents="none" style={[styles.highlight, { backgroundColor: tone.trim, opacity: pressed ? 0.28 : 0.16 }]} />
-        {loading ? <ActivityIndicator color="#FFF7E8" /> : <View style={styles.content}>{leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}<View style={styles.labelBlock}><Text style={[styles.text, { fontSize: measure.font }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}</View>}
+        {loading ? <ActivityIndicator color="#FFF7E8" /> : <View style={styles.content}>{leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}<View style={styles.labelBlock}><Text adjustsFontSizeToFit={singleLineTitle} minimumFontScale={singleLineTitle ? 0.86 : undefined} numberOfLines={singleLineTitle ? 1 : undefined} style={[styles.text, { fontSize: measure.font }]}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}</View>}
       </Animated.View>
     </Pressable>
   </View>;
 }
 
 const styles = StyleSheet.create({
-  wrapper: { alignItems: "center", justifyContent: "center", marginBottom: 8, marginTop: 12 }, fullWidth: { alignSelf: "stretch", width: "100%" },
+  wrapper: { alignItems: "center", justifyContent: "center", marginBottom: 8, marginTop: 12 }, fullWidth: { alignSelf: "stretch", width: "100%" }, singleLineWidth: { width: "100%" },
   button: { alignItems: "center", borderRadius: 15, borderWidth: 1, elevation: 5, justifyContent: "center", overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 6 },
   shimmer: { backgroundColor: "rgba(255,244,215,0.38)", bottom: -24, position: "absolute", top: -24, width: 30 },
   ring: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },

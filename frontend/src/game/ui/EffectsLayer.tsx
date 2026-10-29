@@ -2,7 +2,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import FloatingScore from "./FloatingScore";
-import ImpactEffect from "./ImpactEffect";
 
 type Props = {
   showScore?: boolean;
@@ -10,6 +9,7 @@ type Props = {
   showCombo?: boolean;
   comboText?: string;
   combo?: number;
+  suppressed?: boolean;
 };
 
 export default function EffectsLayer({
@@ -18,27 +18,17 @@ export default function EffectsLayer({
   showCombo = false,
   comboText = "🔥 COMBO!",
   combo = 0,
+  suppressed = false,
 }: Props) {
-  const comboStrength = combo >= 30 ? 3 : combo >= 20 ? 2 : combo >= 10 ? 1 : 0;
-  const comboEffectSize = Math.min(164, 124 + comboStrength * 12);
+  if (suppressed || !showScore) return null;
   return (
     <View pointerEvents="none" style={styles.container}>
-      <View style={styles.scoreContainer}>
+      <View style={styles.feedbackRow}>
         <FloatingScore
-          visible={showScore}
+          visible
           value={scoreText}
         />
-      </View>
-
-      <View style={styles.comboContainer}>
-        <ImpactEffect trigger={showCombo ? combo : 0} variant="combo" size={comboEffectSize} />
-        <ImpactEffect trigger={showCombo ? combo : 0} variant="warning" size={Math.min(126, 96 + comboStrength * 10)} />
-        <FloatingScore
-          visible={showCombo}
-          value={comboText}
-          color="#FF6A00"
-          size={Math.min(38, 32 + comboStrength * 2)}
-        />
+        {showCombo ? <FloatingScore visible value={comboText} color="#FF8A2A" size={Math.min(25, 21 + Math.floor(combo / 10))} /> : null}
       </View>
     </View>
   );
@@ -47,22 +37,20 @@ export default function EffectsLayer({
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
+    paddingTop: "28%",
+    zIndex: 95,
   },
-  comboContainer: {
-    position: "absolute",
-    top: "20%",
+  feedbackRow: {
     alignItems: "center",
+    backgroundColor: "rgba(19,9,8,0.72)",
+    borderColor: "rgba(255,150,48,0.62)",
+    borderRadius: 9,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
     justifyContent: "center",
-    width: "100%",
-  },
-  scoreContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "absolute",
-    top: "39%",
-    width: "100%",
+    minHeight: 36,
+    paddingHorizontal: 12,
   },
 });

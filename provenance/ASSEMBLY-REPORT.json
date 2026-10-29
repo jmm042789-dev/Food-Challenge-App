@@ -1,0 +1,81 @@
+{
+  "status": "ASSEMBLY_CONTENT_VERIFIED",
+  "assembled_utc": "2026-10-24T03:37:35.826557+00:00",
+  "candidate": "C:\\FireFeast-ReleaseCandidate",
+  "branch": "release-candidate-1",
+  "original_frontend_head": "8436684b47e8f83d183b56636af7432f32a3403a",
+  "imported_frontend_head": "7176c23874b0dea135e551eebff4116959c8f432",
+  "expected_assembly_parent": "7176c23874b0dea135e551eebff4116959c8f432",
+  "preserved_frontend_commits": 21,
+  "commit_map": "provenance/FRONTEND-COMMIT-MAP.json",
+  "source_manifest": "provenance/SOURCE-FILES-SHA256.json",
+  "source_files_verified": 531,
+  "counts_by_category": {
+    "backend": 64,
+    "legal": 3,
+    "frontend": 460,
+    "original-provenance": 3,
+    "root-script": 1
+  },
+  "frontend_repaired_previously": 315,
+  "repairs_repeated": false,
+  "content_checks": {
+    "contests": 6,
+    "resume_and_receipt_routes_and_services": true,
+    "backend_test_modules": 28,
+    "resume_and_receipt_tests_present": true,
+    "frontend_asset_files": 78,
+    "frontend_package_lock": "present and hash verified",
+    "backend_requirements": "both requirements files preserved",
+    "backend_transitive_lockfile": "absent"
+  },
+  "git_verification": {
+    "mapped_trees_metadata_and_parents": "21/21 verified",
+    "full_object_integrity": "passed",
+    "checkpoint_refs": "not imported",
+    "frontend_tree": "must remain identical to imported parent",
+    "staging_policy": "Only backend/docs/scripts/provenance added, with command-scoped core.autocrlf=false. No frontend restaging, Git configuration changes, encoding changes, or normalization."
+  },
+  "security_review": {
+    "working_tree_excluded_paths": "none found",
+    "high_confidence_secret_patterns": "none found",
+    "historical_blobs_scanned": 495,
+    "historical_excluded_paths": "none found",
+    "limitation": "Filename and pattern checks are not a universal guarantee against undisclosed secrets."
+  },
+  "source_bytes": "All 531 candidate and original source hashes verified against the existing manifest.",
+  "checksum_policy": "SHA256SUMS.txt covers every candidate file except itself and .git internals. It includes this assembly report.",
+  "candidate_files_after_report_and_manifest": 537,
+  "checksum_entries": 536,
+  "missing_infrastructure": [
+    "render.yaml",
+    "README.md",
+    "scripts/validation-common.ps1",
+    "scripts/validate-integration.ps1"
+  ],
+  "remaining_blockers": [
+    "Root validate.ps1 references missing validation-common.ps1; validate-integration.ps1 absent.",
+    "Some frontend tests still target backend-checkout/backend rather than authoritative backend/.",
+    "Render descriptor and root deployment documentation absent.",
+    "Backend deployment guide contradicts config.py about automatic dotenv loading.",
+    "Backend transitive dependency lockfile absent.",
+    "Existing historical release-integrity baseline requires review; not regenerated.",
+    "Deterministic validation, isolated MongoDB/security/concurrency/restore qualification, and physical Android acceptance still required."
+  ],
+  "not_performed": [
+    "Application logic changes",
+    "Dependency installation",
+    "Application startup",
+    "Tests or builds",
+    "Database access",
+    "Deployment or publishing"
+  ],
+  "post_commit_checks_required": [
+    "Assembly commit parent equals imported_frontend_head",
+    "22 total reachable commits",
+    "Frontend tree identical to imported parent",
+    "All recorded working-file hashes unchanged",
+    "All new staged Git blobs byte-identical to working files",
+    "Clean Git status and full Git object integrity"
+  ]
+}

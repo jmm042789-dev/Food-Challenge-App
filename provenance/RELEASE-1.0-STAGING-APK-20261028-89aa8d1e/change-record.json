@@ -1,0 +1,61 @@
+{
+  "approval": "User explicitly authorized only staging backend URL assignment and android.image=latest, retaining APK and all other profiles.",
+  "changed_source_files": [
+    {
+      "approved_changes": [
+        {
+          "new": "https://fire-feast-api-staging.onrender.com",
+          "old": "",
+          "setting": "build.staging.env.EXPO_PUBLIC_BACKEND_URL"
+        },
+        {
+          "new": "latest",
+          "old": "absent",
+          "setting": "build.staging.android.image"
+        }
+      ],
+      "new_bytes": 1306,
+      "new_sha256": "bdc98db0b78b5c9af935a15948ce1f49f4e995227e233bca67c3311b1cbf49e3",
+      "old_bytes": 1236,
+      "old_sha256": "358eafe73d73fc3956f7bfeb6cf0ccc56bd0b333f2cc6ddbad71835449b7dfed",
+      "path": "frontend/eas.json"
+    }
+  ],
+  "git_branch": "release-candidate-1",
+  "git_head": "7973669816bb8243850562edddde8ee0a8310ccd",
+  "git_index_sha256_before": "ce332c43baab4e51d20622467def8747afc6defec404dc413acdb7131d2b53f8",
+  "limitations": [
+    "Additive exact-source qualification, not physical Android/build/live acceptance.",
+    "image=latest is a moving build image alias; actual image must be recorded with later build.",
+    "No signature or external trust anchor exists.",
+    "Prior manifest remains historical and is not expected to match the intentionally changed EAS file directly; resolve this derivative."
+  ],
+  "offline_validation": {
+    "credential_configuration_unchanged": true,
+    "json_and_exact_delta": "PASS",
+    "non_staging_profiles_unchanged": true,
+    "production": {
+      "backend": "https://firefeast-backend.onrender.com",
+      "buildType": "app-bundle",
+      "name": "Fire Feast",
+      "package": "com.firefeast.app",
+      "scheme": "firefeast",
+      "versionCode": 23
+    },
+    "staging": {
+      "backend": "https://fire-feast-api-staging.onrender.com",
+      "buildType": "apk",
+      "checkAutomatically": "NEVER",
+      "distribution": "internal",
+      "image": "latest",
+      "name": "Fire Feast Staging",
+      "package": "com.firefeast.app.staging",
+      "scheme": "firefeast-staging",
+      "updates_enabled": false
+    },
+    "validation_method": "Existing Node/TypeScript transpilation and app.config evaluation in memory; no EAS service, network, build or package installation."
+  },
+  "preserved_parent_manifest_sha256": "c8e6899f9e0828e66875921c577c1d9fc5240f378fe361e7ebd1ad4be1026ffc",
+  "qualification_id": "RELEASE-1.0-STAGING-APK-20261028-89aa8d1e",
+  "schema_version": 1
+}

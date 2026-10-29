@@ -11,8 +11,8 @@ import ArcadeBackground from "../src/game/ui/ArcadeBackground";
 import { playerFacingErrorMessage } from "../src/playerFacingErrors";
 import { equipmentStatus } from "../src/equipmentState";
 
-type LockerItem = { id: string; name: string; type: "gear" | "cosmetic"; icon?: string; rarity?: string; slot?: string; description?: string; perk?: string };
-type LockerPlayer = { owned_gear: string[]; equipped_gear?: string | null; equipped_cosmetic?: string | null };
+type LockerItem = { id: string; name: string; type: "gear" | "cosmetic"; icon?: string; rarity?: string; slot?: string; description?: string; perk?: string; effect_description?: string; set_id?: string };
+type LockerPlayer = { owned_gear: string[]; equipped_gear?: string | null; equipped_gear_slots?: Partial<Record<"hat" | "apron" | "outfit", string>>; equipped_cosmetic?: string | null };
 
 export default function LockerScreen() {
   const router = useRouter();
@@ -64,7 +64,7 @@ export default function LockerScreen() {
           <View><Text style={styles.eyebrow}>PLAYER LOADOUT</Text><Text style={styles.title}>LOCKER / GEAR</Text></View>
           <FireButton title="BACK" size="compact" variant="secondary" onPress={() => router.back()} />
         </View>
-        <Text style={styles.guidance}>Equip one gameplay item and one cosmetic. Equipping is free and never changes your coin balance.</Text>
+        <Text style={styles.guidance}>Equip one Hat, one Apron, and one Outfit. Matching all three activates the complete-set bonus. Equipping is free.</Text>
         {loading && !items.length ? <FireLoading title="Opening Locker" subtitle="Loading your owned equipment." /> : null}
         {!loading && !ownedItems.length ? <View style={styles.empty}><Text style={styles.emptyTitle}>YOUR LOCKER IS EMPTY</Text><Text style={styles.emptyText}>Owned equipment and cosmetics from the Shop will appear here.</Text></View> : null}
         {ownedItems.map((item) => {
@@ -75,7 +75,7 @@ export default function LockerScreen() {
               <View style={styles.info}>
                 <View style={styles.nameRow}><Text numberOfLines={1} style={styles.name}>{item.name}</Text>{equipped ? <FireBadge label="EQUIPPED" variant="success" /> : <FireBadge label="OWNED" variant="gold" />}</View>
                 <Text style={styles.meta}>{`${item.rarity || "ITEM"} · ${item.type === "cosmetic" ? "COSMETIC" : item.slot || "GEAR"}`.toUpperCase()}</Text>
-                <Text numberOfLines={2} style={styles.description}>{item.description || item.perk || "Owned Fire Feast item."}</Text>
+                <Text numberOfLines={3} style={styles.description}>{item.effect_description || item.description || item.perk || "Owned Fire Feast item."}</Text>
               </View>
               <FireButton title={equipped ? "EQUIPPED" : "EQUIP"} size="compact" variant={equipped ? "secondary" : "gold"} disabled={equipped || pendingId !== null} loading={pendingId === item.id} onPress={() => { void equip(item); }} />
             </View>
