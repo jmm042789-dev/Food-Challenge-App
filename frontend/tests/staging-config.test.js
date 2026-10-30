@@ -56,11 +56,15 @@ test('staging Android identity and updates are isolated even from inherited upda
   assert.equal(result.updates.checkAutomatically, 'NEVER');
   assert.equal(eas.build.staging.channel, 'staging');
 });
-test('checked-in staging profile fails closed until a backend is approved', () => {
+test('checked-in staging profile uses the approved isolated backend and still rejects an empty URL', () => {
   assert.equal(eas.build.staging.env.EXPO_PUBLIC_APP_ENV, 'staging');
-  assert.equal(eas.build.staging.env.EXPO_PUBLIC_BACKEND_URL, '');
+  assert.equal(eas.build.staging.env.EXPO_PUBLIC_BACKEND_URL, 'https://fire-feast-api-staging.onrender.com');
   assert.equal(eas.build.staging.extends, undefined);
-  assert.throws(() => config('staging', eas.build.staging.env.EXPO_PUBLIC_BACKEND_URL), /Staging/);
+  assert.equal(eas.build.staging.android.buildType, 'apk');
+  const result = config('staging', eas.build.staging.env.EXPO_PUBLIC_BACKEND_URL);
+  assert.equal(result.android.package, 'com.firefeast.app.staging');
+  assert.equal(result.updates.enabled, false);
+  assert.throws(() => config('staging', ''), /Staging/);
 });
 test('existing build identities and update settings remain unchanged', () => {
   for (const profile of ['development', 'preview', 'production', 'production-diagnostic']) {

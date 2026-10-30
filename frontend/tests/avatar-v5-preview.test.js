@@ -116,5 +116,11 @@ test("production configuration, renderer and layered validator retain the approv
   "src/avatar-v5/AvatarV5Renderer.tsx": "7151311d0fb439867b2c7de1d10122d836a491fda31778be90ef34b867f227ab",
   "src/avatar-v5/proof/FlattenedStandardProof.tsx": "4d660d67b4a7f1e6322d3bb3f1d64feea57913176b70a33ecd9a5b7044644048"
 };
-  for (const [file, expected] of Object.entries(hashes)) assert.equal(crypto.createHash("sha256").update(fs.readFileSync(path.join(root, file))).digest("hex"), expected, file);
+  // Preserve the historical hashes above. The reviewed staging-isolation change is
+  // recorded in provenance/RELEASE-1.0-QUALIFICATION-20261028-5a29099d/change-ledger.json.
+  const reviewedAppConfigSha256 = "92b523e593373083dcc0898e9c1eac69653cebe0f55cec2ac84e75af2b08d664";
+  for (const [file, historical] of Object.entries(hashes)) {
+    const expected = file === "app.config.js" ? reviewedAppConfigSha256 : historical;
+    assert.equal(crypto.createHash("sha256").update(fs.readFileSync(path.join(root, file))).digest("hex"), expected, file);
+  }
 });

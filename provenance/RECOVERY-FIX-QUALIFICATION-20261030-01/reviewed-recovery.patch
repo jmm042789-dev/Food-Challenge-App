@@ -1,0 +1,284 @@
+diff --git a/frontend/app/play/[contestId].tsx b/frontend/app/play/[contestId].tsx
+--- a/frontend/app/play/[contestId].tsx
++++ b/frontend/app/play/[contestId].tsx
+@@ -150,7 +150,7 @@
+   const [feedbackText, setFeedbackText] = useState<string | null>(null);
+   const [showScore, setShowScore] = useState(false);
+   const [comboLabel, setComboLabel] = useState("COMBO");
++  const highestCombo = state.maximumCombo;
+-  const [highestCombo, setHighestCombo] = useState(0);
+   const [matchTime, setMatchTime] = useState(0);
+   const [roundLabel, setRoundLabel] = useState("WORLD TOUR EVENT");
+   const [coolingTrigger, setCoolingTrigger] = useState(0);
+@@ -263,13 +263,14 @@
+       const recoveryElapsedMs = Math.max(pending.elapsedMs,
+         matchStartedAt.current === null ? pending.elapsedMs : Date.now() - matchStartedAt.current);
+       if (!resumeGame(pending.state, recoveryElapsedMs)) {
++        inputLogPersistence.suspend();
+         setMatchStartFailureMessage("This recovered match could not be resumed safely.");
+         setMatchStartError(true);
+       }
+       return;
+     }
+     startMatchIntro();
++  }, [contestLoaded, identityHydrated, inputLogPersistence, resumeGame, startMatchIntro]);
+-  }, [contestLoaded, identityHydrated, resumeGame, startMatchIntro]);
+ 
+   useEffect(() => {
+     if (!feedbackText) return;
+@@ -308,10 +309,6 @@
+   }, [captureRecoveryState, inputLog, inputLogPersistence]);
+ 
+   useEffect(() => {
+-    setHighestCombo((current) => Math.max(current, state.combo));
+-  }, [state.combo]);
+-
+-  useEffect(() => {
+     if (state.combo !== lastCameraCombo.current) {
+       lastCameraCombo.current = state.combo;
+       if (state.combo >= 5 && state.combo % 5 === 0) {
+@@ -472,7 +469,7 @@
+       duration_sec: duration,
+       accepted_taps: state.acceptedTapCount,
+       completed_progress: state.completedProgress,
++      maximum_combo: state.maximumCombo,
+-      maximum_combo: highestCombo,
+       opponent_id: opponentId,
+       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
+       completion_reason: "timer_completed",
+@@ -577,7 +574,7 @@
+         resultAbortController.current = null;
+       }
+     });
++  }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.maximumCombo, state.score, state.status, tournamentOccurrenceId]);
+-  }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
+ 
+   useEffect(() => {
+     let mounted = true;
+diff --git a/frontend/src/game/activeMatchInputLog.d.ts b/frontend/src/game/activeMatchInputLog.d.ts
+--- a/frontend/src/game/activeMatchInputLog.d.ts
++++ b/frontend/src/game/activeMatchInputLog.d.ts
+@@ -24,6 +24,7 @@
+   schedule(buffer: InputLogBuffer, gameplayState?: unknown | (() => unknown)): void;
+   flush(buffer: InputLogBuffer, gameplayState?: unknown, finalized?: boolean): Promise<boolean>;
+   clear(): Promise<void>;
++  suspend(): void;
+   cancel(): void;
+ };
+ export const ACTIVE_MATCH_INPUT_LOG_KEY: string;
+diff --git a/frontend/src/game/activeMatchInputLog.js b/frontend/src/game/activeMatchInputLog.js
+--- a/frontend/src/game/activeMatchInputLog.js
++++ b/frontend/src/game/activeMatchInputLog.js
+@@ -114,6 +114,7 @@
+       await writes.catch(() => {});
+       await storage.removeItem(ACTIVE_MATCH_INPUT_LOG_KEY);
+     },
++    suspend() { cancel(); identity = null; },
+     cancel,
+   };
+ }
+diff --git a/frontend/src/game/useGameLoop.ts b/frontend/src/game/useGameLoop.ts
+--- a/frontend/src/game/useGameLoop.ts
++++ b/frontend/src/game/useGameLoop.ts
+@@ -70,6 +70,7 @@
+ export interface GameState {
+   score: number;
+   combo: number;
++  maximumCombo: number;
+   acceptedTapCount: number;
+   completedProgress: number;
+   status: GameStatus;
+@@ -107,6 +108,7 @@
+   capturedElapsedMs: number;
+   scoreRaw: number;
+   combo: number;
++  maximumCombo?: number;
+   acceptedTapCount: number;
+   completedProgress: number;
+   heartburn: number;
+@@ -137,6 +139,7 @@
+ const initialState = (antacidCount: number): GameState => ({
+   score: 0,
+   combo: 0,
++  maximumCombo: 0,
+   acceptedTapCount: 0,
+   completedProgress: 0,
+   status: "IDLE",
+@@ -189,6 +192,7 @@
+ 
+   const scoreRef = useRef(0);
+   const comboRef = useRef(0);
++  const maximumComboRef = useRef(0);
+   const statusRef = useRef<GameStatus>("IDLE");
+   const lastTapRef = useRef(0);
+   const heartburnRef = useRef(0);
+@@ -569,6 +573,7 @@
+     matchGenerationRef.current += 1;
+     scoreRef.current = 0;
+     comboRef.current = 0;
++    maximumComboRef.current = 0;
+     acceptedActionSequenceRef.current = 0;
+     acceptedTapCountRef.current = 0;
+     lastTapRef.current = 0;
+@@ -626,9 +631,7 @@
+     resetMatch();
+   }, [matchKey, resetMatch]);
+ 
++  const finalizeOpponentScore = useCallback(() => {
+-  const endGame = useCallback(() => {
+-    stopAllTimers();
+-    statusRef.current = "FINISHED";
+     const finalOpponentScore = opponentConfig?.finalScore
+       ?? Math.floor(opponentStateRef.current.score);
+     opponentStateRef.current = {
+@@ -636,6 +639,12 @@
+       score: finalOpponentScore,
+     };
+     setOpponentScore(finalOpponentScore);
++  }, [opponentConfig?.finalScore]);
++
++  const endGame = useCallback(() => {
++    stopAllTimers();
++    statusRef.current = "FINISHED";
++    finalizeOpponentScore();
+     setState((old) => ({
+       ...old,
+       status: "FINISHED",
+@@ -648,7 +657,7 @@
+       freshStomachRemainingMs: 0,
+       freshStomachMultiplier: 1,
+     }));
++  }, [finalizeOpponentScore, stopAllTimers]);
+-  }, [opponentConfig?.finalScore, stopAllTimers]);
+ 
+   const synchronizeMatchClock = useCallback(() => {
+     if (statusRef.current !== "PLAYING" || matchDeadlineRef.current === null) return;
+@@ -748,6 +757,7 @@
+       capturedElapsedMs: elapsedMs,
+       scoreRaw: scoreRef.current,
+       combo: comboRef.current,
++      maximumCombo: maximumComboRef.current,
+       acceptedTapCount: acceptedTapCountRef.current,
+       completedProgress: acceptedActionSequenceRef.current,
+       heartburn: heartburnRef.current,
+@@ -777,6 +787,12 @@
+     )) return false;
+     const numeric = [saved.scoreRaw, saved.combo, saved.acceptedTapCount, saved.completedProgress, saved.heartburn, saved.antacidCount];
+     if (numeric.some((value) => !Number.isFinite(value) || value < 0)) return false;
++    // Only an empty legacy checkpoint proves a zero historical maximum.
++    // Nonempty older checkpoints remain intact for support; never guess telemetry.
++    const maximumCombo = saved.maximumCombo ?? (
++      saved.acceptedTapCount === 0 && saved.combo === 0 && saved.completedProgress === 0 && saved.scoreRaw === 0 ? 0 : NaN
++    );
++    if (!Number.isInteger(maximumCombo) || maximumCombo < saved.combo || maximumCombo > saved.acceptedTapCount) return false;
+     stopAllTimers();
+     matchGenerationRef.current += 1;
+     const now = Date.now();
+@@ -817,6 +833,7 @@
+     }
+     scoreRef.current = recoveredScore;
+     comboRef.current = recoveredCombo;
++    maximumComboRef.current = maximumCombo;
+     acceptedTapCountRef.current = saved.acceptedTapCount;
+     acceptedActionSequenceRef.current = saved.completedProgress;
+     heartburnRef.current = recoveredHeat;
+@@ -836,6 +853,12 @@
+     const remaining = Math.ceil(remainingMs / 1000);
+     timeRemainingRef.current = remaining;
+     statusRef.current = remaining > 0 ? "PLAYING" : "FINISHED";
++    if (remaining === 0) finalizeOpponentScore();
++    else if (opponentConfig) {
++      const recoveredOpponentScore = authoritativeOpponentScoreAtElapsed(opponentConfig, Math.min(elapsedMs, resolvedMatchDuration * 1000) / 1000);
++      opponentStateRef.current = { ...opponentStateRef.current, score: recoveredOpponentScore };
++      setOpponentScore(recoveredOpponentScore);
++    }
+     setTimeRemaining(remaining);
+     setShowCountdown(false);
+     setPresentationEvents([]);
+@@ -843,6 +866,7 @@
+       ...initialState(antacidCountRef.current),
+       score: Math.floor(recoveredScore),
+       combo: comboRef.current,
++      maximumCombo: maximumComboRef.current,
+       acceptedTapCount: acceptedTapCountRef.current,
+       completedProgress: acceptedActionSequenceRef.current,
+       status: statusRef.current,
+@@ -872,7 +896,7 @@
+       gameTimerRef.current = setInterval(synchronizeMatchClock, 1000);
+     }
+     return true;
++  }, [applyOverheatPenalty, endGame, finalizeOpponentScore, finishOverheatPenalty, opponentConfig, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers, synchronizeMatchClock]);
+-  }, [applyOverheatPenalty, endGame, finishOverheatPenalty, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers, synchronizeMatchClock]);
+ 
+   const tap = useCallback((occurredAt?: number): number | null => {
+     const now = occurredAt ?? Date.now();
+@@ -897,6 +921,7 @@
+       heartburnRef.current,
+     );
+     comboRef.current = delta > 0 && delta <= comboWindowMs ? comboRef.current + 1 : 0;
++    maximumComboRef.current = Math.max(maximumComboRef.current, comboRef.current);
+     let gain = comboRef.current >= 20 ? 3 : comboRef.current >= 10 ? 2 : comboRef.current >= 5 ? 1.5 : 1;
+     if (heatProtectionEndsAtRef.current <= now && warningEndsAtRef.current <= now) {
+       const oldTier = heatTierRef.current;
+@@ -930,6 +955,7 @@
+       ...old,
+       score: Math.floor(scoreRef.current),
+       combo: comboRef.current,
++      maximumCombo: maximumComboRef.current,
+       acceptedTapCount: acceptedTapCountRef.current,
+       completedProgress: acceptedActionSequence,
+       heartburn: heartburnRef.current,
+diff --git a/frontend/tests/burnout-timeline-diagnostics.test.js b/frontend/tests/burnout-timeline-diagnostics.test.js
+--- a/frontend/tests/burnout-timeline-diagnostics.test.js
++++ b/frontend/tests/burnout-timeline-diagnostics.test.js
+@@ -167,6 +167,7 @@
+     capturedElapsedMs: 1000,
+     scoreRaw: 0,
+     combo: 0,
++    maximumCombo: 0,
+     acceptedTapCount: 1,
+     completedProgress: 1,
+     heartburn: 50,
+diff --git a/frontend/tests/helpers/gameplay-harness.js b/frontend/tests/helpers/gameplay-harness.js
+--- a/frontend/tests/helpers/gameplay-harness.js
++++ b/frontend/tests/helpers/gameplay-harness.js
+@@ -16,7 +16,7 @@
+ 
+ function harness(dev = true, diagnosticFlag, fresh = false, options = {}) {
+   let now = 10000, clockReads = 0, updates = 0, nextTimer = 0;
++  const timers = new Map(), records = [], hookStates = [];
+-  const timers = new Map(), records = [];
+   class Clock extends Date { static now() { clockReads++; return now; } }
+   const react = {
+     memo: fn => fn,
+@@ -26,8 +26,9 @@
+     useRef: (value) => ({ current: value }),
+     useEffect() {},
+     useState: (initial) => {
++      const index = hookStates.length;
++      hookStates.push(typeof initial === "function" ? initial() : initial);
++      return [hookStates[index], (next) => { updates++; hookStates[index] = typeof next === "function" ? next(hookStates[index]) : next; }];
+-      let value = typeof initial === "function" ? initial() : initial;
+-      return [value, (next) => { updates++; value = typeof next === "function" ? next(value) : next; }];
+     },
+   };
+   react.default = react;
+@@ -75,7 +76,7 @@
+   const gameModule = load(path.join(__dirname, "../../src/game/useGameLoop.ts"));
+   context.burnoutTimelineDiagnosticsEnabled = gameModule.burnoutTimelineDiagnosticsEnabled;
+   const loop = gameModule.useGameLoop({ foodId: "nathans", ...options.loop });
++  const saved = { version: 1, recoverable: true, capturedElapsedMs: 0, scoreRaw: 17, combo: 3, maximumCombo: 3, acceptedTapCount: 4, completedProgress: 4, heartburn: 99, antacidCount: 3, lastTapMs: null, heatProtectionUntilMs: 0, freshStomachUntilMs: 0, lastOverheatAtMs: null, criticalCycleActive: false, perfectCooldownEligible: false };
+-  const saved = { version: 1, recoverable: true, capturedElapsedMs: 0, scoreRaw: 17, combo: 3, acceptedTapCount: 4, completedProgress: 4, heartburn: 99, antacidCount: 3, lastTapMs: null, heatProtectionUntilMs: 0, freshStomachUntilMs: 0, lastOverheatAtMs: null, criticalCycleActive: false, perfectCooldownEligible: false };
+   if (fresh) {
+     loop.startGame();
+     const countdown = [...timers.values()][0];
+@@ -85,6 +86,8 @@
+   }
+   return {
+     loop, records, timers, context, load, react,
++    latestState: () => hookStates[0],
++    latestOpponentScore: () => hookStates[2],
+     evaluate(source, bindings) {
+       Object.assign(context, bindings);
+       return vm.runInContext(compile(source), context);
+

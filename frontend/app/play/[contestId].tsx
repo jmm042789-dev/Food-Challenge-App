@@ -150,7 +150,7 @@ export default function ContestScreen() {
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
   const [showScore, setShowScore] = useState(false);
   const [comboLabel, setComboLabel] = useState("COMBO");
-  const [highestCombo, setHighestCombo] = useState(0);
+  const highestCombo = state.maximumCombo;
   const [matchTime, setMatchTime] = useState(0);
   const [roundLabel, setRoundLabel] = useState("WORLD TOUR EVENT");
   const [coolingTrigger, setCoolingTrigger] = useState(0);
@@ -263,13 +263,14 @@ export default function ContestScreen() {
       const recoveryElapsedMs = Math.max(pending.elapsedMs,
         matchStartedAt.current === null ? pending.elapsedMs : Date.now() - matchStartedAt.current);
       if (!resumeGame(pending.state, recoveryElapsedMs)) {
+        inputLogPersistence.suspend();
         setMatchStartFailureMessage("This recovered match could not be resumed safely.");
         setMatchStartError(true);
       }
       return;
     }
     startMatchIntro();
-  }, [contestLoaded, identityHydrated, resumeGame, startMatchIntro]);
+  }, [contestLoaded, identityHydrated, inputLogPersistence, resumeGame, startMatchIntro]);
 
   useEffect(() => {
     if (!feedbackText) return;
@@ -306,10 +307,6 @@ export default function ContestScreen() {
     if (antacidAcknowledgementTimer.current) clearTimeout(antacidAcknowledgementTimer.current);
     void inputLogPersistence.flush(inputLog, captureRecoveryState(inputLog.elapsed()));
   }, [captureRecoveryState, inputLog, inputLogPersistence]);
-
-  useEffect(() => {
-    setHighestCombo((current) => Math.max(current, state.combo));
-  }, [state.combo]);
 
   useEffect(() => {
     if (state.combo !== lastCameraCombo.current) {
@@ -472,7 +469,7 @@ export default function ContestScreen() {
       duration_sec: duration,
       accepted_taps: state.acceptedTapCount,
       completed_progress: state.completedProgress,
-      maximum_combo: highestCombo,
+      maximum_combo: state.maximumCombo,
       opponent_id: opponentId,
       tums_used: Math.max(0, (playerAntacidCount ?? antacidCount) - antacidCount),
       completion_reason: "timer_completed",
@@ -577,7 +574,7 @@ export default function ContestScreen() {
         resultAbortController.current = null;
       }
     });
-  }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.score, state.status, tournamentOccurrenceId]);
+  }, [antacidCount, captureRecoveryState, highestCombo, inputLog, inputLogPersistence, isPvp, matchDurationSeconds, matchRouteKey, opponentScore, playerAntacidCount, pvpMatchId, resultFlow.attempt, resultFlow.deadlineAt, resultFlow.generation, resultFlow.phase, resultSubmission, router, selectedContestId, state.acceptedTapCount, state.completedProgress, state.maximumCombo, state.score, state.status, tournamentOccurrenceId]);
 
   useEffect(() => {
     let mounted = true;

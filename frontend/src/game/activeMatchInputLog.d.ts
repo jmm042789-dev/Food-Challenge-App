@@ -24,6 +24,7 @@ export type ActiveMatchInputLogPersistence = {
   schedule(buffer: InputLogBuffer, gameplayState?: unknown | (() => unknown)): void;
   flush(buffer: InputLogBuffer, gameplayState?: unknown, finalized?: boolean): Promise<boolean>;
   clear(): Promise<void>;
+  suspend(): void;
   cancel(): void;
 };
 export const ACTIVE_MATCH_INPUT_LOG_KEY: string;

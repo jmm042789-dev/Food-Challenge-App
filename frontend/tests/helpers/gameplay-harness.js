@@ -16,7 +16,7 @@ function compile(source) {
 
 function harness(dev = true, diagnosticFlag, fresh = false, options = {}) {
   let now = 10000, clockReads = 0, updates = 0, nextTimer = 0;
-  const timers = new Map(), records = [];
+  const timers = new Map(), records = [], hookStates = [];
   class Clock extends Date { static now() { clockReads++; return now; } }
   const react = {
     memo: fn => fn,
@@ -26,8 +26,9 @@ function harness(dev = true, diagnosticFlag, fresh = false, options = {}) {
     useRef: (value) => ({ current: value }),
     useEffect() {},
     useState: (initial) => {
-      let value = typeof initial === "function" ? initial() : initial;
-      return [value, (next) => { updates++; value = typeof next === "function" ? next(value) : next; }];
+      const index = hookStates.length;
+      hookStates.push(typeof initial === "function" ? initial() : initial);
+      return [hookStates[index], (next) => { updates++; hookStates[index] = typeof next === "function" ? next(hookStates[index]) : next; }];
     },
   };
   react.default = react;
@@ -75,7 +76,7 @@ function harness(dev = true, diagnosticFlag, fresh = false, options = {}) {
   const gameModule = load(path.join(__dirname, "../../src/game/useGameLoop.ts"));
   context.burnoutTimelineDiagnosticsEnabled = gameModule.burnoutTimelineDiagnosticsEnabled;
   const loop = gameModule.useGameLoop({ foodId: "nathans", ...options.loop });
-  const saved = { version: 1, recoverable: true, capturedElapsedMs: 0, scoreRaw: 17, combo: 3, acceptedTapCount: 4, completedProgress: 4, heartburn: 99, antacidCount: 3, lastTapMs: null, heatProtectionUntilMs: 0, freshStomachUntilMs: 0, lastOverheatAtMs: null, criticalCycleActive: false, perfectCooldownEligible: false };
+  const saved = { version: 1, recoverable: true, capturedElapsedMs: 0, scoreRaw: 17, combo: 3, maximumCombo: 3, acceptedTapCount: 4, completedProgress: 4, heartburn: 99, antacidCount: 3, lastTapMs: null, heatProtectionUntilMs: 0, freshStomachUntilMs: 0, lastOverheatAtMs: null, criticalCycleActive: false, perfectCooldownEligible: false };
   if (fresh) {
     loop.startGame();
     const countdown = [...timers.values()][0];
@@ -85,6 +86,8 @@ function harness(dev = true, diagnosticFlag, fresh = false, options = {}) {
   }
   return {
     loop, records, timers, context, load, react,
+    latestState: () => hookStates[0],
+    latestOpponentScore: () => hookStates[2],
     evaluate(source, bindings) {
       Object.assign(context, bindings);
       return vm.runInContext(compile(source), context);

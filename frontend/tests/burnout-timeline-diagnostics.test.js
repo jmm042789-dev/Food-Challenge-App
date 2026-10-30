@@ -167,6 +167,7 @@ test("recovered cooling remains active even when the saved heat shield extends b
     capturedElapsedMs: 1000,
     scoreRaw: 0,
     combo: 0,
+    maximumCombo: 0,
     acceptedTapCount: 1,
     completedProgress: 1,
     heartburn: 50,

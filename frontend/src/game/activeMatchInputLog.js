@@ -114,6 +114,7 @@ function createActiveMatchInputLogPersistence(storage, options = {}) {
       await writes.catch(() => {});
       await storage.removeItem(ACTIVE_MATCH_INPUT_LOG_KEY);
     },
+    suspend() { cancel(); identity = null; },
     cancel,
   };
 }

@@ -70,6 +70,7 @@ export type GameplayPresentationEvent = {
 export interface GameState {
   score: number;
   combo: number;
+  maximumCombo: number;
   acceptedTapCount: number;
   completedProgress: number;
   status: GameStatus;
@@ -107,6 +108,7 @@ export interface GameplayRecoveryState {
   capturedElapsedMs: number;
   scoreRaw: number;
   combo: number;
+  maximumCombo?: number;
   acceptedTapCount: number;
   completedProgress: number;
   heartburn: number;
@@ -137,6 +139,7 @@ const debugLog = (...args: unknown[]) => {
 const initialState = (antacidCount: number): GameState => ({
   score: 0,
   combo: 0,
+  maximumCombo: 0,
   acceptedTapCount: 0,
   completedProgress: 0,
   status: "IDLE",
@@ -189,6 +192,7 @@ export function useGameLoop({
 
   const scoreRef = useRef(0);
   const comboRef = useRef(0);
+  const maximumComboRef = useRef(0);
   const statusRef = useRef<GameStatus>("IDLE");
   const lastTapRef = useRef(0);
   const heartburnRef = useRef(0);
@@ -569,6 +573,7 @@ export function useGameLoop({
     matchGenerationRef.current += 1;
     scoreRef.current = 0;
     comboRef.current = 0;
+    maximumComboRef.current = 0;
     acceptedActionSequenceRef.current = 0;
     acceptedTapCountRef.current = 0;
     lastTapRef.current = 0;
@@ -626,9 +631,7 @@ export function useGameLoop({
     resetMatch();
   }, [matchKey, resetMatch]);
 
-  const endGame = useCallback(() => {
-    stopAllTimers();
-    statusRef.current = "FINISHED";
+  const finalizeOpponentScore = useCallback(() => {
     const finalOpponentScore = opponentConfig?.finalScore
       ?? Math.floor(opponentStateRef.current.score);
     opponentStateRef.current = {
@@ -636,6 +639,12 @@ export function useGameLoop({
       score: finalOpponentScore,
     };
     setOpponentScore(finalOpponentScore);
+  }, [opponentConfig?.finalScore]);
+
+  const endGame = useCallback(() => {
+    stopAllTimers();
+    statusRef.current = "FINISHED";
+    finalizeOpponentScore();
     setState((old) => ({
       ...old,
       status: "FINISHED",
@@ -648,7 +657,7 @@ export function useGameLoop({
       freshStomachRemainingMs: 0,
       freshStomachMultiplier: 1,
     }));
-  }, [opponentConfig?.finalScore, stopAllTimers]);
+  }, [finalizeOpponentScore, stopAllTimers]);
 
   const synchronizeMatchClock = useCallback(() => {
     if (statusRef.current !== "PLAYING" || matchDeadlineRef.current === null) return;
@@ -748,6 +757,7 @@ export function useGameLoop({
       capturedElapsedMs: elapsedMs,
       scoreRaw: scoreRef.current,
       combo: comboRef.current,
+      maximumCombo: maximumComboRef.current,
       acceptedTapCount: acceptedTapCountRef.current,
       completedProgress: acceptedActionSequenceRef.current,
       heartburn: heartburnRef.current,
@@ -777,6 +787,12 @@ export function useGameLoop({
     )) return false;
     const numeric = [saved.scoreRaw, saved.combo, saved.acceptedTapCount, saved.completedProgress, saved.heartburn, saved.antacidCount];
     if (numeric.some((value) => !Number.isFinite(value) || value < 0)) return false;
+    // Only an empty legacy checkpoint proves a zero historical maximum.
+    // Nonempty older checkpoints remain intact for support; never guess telemetry.
+    const maximumCombo = saved.maximumCombo ?? (
+      saved.acceptedTapCount === 0 && saved.combo === 0 && saved.completedProgress === 0 && saved.scoreRaw === 0 ? 0 : NaN
+    );
+    if (!Number.isInteger(maximumCombo) || maximumCombo < saved.combo || maximumCombo > saved.acceptedTapCount) return false;
     stopAllTimers();
     matchGenerationRef.current += 1;
     const now = Date.now();
@@ -817,6 +833,7 @@ export function useGameLoop({
     }
     scoreRef.current = recoveredScore;
     comboRef.current = recoveredCombo;
+    maximumComboRef.current = maximumCombo;
     acceptedTapCountRef.current = saved.acceptedTapCount;
     acceptedActionSequenceRef.current = saved.completedProgress;
     heartburnRef.current = recoveredHeat;
@@ -836,6 +853,12 @@ export function useGameLoop({
     const remaining = Math.ceil(remainingMs / 1000);
     timeRemainingRef.current = remaining;
     statusRef.current = remaining > 0 ? "PLAYING" : "FINISHED";
+    if (remaining === 0) finalizeOpponentScore();
+    else if (opponentConfig) {
+      const recoveredOpponentScore = authoritativeOpponentScoreAtElapsed(opponentConfig, Math.min(elapsedMs, resolvedMatchDuration * 1000) / 1000);
+      opponentStateRef.current = { ...opponentStateRef.current, score: recoveredOpponentScore };
+      setOpponentScore(recoveredOpponentScore);
+    }
     setTimeRemaining(remaining);
     setShowCountdown(false);
     setPresentationEvents([]);
@@ -843,6 +866,7 @@ export function useGameLoop({
       ...initialState(antacidCountRef.current),
       score: Math.floor(recoveredScore),
       combo: comboRef.current,
+      maximumCombo: maximumComboRef.current,
       acceptedTapCount: acceptedTapCountRef.current,
       completedProgress: acceptedActionSequenceRef.current,
       status: statusRef.current,
@@ -872,7 +896,7 @@ export function useGameLoop({
       gameTimerRef.current = setInterval(synchronizeMatchClock, 1000);
     }
     return true;
-  }, [applyOverheatPenalty, endGame, finishOverheatPenalty, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers, synchronizeMatchClock]);
+  }, [applyOverheatPenalty, endGame, finalizeOpponentScore, finishOverheatPenalty, opponentConfig, resolvedMatchDuration, startCoolingLoop, startOpponentLoop, stopAllTimers, synchronizeMatchClock]);
 
   const tap = useCallback((occurredAt?: number): number | null => {
     const now = occurredAt ?? Date.now();
@@ -897,6 +921,7 @@ export function useGameLoop({
       heartburnRef.current,
     );
     comboRef.current = delta > 0 && delta <= comboWindowMs ? comboRef.current + 1 : 0;
+    maximumComboRef.current = Math.max(maximumComboRef.current, comboRef.current);
     let gain = comboRef.current >= 20 ? 3 : comboRef.current >= 10 ? 2 : comboRef.current >= 5 ? 1.5 : 1;
     if (heatProtectionEndsAtRef.current <= now && warningEndsAtRef.current <= now) {
       const oldTier = heatTierRef.current;
@@ -930,6 +955,7 @@ export function useGameLoop({
       ...old,
       score: Math.floor(scoreRef.current),
       combo: comboRef.current,
+      maximumCombo: maximumComboRef.current,
       acceptedTapCount: acceptedTapCountRef.current,
       completedProgress: acceptedActionSequence,
       heartburn: heartburnRef.current,
